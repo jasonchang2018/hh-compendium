@@ -1,0 +1,18 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.ruff_cache/
+
+# Virtual environments
+.venv
+.env
+qlik_metadata.json
+talend_metadata.json
+documentation/
+full-documentation/
+.claude/settings.local.json
+!src/documentation/
