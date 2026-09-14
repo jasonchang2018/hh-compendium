@@ -1,0 +1,22 @@
+# LLM configuration for the automated AI documentation enrichment stage
+# (src/documentation/ai_enrich_documentation.py, Step 6 of the pipeline).
+#
+# The API key itself is NEVER stored here — it's read from the
+# ANTHROPIC_API_KEY environment variable at runtime. This file only carries
+# non-secret model/behavior settings.
+
+llm:
+  provider: anthropic
+
+  # Verify current model identifiers at https://docs.claude.com before
+  # running against real jobs — reflects what's current as of setup time,
+  # not a live check.
+  model: claude-sonnet-5
+  # model: claude-opus-5                     # for a small number of genuinely complex/ambiguous jobs
+  # model: claude-haiku-4-5-20251001          # for a cheap first full-inventory pass
+
+  max_tokens: 4096
+  temperature: 0.2   # low — factual documentation, not creative writing
+
+# Per-run override:
+#   uv run src/documentation/ai_enrich_documentation.py --model claude-opus-5
