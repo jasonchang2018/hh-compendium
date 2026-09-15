@@ -1,310 +1,226 @@
-# Talend Job: `Address_Text_Load`
+# Talend Job: Address_Text_Load
 
-## Overview
+**Project:** LATITUDE | **Type:** Standard Talend Job
 
-This job loads debtor address records that arrive as delimited text files into a
-Snowflake table, then cleans up after itself. It opens a Snowflake session, runs a
-preparatory SQL statement, walks every file in a source directory, parses each one,
-adds two extra columns to every row, counts the rows as they pass, and inserts them
-into Snowflake. Once the load finishes it runs two activities in parallel: a second
-Snowflake SQL statement, and a housekeeping branch that zips each processed file into
-an archive directory and then deletes the original. Everything the job touches on disk
-is driven by context (environment) variables, so the same job is intended to run
-against different directories in different environments.
+## 1. Overview
 
-## Detail table
+`Address_Text_Load` ingests debtor address records into Snowflake. The job
+scans a configurable source directory for delimited text files, parses each
+file, appends a load timestamp and a last-modified indicator to every
+record, and writes the resulting rows to a Snowflake table. In parallel, it
+executes a secondary SQL step against Snowflake, archives the processed
+source file to a zip, and removes the file from the source directory. Prior
+to execution, the job configures an SSL trust store and establishes the
+Snowflake connection used downstream.
+
+The extracted metadata does not show an explicit link between the
+connection-setup sequence and the data-loading sequence; how the two are
+related at runtime could not be confirmed from the available metadata (see
+Section 7, *Issues Observed*).
+
+## 2. Job Details
 
 | Field | Value |
 |---|---|
-| Job name | `Address_Text_Load` |
+| Job name | Address_Text_Load |
 | Version | 0.1 |
 | Project | LATITUDE |
-| Job type | Standard |
 | Author | jmach@harriscollect.com |
 | Created | 2025-08-04T10:40:42.490-0700 |
 | Last modified | 2026-07-12T13:49:17.054-0700 |
 
-> The version has never been incremented past 0.1 despite roughly eleven months
-> between creation and the last edit. Treat the version number as unreliable for
-> change tracking.
+## 3. Data Flow
 
-## Step-by-step data flow
+1. **Initialization.** `tPrejob_1` runs first to sequence setup ahead of
+   the main job. `tJava_1` executes custom code that appends a value to
+   `context.archiveDir` (the appended value is truncated in the extracted
+   metadata but appears to construct the archive destination path).
+   `tSetKeystore_1` then configures the SSL trust store used for secure
+   connections, and `tDBConnection_1` establishes the Snowflake connection.
 
-**Stage 1 — Prepare the run (pre-job).**
-`tPrejob_1` fires before the main work begins and triggers `tJava_1`. That Java snippet
-rewrites the archive directory variable in place: `context.archiveDir = context.archiveDir + TalendDa…`
-(the extract truncates the line, but it concatenates a Talend date value onto the
-configured archive path). The practical effect is that the archive folder is
-date-stamped at runtime rather than being a fixed path.
+2. **File discovery.** `tFileList_1` enumerates the files present in
+   `context.sourceDir` (files only, subdirectories excluded).
+   `tDBRow_1` executes immediately beforehand and is wired to trigger this
+   step, though the SQL it runs is not present in the extracted metadata.
 
-**Stage 2 — Set up TLS, then connect to Snowflake.**
-On success, control passes to `tSetKeystore_1`, which configures the Java keystore /
-truststore used for SSL, and then to `tDBConnection_1` (`tSnowflakeConnection`), which
-opens the Snowflake session that the rest of the job shares.
+3. **Read and transform.** For each file identified, `tJava_2` assigns the
+   current file to `context.filePath`, and `tFileInputDelimited_1` parses
+   the file using `|$|` as the row delimiter — a non-standard choice, as
+   most delimited files use a line break. `tMap_1` maps the parsed columns
+   to the output schema and adds two computed columns, `LOAD_DT` and
+   `LASTMODIFIED`. This component is configured to terminate the job on a
+   mapping error (`DIE_ON_ERROR`). `tFlowMeter_1` records a row count
+   without altering the data, and `tDBOutput_1` writes the resulting rows
+   to a Snowflake table.
 
-**Stage 3 — Run a preparatory SQL statement.**
-`tDBRow_1` (`tSnowflakeRow`) executes a SQL statement against Snowflake. The statement
-text is not present in the extracted metadata (the component's `PROPERTIES` value is
-truncated), so **what this SQL does is unable to be determined from metadata — verify
-with team.** Typical uses are truncating a staging table or setting a session
-parameter. Note that **nothing in the extracted flow connects `tDBConnection_1` to
-`tDBRow_1`** — see *Issues observed*.
+4. **File property capture (parallel path).** For the same file,
+   `tFileProperties_1` retrieves filesystem attributes (path, size,
+   modification time), and `tJavaRow_1` applies custom code to this data.
+   The purpose of this transformation is not evident from the metadata
+   beyond the schema matching the file-properties output.
 
-**Stage 4 — Find the input files.**
-`tDBRow_1` hands off to `tFileList_1`, which lists every file directly inside
-`context.sourceDir` (subdirectories excluded) and iterates over them one at a time.
+5. **Archival.** Once file discovery (step 2) completes,
+   `tParallelize_1` initiates two concurrent branches. The first
+   re-enumerates the source directory (`tFileList_2`), resolves each file
+   path (`tJava_3`), and compresses the file into the archive directory
+   (`tFileArchive_1`). The second executes a further Snowflake SQL
+   statement (`tDBRow_2`).
 
-**Stage 5 — Remember which file is current.**
-For each file, `tJava_2` copies the current filename out of Talend's runtime map into
-`context.filePath` (`context.filePath=((String)globalMap.get("tFileList…`). Downstream
-components read that variable rather than the iterator directly.
+6. **Deletion.** Following completion of the archive-listing branch
+   (`tFileList_2`), the job re-enumerates the source directory a third
+   time (`tFileList_3`), resolves each file path (`tJava_4`), and deletes
+   the file (`tFileDelete_1`). This step is configured to fail the job if
+   deletion is unsuccessful.
 
-**Stage 6 — Parse the file.**
-`tFileInputDelimited_1` reads `context.filePath` as a delimited text file using the
-custom row separator `"|$|"` and produces a 29-column record layout (`ADDRESSID`,
-`DEBTORASSOCIATIONID`, `DEBTORID`, type/status codes, flags, the street/city/county/
-country/postal fields, and the created/modified audit columns).
+```mermaid
+graph LR
+    tPrejob_1 -->|COMPONENT_OK| tJava_1
+    tJava_1 -->|SUBJOB_OK| tSetKeystore_1
+    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
+    tDBRow_1 -->|SUBJOB_OK| tFileList_1
+    tFileList_1 -->|ITERATE| tJava_2
+    tFileList_1 -->|SUBJOB_OK| tParallelize_1
+    tJava_2 -->|ITERATE| tFileInputDelimited_1
+    tFileInputDelimited_1 -->|FLOW| tMap_1
+    tFileInputDelimited_1 -->|ITERATE| tFileProperties_1
+    tFileProperties_1 -->|FLOW| tJavaRow_1
+    tMap_1 -->|FLOW| tFlowMeter_1
+    tFlowMeter_1 -->|FLOW| tDBOutput_1
+    tParallelize_1 -->|PARALLELIZE| tFileList_2
+    tParallelize_1 -->|PARALLELIZE| tDBRow_2
+    tFileList_2 -->|ITERATE| tJava_3
+    tJava_3 -->|ITERATE| tFileArchive_1
+    tFileList_2 -->|SUBJOB_OK| tFileList_3
+    tFileList_3 -->|ITERATE| tJava_4
+    tJava_4 -->|ITERATE| tFileDelete_1
+```
 
-**Stage 7 — Collect file properties (side branch).**
-The same component also iterates into `tFileProperties_1`, which reads operating-system
-facts about `context.filePath` — absolute path, directory, base name, permissions
-string, size, and modified time — and passes them to `tJavaRow_1`. `tJavaRow_1` has no
-outgoing link in the extracted flow, so where these values end up is not visible in the
-metadata.
+## 4. Settings
 
-**Stage 8 — Add the two derived columns.**
-`tMap_1` takes the 29 parsed columns and emits 31: it prepends `LOAD_DT` (a date,
-non-nullable) and `LASTMODIFIED` (a decimal, nullable). The mapping expressions are not
-present in the extract, so the exact sources of those two values are **unable to be
-determined from metadata — verify with team.** `LASTMODIFIED` is plausibly the `mtime`
-captured in Stage 7, but that link is not evidenced. `tMap_1` is set to `DIE_ON_ERROR=true`,
-so a mapping failure aborts the job rather than skipping the row.
+### 4.1 `tDBConnection_1` (`tSnowflakeConnection`) — Connection Setup
 
-**Stage 9 — Count the rows.**
-`tFlowMeter_1` passes rows through unchanged while recording a row count for
-monitoring, in absolute (not relative) mode.
-
-**Stage 10 — Write to Snowflake.**
-`tDBOutput_1` (`tSnowflakeOutput`) inserts the 31 columns into a Snowflake table. The
-target table name, schema, and write action (insert vs. upsert) are not present in the
-extracted metadata — **unable to determine from metadata — verify with team.** The
-component also carries nine reject columns (`columnName`, `rowNumber`, `category`,
-`character`, `errorMessage`, `byteOffset`, `line`, `sqlState`, `code`), which is the
-standard layout for rows Snowflake refuses.
-
-**Stage 11 — Fan out to post-load work.**
-Once the file loop completes, `tFileList_1` triggers `tParallelize_1`, which starts two
-branches at the same time and waits for all of them:
-
-- *Branch A — housekeeping.* `tFileList_2` lists `context.sourceDir` again; `tJava_3`
-  sets `context.filePath` for each entry; `tFileArchive_1` zips the file into
-  `context.archiveDir + context.fileName + ".zip"`, creating the directory if needed.
-  When that sub-job completes, `tFileList_3` lists the same directory a third time,
-  `tJava_4` again sets `context.filePath`, and `tFileDelete_1` deletes the file, failing
-  the step if the delete does not succeed.
-- *Branch B — second SQL statement.* `tDBRow_2` (`tSnowflakeRow`) runs another Snowflake
-  statement. Its statement text is likewise not in the extract — **unable to determine
-  from metadata — verify with team.**
-
-There is no explicit commit or close component in the extracted flow, and no `tRunJob`,
-so this job neither calls nor is shown calling any other job.
-
-## Settings tables
-
-### `tFileInputDelimited_1` — source file reader
-
-| Setting | Value | What it means |
+| Setting | Value | Meaning |
 |---|---|---|
-| `FILENAME` | `context.filePath` | Reads whichever file the current loop iteration set, rather than a fixed name. |
-| `ROWSEPARATOR` | `"|$|"` | Records are separated by the literal three characters `|$|`, not by newlines. Any tool or hand-edit that "fixes" line endings will corrupt the file. |
-| `CSV_OPTION` | `false` | Standard delimited parsing; no CSV quote/escape handling. Values containing the field delimiter will split incorrectly. |
-| `USE_EXISTING_DYNAMIC` | `false` | Columns are fixed to the declared 29-column layout, not discovered at runtime. A source file whose column order changes will load into the wrong fields. |
+| Connection format | row | Standard row-based connection mode (not bulk). |
+| Properties | Truncated in extracted metadata (`{"@id":2,"@type":"org.talend.components.snowflake...`) | The target account, warehouse, database, and schema could not be determined from the available metadata. Verify with team. |
 
-### `tFileProperties_1` — file metadata reader
+### 4.2 `tFileInputDelimited_1` — Source File
 
-| Setting | Value | What it means |
+| Setting | Value | Meaning |
 |---|---|---|
-| `FILENAME` | `context.filePath` | Inspects the file currently being processed. |
-| `MD5` | `false` | No checksum is calculated, so there is no content-integrity check on the incoming file. |
+| Filename | `context.filePath` | The source file is supplied dynamically by `tJava_2` from the current file-list entry rather than hardcoded. |
+| Row separator | `\|$\|` | Records are delimited by the literal sequence `\|$\|` rather than a standard line break — a non-standard file format requiring upstream awareness. |
+| CSV option | false | The file is not parsed using the standard CSV parser. |
+| Use existing dynamic schema | false | The column layout is fixed in the job design rather than inferred at runtime. |
 
-### `tFileList_1`, `tFileList_2`, `tFileList_3` — directory scanners
+### 4.3 `tDBOutput_1` (`tSnowflakeOutput`) — Target Table
 
-| Setting | Value | What it means |
+| Setting | Value | Meaning |
 |---|---|---|
-| `DIRECTORY` | `context.sourceDir` | All three scan the same configured drop folder. |
-| `LIST_MODE` | `FILES` | Directories are ignored; only files are returned. |
-| `INCLUDSUBDIR` | `false` | Files in subfolders are never picked up. |
-| `CASE_SENSITIVE` | `YES` | Filename matching respects upper/lower case. |
-| `ERROR` | `false` | An unreadable or missing directory does not raise an error here. |
+| Connection format | row | Standard row-based write (not bulk load). |
+| Properties | Truncated in extracted metadata (`{"@id":4,"@type":"org.talend.components.snowflake...`) | The destination table and schema could not be confirmed from the available metadata. Verify with team. |
+| Schema | Includes `columnName`, `rowNumber`, `category`, `character`, `errorMessage`, `byteOffset`, `line`, `sqlState`, `code` in addition to the address columns | These are Snowflake's standard reject/error fields, indicating a reject flow is configured for rows that fail to load. |
 
-### `tDBOutput_1` — Snowflake target
+### 4.4 `tFileArchive_1` — File Archival
 
-| Setting | Value | What it means |
+| Setting | Value | Meaning |
 |---|---|---|
-| `PROPERTIES` | `{"@id":4,"@type":"org.talend.components.snowflake.…` (truncated) | Points at a Snowflake component configuration object; table, schema, and write action are not recoverable from this extract. |
-| Reject columns present | 9 error columns on the schema | The component is configured to be able to emit rejected rows, but no reject link appears in the flow. |
+| Source | `context.sourceDir` | Files are archived from the configurable source directory. |
+| Source file | Hardcoded, truncated: `"C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s...` | A specific Windows development-machine path is hardcoded rather than parameterized. See Section 7. |
+| Target | `context.archiveDir + context.fileName + ".zip"` | The archive is written to the configurable archive directory, named for the source file. |
+| Create directory if missing | true | The archive directory is created automatically if absent. |
 
-### `tFileArchive_1` — archiver
+### 4.5 `tFileDelete_1` — File Deletion
 
-| Setting | Value | What it means |
+| Setting | Value | Meaning |
 |---|---|---|
-| `SOURCE` | `context.sourceDir` | Archives from the configured drop folder. |
-| `SOURCE_FILE` | `"C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s…"` | A hardcoded Windows path inside a developer's Talend Studio install. This should be parameterised. |
-| `TARGET` | `context.archiveDir + context.fileName + ".zip"` | Writes one zip per file into the date-stamped archive folder — but `context.fileName` is never assigned by any component in this job (see *Issues observed*). |
-| `SUB_DIRECTROY` | `false` | The archive is flat; no folder structure is preserved. |
-| `MKDIR` | `true` | Creates the archive folder if it does not exist. |
+| Filename | `context.filePath` | The file to delete is the current file-list entry. |
+| Directory / path | Hardcoded, truncated: `"C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d...` | A further Windows development-machine path is hardcoded. See Section 7. |
+| Fail on error | true | Deletion failure causes the job to fail. |
 
-### `tFileDelete_1` — cleanup
+### 4.6 `tSetKeystore_1` — SSL Trust Store
 
-| Setting | Value | What it means |
+| Setting | Value | Meaning |
 |---|---|---|
-| `FILENAME` | `context.filePath` | Deletes the file for the current iteration. |
-| `DIRECTORY` / `PATH` | `"C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d…"` | Hardcoded developer workstation paths. Should be parameterised. |
-| `FAILON` | `true` | A failed delete fails the step. |
-| `FOLDER` | `false` | Deletes files only, never directories. |
+| Set truststore | false | The truststore flag is not explicitly enabled, despite a truststore path being configured below. |
+| SSL trust server truststore | Hardcoded: `"C:/clientTrustStore.trustStore"` | A specific file path on a Windows machine is hardcoded as the SSL trust store location. See Section 7. |
+| Keystore type | PKCS12 | Format used for the key store, where applicable. |
 
-### `tSetKeystore_1` — TLS material
+## 5. Dependencies & Configuration
 
-| Setting | Value | What it means |
-|---|---|---|
-| `SET_TRUSTSTORE` | `false` | Truststore configuration is switched off. |
-| `SET_TRUSTSTORE_KEYSTORE` | `false` | The combined truststore/keystore option is also off. |
-| `SSL_TRUSTSERVER_TRUSTSTORE` | `"C:/clientTrustStore.trustStore"` | A hardcoded local truststore path is still populated even though the flags above are off. |
-| `TRUSTSTORE_TYPE` / `KEYSTORE_TYPE` | `JKS` / `PKCS12` | Standard Java keystore formats. |
+- **Job dependencies:** None identified in the extracted metadata. No
+  job-invocation component (e.g., `tRunJob`) is present.
+- **Context variables:** `context.sourceDir`, `context.archiveDir`,
+  `context.fileName`, `context.filePath`. The metadata provided does not
+  include a context variable/group definition; default values,
+  environment-specific overrides, and group membership could not be
+  determined. Verify with team.
+- **Connection reuse:** A Snowflake connection is established by
+  `tDBConnection_1`. The metadata does not indicate whether `tDBRow_1`,
+  `tDBRow_2`, and `tDBOutput_1` reuse this connection or establish their
+  own. Verify with team.
 
-### `tParallelize_1` — fan-out controller
+## 6. Glossary
 
-| Setting | Value | What it means |
-|---|---|---|
-| `WAIT_FOR` | `All` | Waits for every parallel branch before continuing. |
-| `SLEEPTIME` | `100` | Polls branch completion every 100 ms. |
-| `DIE_ON_ERROR` | `false` | If a parallel branch fails, the job keeps going and can still report success. |
-
-### `tFlowMeter_1` — row counter
-
-| Setting | Value | What it means |
-|---|---|---|
-| `USEROWLABEL` | `true` | Counts are tagged with a label for reporting. |
-| `METTERLABEL` | `"MyLabel"` | The label is still Talend's placeholder default, so counts are not identifiable by job or table in monitoring output. |
-| `ABSOLUTE` | `Absolute` | Reports a running total rather than a delta from a previous meter. |
-
-## Dependencies & configuration
-
-**Other jobs.** No `tRunJob` component appears in this job, and nothing in the extract
-shows another job calling it. Whether it is scheduled directly, chained from an
-orchestrator job, or triggered externally is **unable to be determined from metadata —
-verify with team.**
-
-**Database.** One Snowflake connection (`tDBConnection_1`) serves `tDBRow_1`,
-`tDBOutput_1`, and `tDBRow_2`. `tDBRow_1` and `tDBRow_2` both reference the same
-component properties object (`"@id":3`).
-
-**Context variables.**
-
-| Variable | Used by | Why |
-|---|---|---|
-| `context.sourceDir` | `tFileList_1`, `tFileList_2`, `tFileList_3`, `tFileArchive_1` | The drop folder the job reads from and later cleans out. |
-| `context.archiveDir` | `tJava_1`, `tFileArchive_1` | Base archive path, rewritten at runtime with a date suffix. |
-| `context.filePath` | `tJava_2/3/4`, `tFileInputDelimited_1`, `tFileProperties_1`, `tFileDelete_1` | Scratch variable holding the file currently being processed. Written by Java snippets during iteration. |
-| `context.fileName` | `tFileArchive_1` | Used to build the zip name — but never assigned anywhere in this job. |
-
-The context **group** these variables belong to is not present in the extract —
-**unable to determine from metadata — verify with team.**
-
-## Glossary
-
-| Component / term | Plain English |
+| Term | Plain-English Definition |
 |---|---|
-| `tPrejob` | A starting block that runs setup work before the main job begins. |
-| `tJava` | A small block of custom Java code, usually used to set or tweak a variable. |
-| `tJavaRow` | Custom Java code that runs once per row of data passing through. |
-| `tSetKeystore` | Loads the certificates/keys used for encrypted (SSL/TLS) connections. |
-| `tSnowflakeConnection` | Opens one shared login session to the Snowflake data warehouse. |
-| `tSnowflakeRow` | Runs a raw SQL statement against Snowflake (not a row-by-row data load). |
-| `tSnowflakeOutput` | Writes rows of data into a Snowflake table. |
-| `tFileList` | Lists the files in a folder and loops over them one by one. |
-| `tFileInputDelimited` | Reads a text file where fields are split by a delimiter and turns it into rows and columns. |
-| `tFileProperties` | Reads facts *about* a file (size, path, last-modified time) rather than its contents. |
-| `tMap` | The transformation workbench: renames, reshapes, filters, joins, and derives columns. |
-| `tFlowMeter` | Counts rows as they pass through, for monitoring. |
-| `tFileArchive` | Compresses files into a zip archive. |
+| `tSnowflakeConnection` | Establishes and holds open a connection to Snowflake for use by other components. |
+| `tPrejob` | Runs setup steps that must complete before the rest of the job starts. |
+| `tJava` | A block of custom code for logic not covered by a standard component. |
+| `tSnowflakeRow` | Executes a SQL statement directly against Snowflake, independent of a row-by-row data flow. |
+| `tFileList` | Scans a directory and lists its files for sequential processing. |
+| `tFileInputDelimited` | Parses a delimited text file into structured rows. |
+| `tFileProperties` | Retrieves filesystem metadata for a file (size, modification time, etc.). |
+| `tJavaRow` | Applies custom code to each row of data as it flows through the job. |
+| `tMap` | Maps columns from input to output, optionally adding or transforming columns. |
+| `tFlowMeter` | Records the number of rows passing a point in the job for monitoring purposes, without altering data. |
+| `tSnowflakeOutput` | Writes a stream of rows into a Snowflake table. |
+| `tFileArchive` | Compresses one or more files into a zip archive. |
+| `tParallelize` | Executes two or more branches concurrently. |
 | `tFileDelete` | Deletes a file from disk. |
-| `tParallelize` | Runs several branches of the job at the same time and waits for them. |
-| `ITERATE` link | "Do the next thing once per item in the loop." |
-| `FLOW` link | "Pass these rows of data onward." |
-| `SUBJOB_OK` / `COMPONENT_OK` link | "Only continue if the previous section/component finished successfully." |
+| `tSetKeystore` | Configures the SSL/TLS trust and key store files used for secure network connections. |
 
-## Issues observed
+## 7. Issues Observed
 
-Each item below cites the specific metadata it comes from. None of them are assumptions
-about intent.
+1. **Hardcoded, machine-specific file paths.** The `SOURCE_FILE` setting
+   on `tFileArchive_1` and the `DIRECTORY`/`PATH` settings on
+   `tFileDelete_1` are hardcoded to
+   `C:/Talend-Studio-20211109_1610-V8.0.1/workspace/...`, a specific
+   Windows development-workstation path rather than a context variable.
+   Execution on any other machine would likely fail or resolve to an
+   incorrect location.
 
-1. **`context.fileName` is never assigned.** `tFileArchive_1` builds its target as
-   `context.archiveDir + context.fileName + ".zip"`, but no component in this job sets
-   `context.fileName` — `tJava_2`, `tJava_3`, and `tJava_4` all set `context.filePath`.
-   If `fileName` is a static context value, every file in a run is archived to the same
-   zip path and earlier archives may be overwritten. **High priority to verify.**
+2. **Hardcoded SSL trust store path.** The `SSL_TRUSTSERVER_TRUSTSTORE`
+   setting on `tSetKeystore_1` is hardcoded to
+   `"C:/clientTrustStore.trustStore"`, also a Windows-style absolute path.
+   This value should be parameterized to support execution across
+   development, test, and production environments without modifying the
+   job.
 
-2. **Files are deleted based on a fresh directory listing, not on what was loaded.**
-   `tFileList_1` (load), `tFileList_2` (archive), and `tFileList_3` (delete) each
-   independently list `context.sourceDir`. Any file that lands in the folder after the
-   load loop but before the delete loop will be archived and deleted without ever being
-   loaded — silent data loss with no error raised.
+3. **Unmodified default row-counter label.** The `METTERLABEL` setting on
+   `tFlowMeter_1` is set to the literal value `"MyLabel"`, consistent with
+   an unmodified default rather than a deliberately assigned identifier.
+   Monitoring or logging built on this label would not distinguish this
+   metric from others sharing the same default.
 
-3. **Parallel branch failures are not fatal.** `tParallelize_1` has `DIE_ON_ERROR=false`
-   with `WAIT_FOR=All`. The archive/delete branch and the `tDBRow_2` branch can both
-   fail while the job still completes. Combined with item 2, a failed archive followed
-   by a successful delete would lose the source file.
+4. **No visible link between connection setup and data-processing
+   sequences.** The extracted data flow shows `tPrejob_1 → tJava_1 →
+   tSetKeystore_1 → tDBConnection_1` as one sequence and `tDBRow_1 →
+   tFileList_1 → ...` as a separate sequence, with no explicit connector
+   between them. Whether the connection established by `tDBConnection_1`
+   is the one used by `tDBRow_1`, `tDBRow_2`, and `tDBOutput_1` could not
+   be confirmed from the metadata. Verify with team.
 
-4. **No visible trigger into `tDBRow_1`.** The extracted flow shows
-   `tSetKeystore_1 → tDBConnection_1` and, separately, `tDBRow_1 → tFileList_1`, but
-   nothing links `tDBConnection_1` to `tDBRow_1`. Either the extract is incomplete or the
-   main sub-job starts independently of the connection sub-job. Verify in Studio before
-   assuming ordering is guaranteed.
+5. **Duplicated column list in the `tFileInputDelimited_1` schema.** The
+   extracted schema for this component lists the full set of
+   approximately 30 address columns twice in immediate succession, prior
+   to the `errorCode`/`errorMessage` columns. This does not match the
+   expected pattern of a primary schema plus a reject-flow addition and
+   may indicate a metadata extraction artifact or an unusual schema
+   configuration. Verify with team before relying on this schema as
+   authoritative.
 
-5. **`tJavaRow_1` is a dead end.** It receives the seven file-property columns from
-   `tFileProperties_1` and has no outgoing link. The file metadata is collected but its
-   destination is not visible in the extract. If `LASTMODIFIED` in `tMap_1` is meant to
-   come from `mtime`, that path is not evidenced here.
-
-6. **Reject handling is declared but not wired.** `tDBOutput_1` carries the nine
-   Snowflake reject columns and `tDBRow_1` / `tDBRow_2` carry `errorCode` /
-   `errorMessage`, yet no reject (`REJECT`) links appear in the flow. Rows Snowflake
-   refuses have no visible destination.
-
-7. **No commit or connection close.** The extract shows no `tSnowflakeCommit`,
-   `tSnowflakeClose`, or `tPostjob`. Whether the write is auto-committed is **unable to
-   determine from metadata — verify with team.**
-
-8. **Hardcoded developer-workstation paths (should be parameterised).**
-   - `tFileArchive_1.SOURCE_FILE` = `C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s…`
-   - `tFileDelete_1.DIRECTORY` and `.PATH` = `C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d…`
-   - `tSetKeystore_1.SSL_TRUSTSERVER_TRUSTSTORE` = `C:/clientTrustStore.trustStore`
-   These are Windows paths tied to one Studio install and one machine. They will not
-   resolve on a Linux job server.
-
-9. **Keystore flags contradict the configured path.** `SET_TRUSTSTORE=false` and
-   `SET_TRUSTSTORE_KEYSTORE=false` while `SSL_TRUSTSERVER_TRUSTSTORE` still holds a
-   path. Confirm whether TLS trust material is actually being applied to the Snowflake
-   connection or whether the component is effectively inert.
-
-10. **Flow meter label is the default placeholder.** `METTERLABEL="MyLabel"`, so row
-    counts landing in monitoring cannot be attributed to this job or table.
-
-11. **Non-standard row separator with no CSV parsing.** `ROWSEPARATOR="|$|"` combined
-    with `CSV_OPTION=false` means the format is brittle: no quoting or escaping is
-    honoured, so any address field containing the field delimiter will shift columns.
-
-12. **Duplicated column block in the extracted `tFileInputDelimited_1` schema.** The
-    29-column layout appears twice, followed by `errorCode` / `errorMessage`. This most
-    likely reflects the component's main and reject schemas being flattened together by
-    the extraction, rather than a genuine 60-column file — but that should be confirmed
-    in Studio rather than assumed.
-
-13. **Version never incremented.** Version 0.1 with a last-modified date roughly eleven
-    months after creation. There is no usable version history in the metadata.
-
-14. **Context variables used as mutable global scratch space.** `context.filePath` is
-    rewritten by three different Java components. Because `tParallelize_1` runs branches
-    concurrently, any future change that puts two `filePath` writers in different
-    parallel branches would produce a race condition.
+6. **SQL content not visible.** `tDBRow_1` and `tDBRow_2` expose only an
+   `errorCode`/`errorMessage` output schema in the extracted metadata; the
+   underlying SQL statements are not included, so their effect on the
+   Snowflake database could not be determined.

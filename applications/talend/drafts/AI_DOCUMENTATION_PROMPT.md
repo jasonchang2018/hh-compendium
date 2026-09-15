@@ -57,7 +57,7 @@ the attached JSON (never invent a name, date, or setting).
      Modified (use the extracted values; omit a row if the metadata has none
      — never invent a name or date).
    - **Step-by-step data flow** — each stage in plain English (what it reads,
-     what it changes, what it writes), not just a component list.
+     what it changes, what it writes), not just a component list. Also, add it as a Mermaid diagram.
    - **Settings tables** — for each source/target component, show its
      configuration alongside a "what it means" column in plain English.
    - **Dependencies & configuration** — which other jobs it triggers or
