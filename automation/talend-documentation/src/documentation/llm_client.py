@@ -72,7 +72,14 @@ class AnthropicProvider(LLMProvider):
         self.max_tokens = max_tokens
         self.temperature = temperature  # low: doc generation from facts, not creative writing
 
+    # Client-error status codes that will fail identically on every retry
+    # (bad request, auth, permissions, not found, unprocessable) — fail fast
+    # instead of burning MAX_RETRIES * backoff on a deterministic failure.
+    NON_RETRYABLE_STATUS_CODES = frozenset({400, 401, 403, 404, 422})
+
     def generate(self, system_prompt: str, user_prompt: str) -> LLMResponse:
+        import anthropic
+
         last_error = None
         for attempt in range(1, self.MAX_RETRIES + 1):
             try:
@@ -83,18 +90,41 @@ class AnthropicProvider(LLMProvider):
                     system=system_prompt,
                     messages=[{"role": "user", "content": user_prompt}],
                 )
-                text_parts = [block.text for block in response.content if block.type == "text"]
-                return LLMResponse(
-                    text="\n".join(text_parts),
-                    model=self.model,
-                    input_tokens=response.usage.input_tokens,
-                    output_tokens=response.usage.output_tokens,
-                )
-            except Exception as e:  # noqa: BLE001 - broad by design, retried below
+            except anthropic.APIStatusError as e:
+                if e.status_code in self.NON_RETRYABLE_STATUS_CODES:
+                    raise RuntimeError(
+                        f"Claude API call failed with non-retryable status {e.status_code}: {e}"
+                    ) from e
                 last_error = e
                 logger.warning(f"Claude API call failed (attempt {attempt}/{self.MAX_RETRIES}): {e}")
                 if attempt < self.MAX_RETRIES:
                     time.sleep(self.RETRY_BACKOFF_SECONDS * attempt)
+                continue
+            except anthropic.APIConnectionError as e:
+                last_error = e
+                logger.warning(f"Claude API call failed (attempt {attempt}/{self.MAX_RETRIES}): {e}")
+                if attempt < self.MAX_RETRIES:
+                    time.sleep(self.RETRY_BACKOFF_SECONDS * attempt)
+                continue
+
+            if response.stop_reason == "max_tokens":
+                raise RuntimeError(
+                    "Claude response was truncated (stop_reason=max_tokens) — raise "
+                    "max_tokens in config/llm.yaml rather than write a partial document."
+                )
+
+            text_parts = [block.text for block in response.content if block.type == "text"]
+            if not text_parts:
+                raise RuntimeError(
+                    f"Claude response contained no text content (stop_reason={response.stop_reason})."
+                )
+
+            return LLMResponse(
+                text="\n".join(text_parts),
+                model=self.model,
+                input_tokens=response.usage.input_tokens,
+                output_tokens=response.usage.output_tokens,
+            )
 
         raise RuntimeError(f"Claude API call failed after {self.MAX_RETRIES} attempts") from last_error
 

@@ -91,9 +91,9 @@ def sanitize_payload(data: dict, allowed_top_level_keys: set[str] | None = None)
     Allow-lists expected top-level keys (when given) and recursively strips
     anything that looks like a credential/literal value at any nesting depth.
 
-    Intentionally conservative: logs (rather than silently drops) any
-    unexpected top-level key, so a newly-added extractor field can't leak
-    unreviewed.
+    Enforced, not advisory: when an allow-list is given, any top-level key
+    not on it is dropped (and logged) rather than passed through — so a
+    newly-added/renamed extractor field can't reach the API unreviewed.
     """
     cleaned: dict = {
         k: _strip_denied_keys(v)
@@ -103,7 +103,11 @@ def sanitize_payload(data: dict, allowed_top_level_keys: set[str] | None = None)
     if allowed_top_level_keys is not None:
         unexpected = set(cleaned.keys()) - allowed_top_level_keys
         if unexpected:
-            logger.info(f"Sanitizer passed through unlisted top-level keys: {unexpected} — review if unexpected.")
+            logger.warning(
+                f"Sanitizer dropped unlisted top-level key(s): {unexpected} — "
+                "add to the allow-list in ai_enrich_documentation.py if they should reach the API."
+            )
+            cleaned = {k: v for k, v in cleaned.items() if k in allowed_top_level_keys}
     return cleaned
 
 
@@ -328,12 +332,12 @@ def enrich_target(llm: LLMProvider, target: EnrichmentTarget) -> bool:
     try:
         logger.info(f"Requesting enrichment for {target.label} -> {target.path}")
         response = llm.generate(system_prompt=target.system_prompt, user_prompt=user_prompt)
+        logger.debug(f"[{target.label}] tokens in/out: {response.input_tokens}/{response.output_tokens}")
+        target.path.write_text(response.text, encoding="utf-8")
     except Exception as e:  # noqa: BLE001 - a single failed document must not abort the run
         logger.error(f"[{target.label}] Enrichment failed: {e}")
         return False
 
-    logger.debug(f"[{target.label}] tokens in/out: {response.input_tokens}/{response.output_tokens}")
-    target.path.write_text(response.text, encoding="utf-8")
     return True
 
 

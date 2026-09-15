@@ -68,6 +68,12 @@ def test_sanitize_payload_strips_lists_of_dicts() -> None:
     assert cleaned["items"][0]["keep"] == "y"
 
 
+def test_sanitize_payload_enforces_allow_list() -> None:
+    cleaned = sanitize_payload({"name": "job", "internal_notes": "not on the allow-list"}, {"name"})
+    assert "internal_notes" not in cleaned
+    assert cleaned == {"name": "job"}
+
+
 def test_safe_filename_matches_generate_documentation_behavior() -> None:
     assert safe_filename("Nightly Load") == "Nightly_Load"
     assert safe_filename("Job/With:Weird*Chars") == "Job_With_Weird_Chars"
@@ -194,6 +200,7 @@ def main() -> None:
         tmp_dir = Path(td)
         test_sanitize_payload_strips_denied_substrings_recursively()
         test_sanitize_payload_strips_lists_of_dicts()
+        test_sanitize_payload_enforces_allow_list()
         test_safe_filename_matches_generate_documentation_behavior()
         test_collect_targets_builds_expected_paths_and_labels()
         test_collect_targets_omits_talend_only_docs_without_talend_metadata()
