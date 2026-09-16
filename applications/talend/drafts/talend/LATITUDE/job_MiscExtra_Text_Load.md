@@ -1,144 +1,97 @@
 # Talend Job: MiscExtra_Text_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Author**: jmach@harriscollect.com
-- **Created**: 2024-11-21T12:12:25.303-0800
-- **Last Modified**: 2025-10-01T13:39:24.081-0700
+This job loads a small, generic "miscellaneous extra data" table (`MISCEXTRA` — just an ID, a number, a title, and a data blob) into Snowflake. It follows the truncate → load → merge → archive/delete pattern, but is one of the project's exceptions to the "merge via stored procedure" rule: instead of calling a `MERGE_TXT_INTO_*` procedure, it runs a `MERGE INTO ... USING ...` statement written directly in the job, which also reveals — unusually for this batch of jobs — the actual name and schema of the permanent target table (`LIQUID.MISCEXTRA`).
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tDBConnection_1 | `tSnowflakeConnection` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":2,"@type":"org.talend.components.snowflake. |
-| 2 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 3 | tJava_1 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 4 | tFileInputDelimited_1 | `tFileInputDelimited` | `USE_EXISTING_DYNAMIC`=false, `FILENAMETEXT`="When the input source is a stream or a zip file,f, `FILENAME`=context.filePath, `CSV_OPTION`=false, `ROWSEPARATOR`="|$|" |
-| 5 | tMap_1 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 6 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 7 | tFileProperties_1 | `tFileProperties` | `FILENAME`=context.filePath, `MD5`=false, `CONNECTION_FORMAT`=row |
-| 8 | tJavaRow_1 | `tJavaRow` | `CODE`=//Code generated according to input schema and out, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 9 | tDBRow_1 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 10 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 11 | tParallelize_1 | `tParallelize` | `WAIT_FOR`=All, `SLEEPTIME`=100, `DIE_ON_ERROR`=false, `CONNECTION_FORMAT`=row |
-| 12 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 13 | tJava_3 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 14 | tFileArchive_1 | `tFileArchive` | `SOURCE`=context.sourceDir, `SOURCE_FILE`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s, `SUB_DIRECTROY`=false, `TARGET`=context.archiveDir + context.fileName+".zip", `MKDIR`=true |
-| 15 | tFileList_3 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 16 | tJava_4 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 17 | tFileDelete_1 | `tFileDelete` | `FILENAME`=context.filePath, `DIRECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `PATH`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `FAILON`=false, `FOLDER`=false |
-| 18 | tJava_2 | `tJava` | `CODE`=context.archiveDir = context.archiveDir + TalendDa, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 19 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 20 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
+| Field | Value |
+|---|---|
+| Job name | MiscExtra_Text_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | jmach@harriscollect.com |
+| Created | 2024-11-21T12:12:25.303-0800 |
+| Last Modified | 2025-10-01T13:39:24.081-0700 |
 
-## Schemas
+## Step-by-step data flow
 
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| Number | id_Integer | Yes | -1 |
-| Title | id_String | Yes | -1 |
-| TheData | id_String | Yes | -1 |
-| ID | id_Integer | Yes | -1 |
-| Number | id_Integer | Yes | -1 |
-| Title | id_String | Yes | -1 |
-| TheData | id_String | Yes | -1 |
-| ID | id_Integer | Yes | -1 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tMap_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| NUMBER | id_Integer | Yes | -1 |
-| TITLE | id_String | Yes | 30 |
-| THEDATA | id_String | Yes | 100 |
-| ID | id_Integer | No | -1 |
-| LASTMODIFIED | id_BigDecimal | Yes | -1 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| NUMBER | id_Integer | Yes | -1 |
-| TITLE | id_String | Yes | 30 |
-| THEDATA | id_String | Yes | 100 |
-| ID | id_Integer | No | -1 |
-| LASTMODIFIED | id_BigDecimal | Yes | -1 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tFileProperties_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| abs_path | id_String | Yes | 255 |
-| dirname | id_String | Yes | 255 |
-| basename | id_String | Yes | 255 |
-| mode_string | id_String | Yes | 10 |
-| size | id_Long | Yes | 20 |
-| mtime | id_Long | Yes | 20 |
-| mtime_string | id_String | Yes | 20 |
-
-### tJavaRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| abs_path | id_String | Yes | 255 |
-| dirname | id_String | Yes | 255 |
-| basename | id_String | Yes | 255 |
-| mode_string | id_String | Yes | 10 |
-| size | id_Long | Yes | 20 |
-| mtime | id_Long | Yes | 20 |
-| mtime_string | id_String | Yes | 20 |
-
-### tDBRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-## Data Flow
+1. **Set up.** `tPrejob_1` → `tJava_2` (appends today's date to `context.archiveDir`, opens a log file) → `tSetKeystore_1` → `tDBConnection_1`.
+2. **Empty the staging table.** `tDBRow_1` runs `TRUNCATE TABLE MISCEXTRA_TXT;` (no `LIQUID_STAGING.` schema prefix).
+3. **Find and read the file.** `tFileList_1` lists files in `context.sourceDir` (excluding `*.txt`), **sorted by modified date, oldest first**; `tJava_1` captures the path; `tFileInputDelimited_1` reads it (`|~|`/`|$|`, header row, US-ASCII, `DIE_ON_ERROR`=false).
+   - The same read also feeds `tFileProperties_1` (per file, gets the last-modified time) → `tJavaRow_1` (stores it in `context.lastModified`).
+4. **Transform and load staging.** `tMap_1` maps the file's four columns (`ID`, `Number`, `TheData`, `Title`) onto the staging schema, adding `LASTMODIFIED` and `LOAD_DT`. Rows flow into `tDBOutput_1`, which inserts them into `MISCEXTRA_TXT`.
+5. **Merge and clean up — in parallel.** `tParallelize_1` splits into:
+   - **Merge branch:** `tDBRow_2` runs an **inline `MERGE INTO`** statement (not a stored-procedure call) that folds `LIQUID_STAGING.MISCEXTRA_TXT` into `LIQUID.MISCEXTRA` (see Settings tables for the full SQL), keeping only the latest row per `ID` and updating only when the incoming row is newer.
+   - **Cleanup branch:** `tFileList_2` → `tJava_3` (captures path + name) → `tFileArchive_1` (zips into `context.archiveDir`); and `tFileList_3` → `tJava_4` (captures path + name) → `tFileDelete_1` (deletes the source file).
 
 ```mermaid
-graph LR
-    tFileList_1 -->|ITERATE| tJava_1
-    tFileList_1 -->|SUBJOB_OK| tParallelize_1
-    tJava_1 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tMap_1
-    tFileInputDelimited_1 -->|ITERATE| tFileProperties_1
-    tMap_1 -->|FLOW| tDBOutput_1
-    tFileProperties_1 -->|FLOW| tJavaRow_1
-    tDBRow_1 -->|SUBJOB_OK| tFileList_1
-    tParallelize_1 -->|PARALLELIZE| tDBRow_2
-    tParallelize_1 -->|PARALLELIZE| tFileList_2
-    tFileList_2 -->|SUBJOB_OK| tFileList_3
-    tFileList_2 -->|ITERATE| tJava_3
-    tJava_3 -->|ITERATE| tFileArchive_1
-    tFileList_3 -->|ITERATE| tJava_4
-    tJava_4 -->|ITERATE| tFileDelete_1
-    tJava_2 -->|SUBJOB_OK| tSetKeystore_1
-    tPrejob_1 -->|COMPONENT_OK| tJava_2
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
+flowchart TD
+    Prejob["tPrejob_1"] --> SetLog["tJava_2<br/>Set archive path + start log"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"]
+    Truncate["tDBRow_1<br/>TRUNCATE MISCEXTRA_TXT"] --> ListFiles1["tFileList_1<br/>Find oldest source file"]
+    ListFiles1 -->|iterate| SetPath["tJava_1"] --> ReadFile["tFileInputDelimited_1"]
+    ListFiles1 --> Parallel["tParallelize_1"]
+    ReadFile -->|iterate| FileProps["tFileProperties_1"] --> StampTime["tJavaRow_1<br/>context.lastModified"]
+    ReadFile -->|flow| Map["tMap_1"] --> Insert["tDBOutput_1<br/>INSERT into MISCEXTRA_TXT"]
+    Parallel --> Merge["tDBRow_2<br/>MERGE INTO LIQUID.MISCEXTRA"] & ListFiles2["tFileList_2"]
+    ListFiles2 -->|iterate| SetPath2["tJava_3"] --> Archive["tFileArchive_1"]
+    ListFiles2 --> ListFiles3["tFileList_3"]
+    ListFiles3 -->|iterate| SetPath3["tJava_4"] --> Delete["tFileDelete_1"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| FIELDSEPARATOR / ROWSEPARATOR | `\|~\|` / `\|$\|` | Standard project pipe-delimited format. |
+| ENCODING | US-ASCII | Plain ASCII. |
+| DIE_ON_ERROR | false | Malformed rows are skipped/logged rather than failing the job. |
+| ORDER_BY_MODIFIEDDATE (on `tFileList_1`) | true, ascending | Oldest unprocessed file is picked up first. |
+| TEMP_DIR | `"C:/Talend-Studio-.../workspace"` | Hardcoded Windows path. |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | MISCEXTRA_TXT | Loads into the staging copy of the table. |
+| Output action | INSERT | Adds rows only. |
+| Table action | NONE | Table structure untouched. |
+
+### Merge step: `tDBRow_2` (inline SQL, not a stored procedure)
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query | `MERGE INTO LIQUID.MISCEXTRA AS tgt USING (SELECT ID, LOAD_DT, NUMBER, TITLE, THEDATA, LASTMODIFIED FROM LIQUID_STAGING.MISCEXTRA_TXT QUALIFY ROW_NUMBER() OVER (PARTITION BY ID ORDER BY LASTMODIFIED DESC) = 1) AS src ON (tgt.ID=src.ID) WHEN MATCHED AND ((src.LASTMODIFIED > tgt.LASTMODIFIED) OR (tgt.LASTMODIFIED IS NULL)) THEN UPDATE SET ... WHEN NOT MATCHED THEN INSERT (...)` | Rather than calling an opaque stored procedure like most peer jobs, this merge is written directly in the job: it de-duplicates staged rows by `ID` (keeping only the most recently modified one via `QUALIFY ROW_NUMBER()...=1`), then updates the permanent `LIQUID.MISCEXTRA` table only if the incoming row is newer (or the target has no `LASTMODIFIED` yet), and inserts brand-new `ID`s. This is one of the few places in this documentation set where the actual permanent-table name and schema (`LIQUID.MISCEXTRA`, as opposed to the staging schema `LIQUID_STAGING`) is directly visible. |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none found — no `tRunJob` links.
+- **Context variables used:** `context.sourceDir`, `context.archiveDir`, `context.filePath`, `context.fileName`, `context.logDir`, `context.keystorePath`, `context.lastModified` (all `Directories_0.1` or job-local). Uses the shared Snowflake connection object, not `LEGACY_DW_0.1` variables directly.
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tPrejob` / `tParallelize` | Job-flow control (see job_Address_Text_Load.md). |
+| `tSnowflakeConnection` (`tDBConnection`) | Opens the shared Snowflake connection (see job_Bankruptcy_Text_Load.md). |
+| `tFileList` | Lists files for iteration (see job_Address_Text_Load.md). |
+| `tFileInputDelimited` | Reads a delimited text file (see job_Address_Text_Load.md). |
+| `tFileProperties` | Reads file-system metadata (see job_Address_Text_Load.md). |
+| `tJavaRow` | Custom code that runs once per row (see job_cmi_Hermes_Recommendations_Load.md). |
+| `tMap` | Maps/transforms columns (see job_Address_Text_Load.md). |
+| `tDBOutput` / `tSnowflakeOutput` | Writes rows to Snowflake (see job_Address_Text_Load.md). |
+| `tDBRow` / `tSnowflakeRow` | Runs a single SQL statement (see job_Address_Text_Load.md) — here running a full `MERGE INTO` statement rather than a `CALL` to a stored procedure. |
+| `tJava` | Custom Java code block (see job_Address_Text_Load.md). |
+| `tFileArchive` | Zips a file into an archive location (see job_Address_Text_Load.md). |
+| `tFileDelete` | Deletes a file (see job_Address_Text_Load.md). |
+| `tSetKeystore` | Configures the SSL keystore (see job_Address_Text_Load.md). |
+
+## Issues observed
+
+- **This is one of the project's exceptions to the "merge via stored procedure" convention** — the merge logic (de-dup by latest `LASTMODIFIED`, conditional update, insert-if-new) is written directly into the job as a `MERGE INTO` statement rather than calling a `MERGE_TXT_INTO_*` procedure. This is not a defect, but it means this job's merge logic is fully auditable from Talend, unlike its peers.
+- **`TRUNCATE TABLE MISCEXTRA_TXT;` omits the `LIQUID_STAGING.` schema prefix** used explicitly elsewhere — likely resolves correctly if the connection's default schema is already `LIQUID_STAGING`, but worth confirming.
+- **Hardcoded, machine-specific paths** on `tFileInputDelimited_1.TEMP_DIR`, `tFileArchive_1.SOURCE_FILE`, `tFileDelete_1.DIRECTORY`/`PATH`, and `tSetKeystore_1.SSL_TRUSTSERVER_TRUSTSTORE` — the same project-wide pattern seen elsewhere.

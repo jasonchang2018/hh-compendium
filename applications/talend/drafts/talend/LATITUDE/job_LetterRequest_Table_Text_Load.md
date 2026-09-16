@@ -1,326 +1,92 @@
 # Talend Job: LetterRequest_Table_Text_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Author**: jmach@harriscollect.com
-- **Created**: 2024-10-24T08:48:53.448-0700
-- **Last Modified**: 2025-09-30T19:55:44.115-0700
+This job loads letter-request records (collection letters queued or sent for accounts — letter type, due date, amount due, processing status, and related IDs) into Snowflake. It follows the standard LATITUDE text-load pattern exactly: truncate the staging table, read and map the source file, insert into staging, merge into the permanent table, then archive and delete the source file.
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tDBConnection_1 | `tSnowflakeConnection` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":2,"@type":"org.talend.components.snowflake. |
-| 2 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 3 | tJava_1 | `tJava` | `CODE`=context.filePath= ((String)globalMap.get("tFileLis, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 4 | tFileInputDelimited_1 | `tFileInputDelimited` | `USE_EXISTING_DYNAMIC`=false, `FILENAMETEXT`="When the input source is a stream or a zip file,f, `FILENAME`=context.filePath, `CSV_OPTION`=false, `ROWSEPARATOR`="|$|" |
-| 5 | tMap_1 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 6 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 7 | tDBRow_1 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 8 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 9 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 10 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 11 | tJava_3 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 12 | tFileArchive_1 | `tFileArchive` | `SOURCE`=context.sourceDir, `SOURCE_FILE`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s, `SUB_DIRECTROY`=false, `TARGET`=context.archiveDir + context.fileName+".zip", `MKDIR`=true |
-| 13 | tFileList_3 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 14 | tJava_4 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 15 | tFileDelete_1 | `tFileDelete` | `FILENAME`=context.filePath, `DIRECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `PATH`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `FAILON`=false, `FOLDER`=false |
-| 16 | tParallelize_1 | `tParallelize` | `WAIT_FOR`=All, `SLEEPTIME`=100, `DIE_ON_ERROR`=false, `CONNECTION_FORMAT`=row |
-| 17 | tJava_2 | `tJava` | `CODE`=context.archiveDir = context.archiveDir + TalendDa, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 18 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
+| Field | Value |
+|---|---|
+| Job name | LetterRequest_Table_Text_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | jmach@harriscollect.com |
+| Created | 2024-10-24T08:48:53.448-0700 |
+| Last Modified | 2025-09-30T19:55:44.115-0700 |
 
-## Schemas
+## Step-by-step data flow
 
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LETTERREQUESTID | id_Integer | Yes | 38 |
-| ACCOUNTID | id_Integer | Yes | 38 |
-| CUSTOMERCODE | id_String | Yes | 16777216 |
-| LETTERID | id_Integer | Yes | 38 |
-| LETTERCODE | id_String | Yes | 16777216 |
-| DATEREQUESTED | id_String | Yes | 16777216 |
-| DATEPROCESSED | id_String | Yes | 16777216 |
-| JOBNAME | id_String | Yes | 16777216 |
-| DUEDATE | id_String | Yes | 16777216 |
-| AMOUNTDUE | id_String | Yes | 16777216 |
-| USERNAME | id_String | Yes | 16777216 |
-| SUSPEND | id_String | Yes | 16777216 |
-| SIFPMT1 | id_String | Yes | 16777216 |
-| SIFPMT2 | id_String | Yes | 16777216 |
-| SIFPMT3 | id_String | Yes | 16777216 |
-| SIFPMT4 | id_String | Yes | 16777216 |
-| SIFPMT5 | id_String | Yes | 16777216 |
-| SIFPMT6 | id_String | Yes | 16777216 |
-| MANUAL | id_String | Yes | 16777216 |
-| ADDEDITMODE | id_Integer | Yes | 38 |
-| EDITED | id_Integer | Yes | 38 |
-| DOCUMENTDATA | id_String | Yes | 8388608 |
-| DELETED | id_Integer | Yes | 38 |
-| COPYCUSTOMER | id_Integer | Yes | 38 |
-| SAVEIMAGE | id_Integer | Yes | 38 |
-| PROCESSINGMETHOD | id_Integer | Yes | 38 |
-| ERRORDESCRIPTION | id_String | Yes | 16777216 |
-| DATECREATED | id_String | Yes | 16777216 |
-| DATEUPDATED | id_String | Yes | 16777216 |
-| SUBJDEBTORID | id_Integer | Yes | 38 |
-| SENDERID | id_Integer | Yes | 38 |
-| REQUESTERID | id_Integer | Yes | 38 |
-| FUTUREID | id_Integer | Yes | 38 |
-| RECIPIENTDEBTORID | id_Integer | Yes | 38 |
-| RECIPIENTDEBTORSEQ | id_Integer | Yes | 38 |
-| LTRSERIESQUEUEID | id_Integer | Yes | 38 |
-| SIFPMT7 | id_String | Yes | 16777216 |
-| SIFPMT8 | id_String | Yes | 16777216 |
-| SIFPMT9 | id_String | Yes | 16777216 |
-| SIFPMT10 | id_String | Yes | 16777216 |
-| SIFPMT11 | id_String | Yes | 16777216 |
-| SIFPMT12 | id_String | Yes | 16777216 |
-| SIFPMT13 | id_String | Yes | 16777216 |
-| SIFPMT14 | id_String | Yes | 16777216 |
-| SIFPMT15 | id_String | Yes | 16777216 |
-| SIFPMT16 | id_String | Yes | 16777216 |
-| SIFPMT17 | id_String | Yes | 16777216 |
-| SIFPMT18 | id_String | Yes | 16777216 |
-| SIFPMT19 | id_String | Yes | 16777216 |
-| SIFPMT20 | id_String | Yes | 16777216 |
-| SIFPMT21 | id_String | Yes | 16777216 |
-| SIFPMT22 | id_String | Yes | 16777216 |
-| SIFPMT23 | id_String | Yes | 16777216 |
-| SIFPMT24 | id_String | Yes | 16777216 |
-| EMAILID | id_Integer | Yes | 38 |
-| SMSID | id_Integer | Yes | 38 |
-| HASATTORNEYRESTRICTION | id_Integer | Yes | 38 |
-| LETTERREQUESTID | id_Integer | Yes | 38 |
-| ACCOUNTID | id_Integer | Yes | 38 |
-| CUSTOMERCODE | id_String | Yes | 16777216 |
-| LETTERID | id_Integer | Yes | 38 |
-| LETTERCODE | id_String | Yes | 16777216 |
-| DATEREQUESTED | id_String | Yes | 16777216 |
-| DATEPROCESSED | id_String | Yes | 16777216 |
-| JOBNAME | id_String | Yes | 16777216 |
-| DUEDATE | id_String | Yes | 16777216 |
-| AMOUNTDUE | id_String | Yes | 16777216 |
-| USERNAME | id_String | Yes | 16777216 |
-| SUSPEND | id_String | Yes | 16777216 |
-| SIFPMT1 | id_String | Yes | 16777216 |
-| SIFPMT2 | id_String | Yes | 16777216 |
-| SIFPMT3 | id_String | Yes | 16777216 |
-| SIFPMT4 | id_String | Yes | 16777216 |
-| SIFPMT5 | id_String | Yes | 16777216 |
-| SIFPMT6 | id_String | Yes | 16777216 |
-| MANUAL | id_String | Yes | 16777216 |
-| ADDEDITMODE | id_Integer | Yes | 38 |
-| EDITED | id_Integer | Yes | 38 |
-| DOCUMENTDATA | id_String | Yes | 8388608 |
-| DELETED | id_Integer | Yes | 38 |
-| COPYCUSTOMER | id_Integer | Yes | 38 |
-| SAVEIMAGE | id_Integer | Yes | 38 |
-| PROCESSINGMETHOD | id_Integer | Yes | 38 |
-| ERRORDESCRIPTION | id_String | Yes | 16777216 |
-| DATECREATED | id_String | Yes | 16777216 |
-| DATEUPDATED | id_String | Yes | 16777216 |
-| SUBJDEBTORID | id_Integer | Yes | 38 |
-| SENDERID | id_Integer | Yes | 38 |
-| REQUESTERID | id_Integer | Yes | 38 |
-| FUTUREID | id_Integer | Yes | 38 |
-| RECIPIENTDEBTORID | id_Integer | Yes | 38 |
-| RECIPIENTDEBTORSEQ | id_Integer | Yes | 38 |
-| LTRSERIESQUEUEID | id_Integer | Yes | 38 |
-| SIFPMT7 | id_String | Yes | 16777216 |
-| SIFPMT8 | id_String | Yes | 16777216 |
-| SIFPMT9 | id_String | Yes | 16777216 |
-| SIFPMT10 | id_String | Yes | 16777216 |
-| SIFPMT11 | id_String | Yes | 16777216 |
-| SIFPMT12 | id_String | Yes | 16777216 |
-| SIFPMT13 | id_String | Yes | 16777216 |
-| SIFPMT14 | id_String | Yes | 16777216 |
-| SIFPMT15 | id_String | Yes | 16777216 |
-| SIFPMT16 | id_String | Yes | 16777216 |
-| SIFPMT17 | id_String | Yes | 16777216 |
-| SIFPMT18 | id_String | Yes | 16777216 |
-| SIFPMT19 | id_String | Yes | 16777216 |
-| SIFPMT20 | id_String | Yes | 16777216 |
-| SIFPMT21 | id_String | Yes | 16777216 |
-| SIFPMT22 | id_String | Yes | 16777216 |
-| SIFPMT23 | id_String | Yes | 16777216 |
-| SIFPMT24 | id_String | Yes | 16777216 |
-| EMAILID | id_Integer | Yes | 38 |
-| SMSID | id_Integer | Yes | 38 |
-| HASATTORNEYRESTRICTION | id_Integer | Yes | 38 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tMap_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| LetterRequestID | id_Integer | Yes | -1 |
-| AccountID | id_Integer | Yes | -1 |
-| CustomerCode | id_String | Yes | -1 |
-| LetterID | id_Integer | Yes | -1 |
-| LetterCode | id_String | Yes | -1 |
-| DateRequested | id_String | Yes | -1 |
-| DateProcessed | id_String | Yes | -1 |
-| JobName | id_String | Yes | -1 |
-| DueDate | id_String | Yes | -1 |
-| AmountDue | id_String | Yes | -1 |
-| UserName | id_String | Yes | -1 |
-| Suspend | id_String | Yes | -1 |
-| SifPmt1 | id_String | Yes | -1 |
-| SifPmt2 | id_String | Yes | -1 |
-| SifPmt3 | id_String | Yes | -1 |
-| SifPmt4 | id_String | Yes | -1 |
-| SifPmt5 | id_String | Yes | -1 |
-| SifPmt6 | id_String | Yes | -1 |
-| Manual | id_String | Yes | -1 |
-| AddEditMode | id_Integer | Yes | -1 |
-| Edited | id_Integer | Yes | -1 |
-| DocumentData | id_String | Yes | -1 |
-| Deleted | id_Integer | Yes | -1 |
-| CopyCustomer | id_Integer | Yes | -1 |
-| SaveImage | id_Integer | Yes | -1 |
-| ProcessingMethod | id_Integer | Yes | -1 |
-| ErrorDescription | id_String | Yes | -1 |
-| DateCreated | id_String | Yes | -1 |
-| DateUpdated | id_String | Yes | -1 |
-| SubjDebtorID | id_Integer | Yes | -1 |
-| SenderID | id_Integer | Yes | -1 |
-| RequesterID | id_Integer | Yes | -1 |
-| FutureID | id_Integer | Yes | -1 |
-| RecipientDebtorID | id_Integer | Yes | -1 |
-| RecipientDebtorSeq | id_Integer | Yes | -1 |
-| LtrSeriesQueueID | id_Integer | Yes | -1 |
-| SifPmt7 | id_String | Yes | -1 |
-| SifPmt8 | id_String | Yes | -1 |
-| SifPmt9 | id_String | Yes | -1 |
-| SifPmt10 | id_String | Yes | -1 |
-| SifPmt11 | id_String | Yes | -1 |
-| SifPmt12 | id_String | Yes | -1 |
-| SifPmt13 | id_String | Yes | -1 |
-| SifPmt14 | id_String | Yes | -1 |
-| SifPmt15 | id_String | Yes | -1 |
-| SifPmt16 | id_String | Yes | -1 |
-| SifPmt17 | id_String | Yes | -1 |
-| SifPmt18 | id_String | Yes | -1 |
-| SifPmt19 | id_String | Yes | -1 |
-| SifPmt20 | id_String | Yes | -1 |
-| SifPmt21 | id_String | Yes | -1 |
-| SifPmt22 | id_String | Yes | -1 |
-| SifPmt23 | id_String | Yes | -1 |
-| SifPmt24 | id_String | Yes | -1 |
-| EMAILID | id_Integer | Yes | 38 |
-| SMSID | id_Integer | Yes | 38 |
-| HASATTORNEYRESTRICTION | id_Integer | Yes | 38 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| LetterRequestID | id_Integer | Yes | -1 |
-| AccountID | id_Integer | Yes | -1 |
-| CustomerCode | id_String | Yes | -1 |
-| LetterID | id_Integer | Yes | -1 |
-| LetterCode | id_String | Yes | -1 |
-| DateRequested | id_String | Yes | -1 |
-| DateProcessed | id_String | Yes | -1 |
-| JobName | id_String | Yes | -1 |
-| DueDate | id_String | Yes | -1 |
-| AmountDue | id_String | Yes | -1 |
-| UserName | id_String | Yes | -1 |
-| Suspend | id_String | Yes | -1 |
-| SifPmt1 | id_String | Yes | -1 |
-| SifPmt2 | id_String | Yes | -1 |
-| SifPmt3 | id_String | Yes | -1 |
-| SifPmt4 | id_String | Yes | -1 |
-| SifPmt5 | id_String | Yes | -1 |
-| SifPmt6 | id_String | Yes | -1 |
-| Manual | id_String | Yes | -1 |
-| AddEditMode | id_Integer | Yes | -1 |
-| Edited | id_Integer | Yes | -1 |
-| DocumentData | id_String | Yes | -1 |
-| Deleted | id_Integer | Yes | -1 |
-| CopyCustomer | id_Integer | Yes | -1 |
-| SaveImage | id_Integer | Yes | -1 |
-| ProcessingMethod | id_Integer | Yes | -1 |
-| ErrorDescription | id_String | Yes | -1 |
-| DateCreated | id_String | Yes | -1 |
-| DateUpdated | id_String | Yes | -1 |
-| SubjDebtorID | id_Integer | Yes | -1 |
-| SenderID | id_Integer | Yes | -1 |
-| RequesterID | id_Integer | Yes | -1 |
-| FutureID | id_Integer | Yes | -1 |
-| RecipientDebtorID | id_Integer | Yes | -1 |
-| RecipientDebtorSeq | id_Integer | Yes | -1 |
-| LtrSeriesQueueID | id_Integer | Yes | -1 |
-| SifPmt7 | id_String | Yes | -1 |
-| SifPmt8 | id_String | Yes | -1 |
-| SifPmt9 | id_String | Yes | -1 |
-| SifPmt10 | id_String | Yes | -1 |
-| SifPmt11 | id_String | Yes | -1 |
-| SifPmt12 | id_String | Yes | -1 |
-| SifPmt13 | id_String | Yes | -1 |
-| SifPmt14 | id_String | Yes | -1 |
-| SifPmt15 | id_String | Yes | -1 |
-| SifPmt16 | id_String | Yes | -1 |
-| SifPmt17 | id_String | Yes | -1 |
-| SifPmt18 | id_String | Yes | -1 |
-| SifPmt19 | id_String | Yes | -1 |
-| SifPmt20 | id_String | Yes | -1 |
-| SifPmt21 | id_String | Yes | -1 |
-| SifPmt22 | id_String | Yes | -1 |
-| SifPmt23 | id_String | Yes | -1 |
-| SifPmt24 | id_String | Yes | -1 |
-| EMAILID | id_Integer | Yes | 38 |
-| SMSID | id_Integer | Yes | 38 |
-| HASATTORNEYRESTRICTION | id_Integer | Yes | 38 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tDBRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-## Data Flow
+1. **Set up.** `tPrejob_1` triggers `tJava_2`, which appends today's date to `context.archiveDir` and opens a log file; this chains into `tSetKeystore_1` and `tDBConnection_1`.
+2. **Empty the staging table.** `tDBRow_1` runs `TRUNCATE TABLE LETTERREQUEST_TXT;` (again, no explicit schema prefix — see Issues observed).
+3. **Find the file.** `tFileList_1` lists files in `context.sourceDir` (skipping `*.txt`), with no explicit sort order (`ORDER_BY_NOTHING: true`).
+4. **Read and reshape the file.** `tFileInputDelimited_1` reads the file as pipe-delimited (`|~|`/`|$|`), US-ASCII encoded, with a header row, covering letter request ID, account ID, letter/customer codes, due date, amount due, processing method, 24 "SifPmt" fields (payment-schedule-related), and delivery flags. `tMap_1` maps these onto the `LETTERREQUEST_TXT` schema, adding `LOAD_DT`.
+5. **Load staging.** Mapped rows flow directly into `tDBOutput_1` (no row-counter component on this path), inserting into `LETTERREQUEST_TXT`.
+6. **Merge and clean up — in parallel.** Once the file-list subjob completes, `tParallelize_1` splits into: `tDBRow_2` calling `CALL MERGE_TXT_INTO_LETTERREQUEST();`, and a file-listing chain (`tFileList_2` → archive via `tFileArchive_1`; then `tFileList_3` → delete via `tFileDelete_1`).
 
 ```mermaid
-graph LR
-    tFileList_1 -->|ITERATE| tJava_1
-    tFileList_1 -->|SUBJOB_OK| tParallelize_1
-    tJava_1 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tMap_1
-    tMap_1 -->|FLOW| tDBOutput_1
-    tDBRow_1 -->|SUBJOB_OK| tFileList_1
-    tPrejob_1 -->|COMPONENT_OK| tJava_2
-    tFileList_2 -->|SUBJOB_OK| tFileList_3
-    tFileList_2 -->|ITERATE| tJava_3
-    tJava_3 -->|ITERATE| tFileArchive_1
-    tFileList_3 -->|ITERATE| tJava_4
-    tJava_4 -->|ITERATE| tFileDelete_1
-    tParallelize_1 -->|PARALLELIZE| tDBRow_2
-    tParallelize_1 -->|PARALLELIZE| tFileList_2
-    tJava_2 -->|SUBJOB_OK| tSetKeystore_1
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
+flowchart TD
+    Prejob["tPrejob_1"] --> SetLog["tJava_2<br/>Set archive path + start log"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"]
+    Truncate["tDBRow_1<br/>TRUNCATE LETTERREQUEST_TXT"] --> ListFiles1["tFileList_1<br/>Find source file"]
+    ListFiles1 -->|iterate| SetPath["tJava_1"] --> ReadFile["tFileInputDelimited_1"]
+    ListFiles1 --> Parallel["tParallelize_1"]
+    ReadFile -->|flow| Map["tMap_1"] --> Insert["tDBOutput_1<br/>INSERT into LETTERREQUEST_TXT"]
+    Parallel --> Merge["tDBRow_2<br/>CALL MERGE_TXT_INTO_LETTERREQUEST()"] & ListFiles2["tFileList_2"]
+    ListFiles2 -->|iterate| SetPath3["tJava_3"] --> Archive["tFileArchive_1"]
+    ListFiles2 --> ListFiles3["tFileList_3"]
+    ListFiles3 -->|iterate| SetPath4["tJava_4"] --> Delete["tFileDelete_1"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| FIELDSEPARATOR / ROWSEPARATOR | `\|~\|` / `\|$\|` | Standard project pipe-delimited format. |
+| HEADER | 1 | First line is a header. |
+| ENCODING | US-ASCII | Plain ASCII text. |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | LETTERREQUEST_TXT | Staging table for letter requests. |
+| Output action | INSERT | Adds rows only — the merge step handles updates. |
+| Table action | NONE | Truncation handled separately by `tDBRow_1`. |
+
+### Merge step: `tDBRow_2`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query | `CALL MERGE_TXT_INTO_LETTERREQUEST();` | Snowflake procedure that folds staged rows into the permanent `LETTERREQUEST` table. |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none found — no `tRunJob` links.
+- **Context variables used:** `context.sourceDir`, `context.archiveDir`, `context.filePath`, `context.fileName`, `context.logDir`, `context.keystorePath` (all `Directories_0.1`). Uses the shared Snowflake connection object, not `LEGACY_DW_*` variables directly.
+- **Hardcoded values found:** `tFileInputDelimited_1.TEMP_DIR`, `tFileArchive_1.SOURCE_FILE`, `tFileDelete_1.DIRECTORY`/`PATH`, and `tSetKeystore_1.SSL_TRUSTSERVER_TRUSTSTORE` are fixed Windows/local paths rather than context variables.
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tPrejob` / `tParallelize` | Setup-before-main-start, concurrent branches (see job_Address_Text_Load.md). |
+| `tFileList` | Lists files for the job to loop over (see job_Address_Text_Load.md). |
+| `tFileInputDelimited` | Reads a delimited text file (see job_Address_Text_Load.md). |
+| `tMap` | Maps/transforms columns (see job_Address_Text_Load.md). |
+| `tDBOutput` / `tSnowflakeOutput` | Writes rows into Snowflake (see job_Address_Text_Load.md). |
+| `tDBRow` / `tSnowflakeRow` | Runs a single SQL statement (see job_Address_Text_Load.md). |
+| `tJava` | Custom Java code block (see job_Address_Text_Load.md). |
+| `tFileArchive` | Zips a file into an archive location (see job_Address_Text_Load.md). |
+| `tFileDelete` | Deletes a file from disk (see job_Address_Text_Load.md). |
+| `tSetKeystore` | Configures the SSL keystore for the Snowflake connection (see job_Address_Text_Load.md). |
+
+## Issues observed
+
+- **The staging truncate doesn't qualify its schema** (`TRUNCATE TABLE LETTERREQUEST_TXT;` with no `LIQUID_STAGING.` prefix) — same pattern seen in `Customer_Table_Text_Load`; likely relies on the connection's default schema, but worth confirming.
+- **No row-count logging** — no `tFlowMeter` component between `tMap_1` and `tDBOutput_1`, unlike some peer jobs.
+- **`tFileDelete_1.FAILON` is `false`** here, meaning a failed delete of the source file won't fail the job — worth being aware of if source files are unexpectedly reprocessed.
+- **Several hardcoded, machine-specific paths** exist — see Dependencies & configuration.
+- **The merge procedure's own logic is outside Talend** and not visible in this metadata.

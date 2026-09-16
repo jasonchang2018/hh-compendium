@@ -1,202 +1,106 @@
 # Talend Job: DeskChangeHistory_Text_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Author**: jmach@harriscollect.com
-- **Created**: 2025-08-05T06:44:11.665-0700
-- **Last Modified**: 2026-04-30T09:32:10.950-0700
+This job loads records of "desk" reassignment history (which collections desk/queue-level an account moved between, and when) into Snowflake. It follows the standard text-load pattern: watch a shared folder for a new file, truncate a staging table, load the file, merge into the permanent `DESKCHANGEHISTORY` table via a Snowflake stored procedure, and archive/delete the source file.
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tDBConnection_1 | `tSnowflakeConnection` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":2,"@type":"org.talend.components.snowflake. |
-| 2 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 3 | tJava_1 | `tJava` | `CODE`=context.archiveDir = context.archiveDir + TalendDa, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 4 | tDBRow_1 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 5 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 6 | tJava_2 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 7 | tFileInputDelimited_1 | `tFileInputDelimited` | `USE_EXISTING_DYNAMIC`=false, `FILENAMETEXT`="When the input source is a stream or a zip file,f, `FILENAME`=context.filePath, `CSV_OPTION`=false, `ROWSEPARATOR`="|$|" |
-| 8 | tFileProperties_1 | `tFileProperties` | `FILENAME`=context.filePath, `MD5`=false, `CONNECTION_FORMAT`=row |
-| 9 | tJavaRow_1 | `tJavaRow` | `CODE`=//Code generated according to input schema and out, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 10 | tMap_1 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 11 | tFlowMeter_1 | `tFlowMeter` | `USEROWLABEL`=true, `METTERLABEL`="MyLabel", `ABSOLUTE`=Absolute, `CONNECTION_FORMAT`=row |
-| 12 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 13 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 14 | tJava_3 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 15 | tFileArchive_1 | `tFileArchive` | `SOURCE`=context.sourceDir, `SOURCE_FILE`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s, `SUB_DIRECTROY`=false, `TARGET`=context.archiveDir + context.fileName+".zip", `MKDIR`=true |
-| 16 | tParallelize_1 | `tParallelize` | `WAIT_FOR`=All, `SLEEPTIME`=100, `DIE_ON_ERROR`=false, `CONNECTION_FORMAT`=row |
-| 17 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 18 | tFileList_3 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 19 | tJava_4 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 20 | tFileDelete_1 | `tFileDelete` | `FILENAME`=context.filePath, `DIRECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `PATH`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `FAILON`=true, `FOLDER`=false |
-| 21 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
+| Field | Value |
+|---|---|
+| Job name | DeskChangeHistory_Text_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | jmach@harriscollect.com |
+| Created | 2025-08-05T06:44:11.665-0700 |
+| Last Modified | 2026-04-30T09:32:10.950-0700 |
 
-## Schemas
+## Step-by-step data flow
 
-### tDBRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| UID | id_BigDecimal | No | 38 |
-| NUMBER | id_BigDecimal | No | 38 |
-| JOBNUMBER | id_String | No | 50 |
-| OLDDESK | id_String | No | 20 |
-| NEWDESK | id_String | No | 20 |
-| OLDQLEVEL | id_String | No | 20 |
-| NEWQLEVEL | id_String | No | 20 |
-| OLDQDATE | id_String | No | 20 |
-| NEWQDATE | id_String | No | 20 |
-| OLDBRANCH | id_String | No | 20 |
-| NEWBRANCH | id_String | No | 20 |
-| USER | id_String | No | 20 |
-| DMDATESTAMP | id_String | No | 30 |
-| UID | id_BigDecimal | No | 38 |
-| NUMBER | id_BigDecimal | No | 38 |
-| JOBNUMBER | id_String | No | 50 |
-| OLDDESK | id_String | No | 20 |
-| NEWDESK | id_String | No | 20 |
-| OLDQLEVEL | id_String | No | 20 |
-| NEWQLEVEL | id_String | No | 20 |
-| OLDQDATE | id_String | No | 20 |
-| NEWQDATE | id_String | No | 20 |
-| OLDBRANCH | id_String | No | 20 |
-| NEWBRANCH | id_String | No | 20 |
-| USER | id_String | No | 20 |
-| DMDATESTAMP | id_String | No | 30 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tFileProperties_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| abs_path | id_String | Yes | 255 |
-| dirname | id_String | Yes | 255 |
-| basename | id_String | Yes | 255 |
-| mode_string | id_String | Yes | 10 |
-| size | id_Long | Yes | 20 |
-| mtime | id_Long | Yes | 20 |
-| mtime_string | id_String | Yes | 20 |
-
-### tJavaRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| abs_path | id_String | Yes | 255 |
-| dirname | id_String | Yes | 255 |
-| basename | id_String | Yes | 255 |
-| mode_string | id_String | Yes | 10 |
-| size | id_Long | Yes | 20 |
-| mtime | id_Long | Yes | 20 |
-| mtime_string | id_String | Yes | 20 |
-
-### tMap_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | No | -1 |
-| LASTMODIFIED | id_BigDecimal | No | 38 |
-| UID | id_BigDecimal | No | 38 |
-| NUMBER | id_BigDecimal | No | 38 |
-| JOBNUMBER | id_String | No | 50 |
-| OLDDESK | id_String | No | 20 |
-| NEWDESK | id_String | No | 20 |
-| OLDQLEVEL | id_String | No | 20 |
-| NEWQLEVEL | id_String | No | 20 |
-| OLDQDATE | id_String | No | 20 |
-| NEWQDATE | id_String | No | 20 |
-| OLDBRANCH | id_String | No | 20 |
-| NEWBRANCH | id_String | No | 20 |
-| USER | id_String | No | 20 |
-| DMDATESTAMP | id_String | No | -1 |
-
-### tFlowMeter_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | No | -1 |
-| LASTMODIFIED | id_BigDecimal | No | 38 |
-| UID | id_BigDecimal | No | 38 |
-| NUMBER | id_BigDecimal | No | 38 |
-| JOBNUMBER | id_String | No | 50 |
-| OLDDESK | id_String | No | 20 |
-| NEWDESK | id_String | No | 20 |
-| OLDQLEVEL | id_String | No | 20 |
-| NEWQLEVEL | id_String | No | 20 |
-| OLDQDATE | id_String | No | 20 |
-| NEWQDATE | id_String | No | 20 |
-| OLDBRANCH | id_String | No | 20 |
-| NEWBRANCH | id_String | No | 20 |
-| USER | id_String | No | 20 |
-| DMDATESTAMP | id_String | No | -1 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | No | -1 |
-| LASTMODIFIED | id_BigDecimal | No | 38 |
-| UID | id_BigDecimal | No | 38 |
-| NUMBER | id_BigDecimal | No | 38 |
-| JOBNUMBER | id_String | No | 50 |
-| OLDDESK | id_String | No | 20 |
-| NEWDESK | id_String | No | 20 |
-| OLDQLEVEL | id_String | No | 20 |
-| NEWQLEVEL | id_String | No | 20 |
-| OLDQDATE | id_String | No | 20 |
-| NEWQDATE | id_String | No | 20 |
-| OLDBRANCH | id_String | No | 20 |
-| NEWBRANCH | id_String | No | 20 |
-| USER | id_String | No | 20 |
-| DMDATESTAMP | id_String | No | 30 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-## Data Flow
+1. **Set up.** `tPrejob_1` starts the job; `tJava_1` appends today's date to the archive path and opens a log file, then `tSetKeystore_1` configures the SSL keystore and `tDBConnection_1` opens the Snowflake connection.
+2. **Empty the staging table.** `tDBRow_1` runs `TRUNCATE TABLE LIQUID_STAGING.DESKCHANGEHISTORY;`.
+3. **Find the file.** `tFileList_1` lists files in `context.sourceDir` (skipping `.txt`), sorted by last-modified date. The match becomes `context.filePath` (`tJava_2`).
+4. **Read and reshape.** `tFileInputDelimited_1` reads the file as pipe-delimited (`|~|` fields, `|$|` rows), UTF-8 encoded, with a header row. It also feeds `tFileProperties_1`, which reads the file's last-modified timestamp; `tJavaRow_1` copies that timestamp into `context.lastModified`. `tMap_1` maps the file's columns (plus `LOAD_DT` and `LASTMODIFIED`) onto the `DESKCHANGEHISTORY` schema.
+5. **Load staging.** Mapped rows pass through a row counter (`tFlowMeter_1`) into `tDBOutput_1`, which inserts them into the staging table.
+6. **Merge and cleanup — in parallel.** `tParallelize_1` splits into two branches:
+   - **Merge branch:** `tDBRow_2` runs `CALL LIQUID_STAGING.MERGE_TXT_INTO_DESKCHANGEHISTORY();` — note the procedure call is schema-qualified (`LIQUID_STAGING.`) here, unlike most peer jobs' unqualified `CALL MERGE_TXT_INTO_...()` (see Issues observed). No `tDie`/`tWarn` reacts to its result.
+   - **Cleanup branch:** the file is listed again (`tFileList_2`/`tFileList_3`), archived as a `.zip` into `context.archiveDir` (`tFileArchive_1`), and deleted (`tFileDelete_1`, with `FAILON`=true — see Issues observed).
 
 ```mermaid
-graph LR
-    tPrejob_1 -->|COMPONENT_OK| tJava_1
-    tJava_1 -->|SUBJOB_OK| tSetKeystore_1
-    tDBRow_1 -->|SUBJOB_OK| tFileList_1
-    tFileList_1 -->|ITERATE| tJava_2
-    tFileList_1 -->|SUBJOB_OK| tParallelize_1
-    tJava_2 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tMap_1
-    tFileInputDelimited_1 -->|ITERATE| tFileProperties_1
-    tFileProperties_1 -->|FLOW| tJavaRow_1
-    tMap_1 -->|FLOW| tFlowMeter_1
-    tFlowMeter_1 -->|FLOW| tDBOutput_1
-    tFileList_2 -->|ITERATE| tJava_3
-    tFileList_2 -->|SUBJOB_OK| tFileList_3
-    tJava_3 -->|ITERATE| tFileArchive_1
-    tParallelize_1 -->|PARALLELIZE| tFileList_2
-    tParallelize_1 -->|PARALLELIZE| tDBRow_2
-    tFileList_3 -->|ITERATE| tJava_4
-    tJava_4 -->|ITERATE| tFileDelete_1
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
+flowchart TD
+    Prejob["tPrejob_1"] --> SetLog["tJava_1<br/>Set archive path + start log"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"]
+    Truncate["tDBRow_1<br/>TRUNCATE staging.DESKCHANGEHISTORY"] --> ListFiles1["tFileList_1<br/>Find newest file"]
+    ListFiles1 -->|iterate| SetPath["tJava_2"] --> ReadFile["tFileInputDelimited_1"]
+    ListFiles1 --> Parallel["tParallelize_1"]
+    ReadFile -->|iterate| FileProps["tFileProperties_1"] --> StampTime["tJavaRow_1<br/>context.lastModified = file mtime"]
+    ReadFile -->|flow| Map["tMap_1"] --> FlowMeter["tFlowMeter_1"] --> Insert["tDBOutput_1<br/>INSERT into staging"]
+    Parallel --> ListFiles2["tFileList_2"] & Merge["tDBRow_2<br/>CALL LIQUID_STAGING.MERGE_TXT_INTO_DESKCHANGEHISTORY()"]
+    ListFiles2 -->|iterate| SetPath2["tJava_3"] --> Archive["tFileArchive_1"]
+    ListFiles2 --> ListFiles3["tFileList_3"]
+    ListFiles3 -->|iterate| SetPath3["tJava_4"] --> Delete["tFileDelete_1"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| FIELDSEPARATOR / ROWSEPARATOR | `\|~\|` / `\|$\|` | Standard pipe-delimited format used across the project. |
+| ENCODING | UTF-8 | Differs from `Address_Text_Load` (ISO-8859-15) and `Carrier_Text_Load`/`cmi_Hermes_Recommendations_Load` (US-ASCII) — three different encodings across otherwise similar jobs. |
+| DIE_ON_ERROR | true | The file read step fails the job outright on a parse error (many peer jobs set this false). |
+| EXCLUDEFILEMASK (on `tFileList_1`) | `*.txt` | `.txt` files are skipped. |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | DESKCHANGEHISTORY | Loads into the staging copy of this table. |
+| Output action | INSERT | Adds rows only. |
+| Table action | NONE | No table create/drop/truncate here — done separately by `tDBRow_1`. |
+
+### Truncate & merge: `tDBRow_1` / `tDBRow_2`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query (`tDBRow_1`) | `TRUNCATE TABLE LIQUID_STAGING.DESKCHANGEHISTORY;` | Empties staging before load. |
+| Query (`tDBRow_2`) | `CALL LIQUID_STAGING.MERGE_TXT_INTO_DESKCHANGEHISTORY();` | Runs the Snowflake merge procedure, schema-qualified — see Issues observed. |
+
+### Cleanup: `tFileDelete_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FAILON | true | If the delete fails, the job fails — unlike `Carrier_Text_Load`/`Insurance_Text_Load`/`Result_Table_Text_Load`/`cmi_Dialer_Plan_History_Table_Text_Load`, which set this to `false`. |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none found — no `tRunJob` links.
+- **Context variables used:** `context.sourceDir`, `context.archiveDir`, `context.filePath`, `context.fileName`, `context.logDir`, `context.keystorePath`, plus the job-local `context.lastModified` (all `Directories_0.1`). Uses the shared Snowflake connection object, not `LEGACY_DW_0.1` directly.
+- **Hardcoded values found:** `tFileInputDelimited_1.TEMP_DIR`, `tFileArchive_1.SOURCE_FILE`, `tFileDelete_1.DIRECTORY`/`PATH`, and `tSetKeystore_1.SSL_TRUSTSERVER_TRUSTSTORE` — same fixed Windows paths seen project-wide.
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tPrejob` / `tParallelize` | Job-flow control (see `job_Address_Text_Load.md`). |
+| `tFileList` | Lists files in a folder to loop over (see `job_Address_Text_Load.md`). |
+| `tFileInputDelimited` | Reads a delimited text file (see `job_Address_Text_Load.md`). |
+| `tFileProperties` | Reads file-system metadata like last-modified time (see `job_Address_Text_Load.md`). |
+| `tJavaRow` | Custom code that runs per row/once to compute a value — here, copying the file's mtime into `context.lastModified` (see `job_cmi_Hermes_Recommendations_Load.md`). |
+| `tMap` | Maps/transforms columns (see `job_Address_Text_Load.md`). |
+| `tFlowMeter` | Counts rows passing a point in the flow (see `job_Address_Text_Load.md`). |
+| `tDBOutput` / `tSnowflakeOutput` | Writes rows to Snowflake (see `job_Address_Text_Load.md`). |
+| `tDBRow` / `tSnowflakeRow` | Runs a single SQL statement (see `job_Address_Text_Load.md`). |
+| `tJava` | Custom Java code blocks (see `job_Address_Text_Load.md`). |
+| `tFileArchive` | Zips a file into an archive location (see `job_Address_Text_Load.md`). |
+| `tFileDelete` | Deletes a file from disk (see `job_Address_Text_Load.md`). |
+| `tSetKeystore` | Configures the SSL keystore for Snowflake (see `job_Address_Text_Load.md`). |
+
+## Issues observed
+
+- **The merge call is schema-qualified here** (`CALL LIQUID_STAGING.MERGE_TXT_INTO_DESKCHANGEHISTORY();`) while nearly every other job in the project calls the equivalent procedure unqualified (`CALL MERGE_TXT_INTO_<TABLE>();`). This likely still works if the default schema is the same, but it's an inconsistency worth normalizing if these procedures are ever moved between schemas.
+- **File encoding is UTF-8**, a third distinct encoding compared to ISO-8859-15 (`Address_Text_Load`) and US-ASCII (`Carrier_Text_Load`, `cmi_Hermes_Recommendations_Load`) — confirm this is intentional for this specific feed.
+- **`tFileDelete_1.FAILON` is `true`** here, meaning a failed delete fails the whole job — a stricter setting than several peer jobs that tolerate a failed delete (`FAILON`=false).
+- **No merge-result checking** — no `tDie`/`tWarn` reacts to whether the merge succeeded, unlike `PatientInfo_Text_Load` and `cmi_Hermes_Recommendations_Load`.
+- **Hardcoded, machine-specific paths** exist alongside the parameterized ones (see Dependencies & configuration) — the same project-wide pattern.

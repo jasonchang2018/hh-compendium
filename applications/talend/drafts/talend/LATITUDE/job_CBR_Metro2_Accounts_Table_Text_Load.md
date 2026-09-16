@@ -1,230 +1,94 @@
 # Talend Job: CBR_Metro2_Accounts_Table_Text_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Author**: jmach@harriscollect.com
-- **Created**: 2024-10-29T12:32:19.729-0700
-- **Last Modified**: 2025-09-29T10:23:08.445-0700
+This job follows the project's standard "text load" pattern: it watches a shared folder for a new CBR/Metro 2 accounts file (Metro 2 is the standard format lenders/collectors use to furnish account data to credit bureaus), loads it into a Snowflake staging table, merges the staged rows into the permanent `CBR_METRO2_ACCOUNTS_TXT`-related table via a stored procedure, and then archives and deletes the source file. It has no built-in error handling if the merge fails — like most jobs in this project, a failure would only show up as a generic Talend error.
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tDBConnection_1 | `tSnowflakeConnection` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":2,"@type":"org.talend.components.snowflake. |
-| 2 | tDBRow_1 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 3 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 4 | tJava_1 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 5 | tFileInputDelimited_1 | `tFileInputDelimited` | `USE_EXISTING_DYNAMIC`=false, `FILENAMETEXT`="When the input source is a stream or a zip file,f, `FILENAME`=context.filePath, `CSV_OPTION`=false, `ROWSEPARATOR`="|$|" |
-| 6 | tMap_1 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 7 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 8 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 9 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 10 | tJava_2 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 11 | tFileArchive_1 | `tFileArchive` | `SOURCE`=context.sourceDir, `SOURCE_FILE`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s, `SUB_DIRECTROY`=false, `TARGET`=context.archiveDir + context.fileName+".zip", `MKDIR`=true |
-| 12 | tParallelize_1 | `tParallelize` | `WAIT_FOR`=All, `SLEEPTIME`=100, `DIE_ON_ERROR`=false, `CONNECTION_FORMAT`=row |
-| 13 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 14 | tJava_3 | `tJava` | `CODE`=context.archiveDir = context.archiveDir + TalendDa, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 15 | tFileList_3 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 16 | tJava_4 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 17 | tFileDelete_1 | `tFileDelete` | `FILENAME`=context.filePath, `DIRECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `PATH`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `FAILON`=false, `FOLDER`=false |
-| 18 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
+| Field | Value |
+|---|---|
+| Job name | CBR_Metro2_Accounts_Table_Text_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | jmach@harriscollect.com |
+| Created | 2024-10-29T12:32:19.729-0700 |
+| Last Modified | 2025-09-29T10:23:08.445-0700 |
 
-## Schemas
+## Step-by-step data flow
 
-### tDBRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| recordID | id_Integer | Yes | -1 |
-| fileID | id_Integer | Yes | -1 |
-| dateReported | id_String | Yes | -1 |
-| accountID | id_Integer | Yes | -1 |
-| customerID | id_Integer | Yes | -1 |
-| primaryDebtorID | id_Integer | Yes | -1 |
-| portfolioType | id_String | Yes | -1 |
-| accountType | id_String | Yes | -1 |
-| accountStatus | id_String | Yes | -1 |
-| originalLoan | id_String | Yes | -1 |
-| actualPayment | id_String | Yes | -1 |
-| currentBalance | id_String | Yes | -1 |
-| amountPastDue | id_String | Yes | -1 |
-| termsDuration | id_String | Yes | 3 |
-| specialComment | id_String | Yes | -1 |
-| complianceCondition | id_String | Yes | -1 |
-| openDate | id_String | Yes | -1 |
-| billingDate | id_String | Yes | -1 |
-| delinquencyDate | id_String | Yes | -1 |
-| closedDate | id_String | Yes | -1 |
-| lastPaymentDate | id_String | Yes | -1 |
-| originalCreditor | id_String | Yes | -1 |
-| creditorClassification | id_String | Yes | -1 |
-| ConsumerAccountNumber | id_Integer | Yes | -1 |
-| ChargeOffAmount | id_String | Yes | -1 |
-| PaymentHistoryProfile | id_String | Yes | -1 |
-| PaymentHistoryDate | id_String | Yes | -1 |
-| CreditLimit | id_String | Yes | -1 |
-| SecondaryAgencyIdenitifier | id_String | Yes | -1 |
-| SecondaryAccountNumber | id_String | Yes | -1 |
-| MortgageIdentificationNumber | id_String | Yes | -1 |
-| PortfolioIndicator | id_Integer | Yes | -1 |
-| SoldToPurchasedFrom | id_String | Yes | -1 |
-| recordID | id_Integer | Yes | -1 |
-| fileID | id_Integer | Yes | -1 |
-| dateReported | id_String | Yes | -1 |
-| accountID | id_Integer | Yes | -1 |
-| customerID | id_Integer | Yes | -1 |
-| primaryDebtorID | id_Integer | Yes | -1 |
-| portfolioType | id_String | Yes | -1 |
-| accountType | id_String | Yes | -1 |
-| accountStatus | id_String | Yes | -1 |
-| originalLoan | id_String | Yes | -1 |
-| actualPayment | id_String | Yes | -1 |
-| currentBalance | id_String | Yes | -1 |
-| amountPastDue | id_String | Yes | -1 |
-| termsDuration | id_String | Yes | 3 |
-| specialComment | id_String | Yes | -1 |
-| complianceCondition | id_String | Yes | -1 |
-| openDate | id_String | Yes | -1 |
-| billingDate | id_String | Yes | -1 |
-| delinquencyDate | id_String | Yes | -1 |
-| closedDate | id_String | Yes | -1 |
-| lastPaymentDate | id_String | Yes | -1 |
-| originalCreditor | id_String | Yes | -1 |
-| creditorClassification | id_String | Yes | -1 |
-| ConsumerAccountNumber | id_Integer | Yes | -1 |
-| ChargeOffAmount | id_String | Yes | -1 |
-| PaymentHistoryProfile | id_String | Yes | -1 |
-| PaymentHistoryDate | id_String | Yes | -1 |
-| CreditLimit | id_String | Yes | -1 |
-| SecondaryAgencyIdenitifier | id_String | Yes | -1 |
-| SecondaryAccountNumber | id_String | Yes | -1 |
-| MortgageIdentificationNumber | id_String | Yes | -1 |
-| PortfolioIndicator | id_Integer | Yes | -1 |
-| SoldToPurchasedFrom | id_String | Yes | -1 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tMap_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| recordID | id_Integer | Yes | -1 |
-| fileID | id_Integer | Yes | -1 |
-| dateReported | id_String | Yes | -1 |
-| accountID | id_Integer | Yes | -1 |
-| customerID | id_Integer | Yes | -1 |
-| primaryDebtorID | id_Integer | Yes | -1 |
-| portfolioType | id_String | Yes | -1 |
-| accountType | id_String | Yes | -1 |
-| accountStatus | id_String | Yes | -1 |
-| originalLoan | id_String | Yes | -1 |
-| actualPayment | id_String | Yes | -1 |
-| currentBalance | id_String | Yes | -1 |
-| amountPastDue | id_String | Yes | -1 |
-| termsDuration | id_String | Yes | -1 |
-| specialComment | id_String | Yes | -1 |
-| complianceCondition | id_String | Yes | -1 |
-| openDate | id_String | Yes | -1 |
-| billingDate | id_String | Yes | -1 |
-| delinquencyDate | id_String | Yes | -1 |
-| closedDate | id_String | Yes | -1 |
-| lastPaymentDate | id_String | Yes | -1 |
-| originalCreditor | id_String | Yes | -1 |
-| creditorClassification | id_String | Yes | -1 |
-| ConsumerAccountNumber | id_Integer | Yes | -1 |
-| ChargeOffAmount | id_String | Yes | -1 |
-| PaymentHistoryProfile | id_String | Yes | -1 |
-| PaymentHistoryDate | id_String | Yes | -1 |
-| CreditLimit | id_String | Yes | -1 |
-| SecondaryAgencyIdenitifier | id_String | Yes | -1 |
-| SecondaryAccountNumber | id_String | Yes | -1 |
-| MortgageIdentificationNumber | id_String | Yes | -1 |
-| PortfolioIndicator | id_Integer | Yes | -1 |
-| SoldToPurchasedFrom | id_String | Yes | -1 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| recordID | id_Integer | Yes | -1 |
-| fileID | id_Integer | Yes | -1 |
-| dateReported | id_String | Yes | -1 |
-| accountID | id_Integer | Yes | -1 |
-| customerID | id_Integer | Yes | -1 |
-| primaryDebtorID | id_Integer | Yes | -1 |
-| portfolioType | id_String | Yes | -1 |
-| accountType | id_String | Yes | -1 |
-| accountStatus | id_String | Yes | -1 |
-| originalLoan | id_String | Yes | -1 |
-| actualPayment | id_String | Yes | -1 |
-| currentBalance | id_String | Yes | -1 |
-| amountPastDue | id_String | Yes | -1 |
-| termsDuration | id_String | Yes | -1 |
-| specialComment | id_String | Yes | -1 |
-| complianceCondition | id_String | Yes | -1 |
-| openDate | id_String | Yes | -1 |
-| billingDate | id_String | Yes | -1 |
-| delinquencyDate | id_String | Yes | -1 |
-| closedDate | id_String | Yes | -1 |
-| lastPaymentDate | id_String | Yes | -1 |
-| originalCreditor | id_String | Yes | -1 |
-| creditorClassification | id_String | Yes | -1 |
-| ConsumerAccountNumber | id_Integer | Yes | -1 |
-| ChargeOffAmount | id_String | Yes | -1 |
-| PaymentHistoryProfile | id_String | Yes | -1 |
-| PaymentHistoryDate | id_String | Yes | -1 |
-| CreditLimit | id_String | Yes | -1 |
-| SecondaryAgencyIdenitifier | id_String | Yes | -1 |
-| SecondaryAccountNumber | id_String | Yes | -1 |
-| MortgageIdentificationNumber | id_String | Yes | -1 |
-| PortfolioIndicator | id_Integer | Yes | -1 |
-| SoldToPurchasedFrom | id_String | Yes | -1 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-## Data Flow
+1. **Set up.** `tJava_3` appends today's date to `context.archiveDir` and starts a log file in `context.logDir`; `tSetKeystore_1` configures the SSL keystore; `tDBConnection_1` opens the Snowflake connection.
+2. **Empty the staging table.** `tDBRow_1` runs `TRUNCATE TABLE CBR_METRO2_ACCOUNTS_TXT;` — note this statement does **not** qualify the table with the `LIQUID_STAGING` schema the way `Address_Text_Load` does (`TRUNCATE TABLE LIQUID_STAGING.ADDRESS;`); it relies on the Snowflake connection's default schema already being `LIQUID_STAGING`.
+3. **Find the file.** `tFileList_1` lists files in `context.sourceDir`, skipping anything ending in `.txt`. Its first match becomes `context.filePath` via `tJava_1`.
+4. **Read and reshape.** `tFileInputDelimited_1` reads the file as pipe-delimited (`|~|` fields, `|$|` rows, header row present), encoded as **US-ASCII** (not ISO-8859-15 like `Address_Text_Load` — see Issues observed). `tMap_1` maps the file's ~32 Metro-2-style columns (account status, balances, dates, charge-off amount, payment history profile, etc.) onto the target schema, adding `LOAD_DT`.
+5. **Load staging.** Mapped rows flow into `tDBOutput_1`, which inserts them into `CBR_METRO2_ACCOUNTS_TXT` (action: `INSERT`, no table-structure changes).
+6. **Merge into the permanent table — in parallel with cleanup.** `tParallelize_1` splits into two branches:
+   - **Merge branch:** `tDBRow_2` runs `CALL MERGE_TXT_INTO_CBR_METRO2_ACCOUNTS();`, a Snowflake stored procedure that folds staged rows into the real table. No `tDie`/`tWarn` reacts to its outcome.
+   - **Cleanup branch:** the source file is listed again, archived (`tFileArchive_1`, zipped into `context.archiveDir/<filename>.zip`), and — via a second file-list/capture — deleted (`tFileDelete_1`).
 
 ```mermaid
-graph LR
-    tDBRow_1 -->|SUBJOB_OK| tFileList_1
-    tFileList_1 -->|ITERATE| tJava_1
-    tFileList_1 -->|SUBJOB_OK| tParallelize_1
-    tJava_1 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tMap_1
-    tMap_1 -->|FLOW| tDBOutput_1
-    tFileList_2 -->|ITERATE| tJava_2
-    tFileList_2 -->|SUBJOB_OK| tFileList_3
-    tJava_2 -->|ITERATE| tFileArchive_1
-    tParallelize_1 -->|PARALLELIZE| tFileList_2
-    tParallelize_1 -->|PARALLELIZE| tDBRow_2
-    tPrejob_1 -->|COMPONENT_OK| tJava_3
-    tJava_3 -->|SUBJOB_OK| tSetKeystore_1
-    tFileList_3 -->|ITERATE| tJava_4
-    tJava_4 -->|ITERATE| tFileDelete_1
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
+flowchart TD
+    Prejob["tPrejob_1"] --> SetLog["tJava_3<br/>Set archive path + start log"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"]
+    Truncate["tDBRow_1<br/>TRUNCATE CBR_METRO2_ACCOUNTS_TXT"] --> ListFiles1["tFileList_1<br/>Find newest source file"]
+    ListFiles1 -->|iterate| SetPath["tJava_1<br/>Capture file path"] --> ReadFile["tFileInputDelimited_1<br/>Read pipe-delimited file (US-ASCII)"]
+    ReadFile -->|flow| Map["tMap_1<br/>Map columns to CBR schema"] --> Insert["tDBOutput_1<br/>INSERT into staging"]
+    ListFiles1 --> Parallel["tParallelize_1"]
+    Parallel --> ListFiles2["tFileList_2"] & Merge["tDBRow_2<br/>CALL MERGE_TXT_INTO_CBR_METRO2_ACCOUNTS()"]
+    ListFiles2 -->|iterate| SetPath2["tJava_2"] --> Archive["tFileArchive_1<br/>Zip into archive dir"]
+    ListFiles2 --> ListFiles3["tFileList_3"]
+    ListFiles3 -->|iterate| SetPath3["tJava_4"] --> Delete["tFileDelete_1<br/>Delete source file"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| FIELDSEPARATOR / ROWSEPARATOR | `\|~\|` / `\|$\|` | The project's standard custom-delimited format. |
+| HEADER | 1 | First line is a header, not data. |
+| ENCODING | US-ASCII | Plain ASCII, not ISO-8859-15 like `Address_Text_Load` and most peers — see Issues observed. |
+| EXCLUDEFILEMASK (on `tFileList_1`) | `*.txt` | `.txt` files are skipped in the source folder. |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | CBR_METRO2_ACCOUNTS_TXT | Staging table the mapped rows are inserted into. |
+| Output action | INSERT | Adds rows only. |
+| Table action | NONE | Doesn't create/drop/truncate — that's handled separately by `tDBRow_1`. |
+
+### Merge step: `tDBRow_2`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query | `CALL MERGE_TXT_INTO_CBR_METRO2_ACCOUNTS();` | Snowflake stored procedure that folds staged rows into the permanent table; its own logic is outside Talend. |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none — no `tRunJob` links found.
+- **Context variables used:** `context.sourceDir`, `context.archiveDir`, `context.filePath`, `context.fileName`, `context.logDir`, `context.keystorePath` (all `Directories_0.1`). It uses the shared Snowflake connection object (`tDBConnection_1`) rather than referencing `LEGACY_DW_0.1` variables directly — `context_vars_referenced` contains no `LEGACY_DW_` entries.
+- **Hardcoded values found:** `tFileInputDelimited_1.TEMP_DIR`, `tFileArchive_1.SOURCE_FILE`, `tFileDelete_1.DIRECTORY`/`PATH`, and `tSetKeystore_1.SSL_TRUSTSERVER_TRUSTSTORE` are all fixed `C:/Talend-Studio-20211109_1610-V8.0.1/...` or `C:/clientTrustStore.trustStore` paths rather than context variables — the same pattern seen across most jobs in this project.
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tPrejob` / `tParallelize` | Job-flow control: setup-before-main-job, and run-branches-at-the-same-time (see `job_Address_Text_Load.md`). |
+| `tFileList` | Lists files in a folder for the job to loop over (see `job_Address_Text_Load.md`). |
+| `tFileInputDelimited` | Reads a delimited text file row by row (see `job_Address_Text_Load.md`). |
+| `tMap` | Maps/transforms input columns to output columns (see `job_Address_Text_Load.md`). |
+| `tDBOutput` / `tSnowflakeOutput` | Writes rows into a Snowflake table (see `job_Address_Text_Load.md`). |
+| `tDBRow` / `tSnowflakeRow` | Runs a single SQL statement against Snowflake — used here for `TRUNCATE` and `CALL <procedure>` (see `job_Address_Text_Load.md`). |
+| `tJava` / `tJavaRow` | Custom Java code snippets for string/date manipulation (see `job_Address_Text_Load.md`). |
+| `tFileArchive` | Zips a file into an archive location (see `job_Address_Text_Load.md`). |
+| `tFileDelete` | Deletes a file from disk (see `job_Address_Text_Load.md`). |
+| `tSetKeystore` | Configures the SSL keystore for the Snowflake connection (see `job_Address_Text_Load.md`). |
+
+## Issues observed
+
+- **File encoding is US-ASCII**, unlike `Address_Text_Load` and most peers, which use ISO-8859-15. Worth confirming this is intentional for CBR/Metro 2 data (which is often plain-ASCII bureau-format data) rather than an oversight.
+- **The `TRUNCATE` statement doesn't qualify the schema** (`CBR_METRO2_ACCOUNTS_TXT` rather than `LIQUID_STAGING.CBR_METRO2_ACCOUNTS_TXT`), unlike some peer jobs (e.g. `Deceased_Text_Load`, `cmi_Customer_Ext_Text_Load`) that do qualify it. This only works correctly if the Snowflake connection's default/current schema is already `LIQUID_STAGING` — worth confirming with whoever manages the Snowflake connection.
+- **No `tDie`/`tWarn` on the merge step** — same as `Address_Text_Load`, a failed merge here surfaces only as a generic Talend error, not a job-specific one.
+- **Standard hardcoded machine-specific paths** present (`TEMP_DIR`, `tFileArchive_1.SOURCE_FILE`, `tFileDelete_1.DIRECTORY`/`PATH`, `tSetKeystore_1.SSL_TRUSTSERVER_TRUSTSTORE`) — same project-wide pattern documented elsewhere.

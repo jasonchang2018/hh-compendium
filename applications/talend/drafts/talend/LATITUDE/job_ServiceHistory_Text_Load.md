@@ -1,198 +1,97 @@
 # Talend Job: ServiceHistory_Text_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Author**: jmach@harriscollect.com
-- **Created**: 2024-11-21T14:01:01.406-0800
-- **Last Modified**: 2025-10-02T10:57:17.878-0700
+This job loads service-request history records — third-party data/verification service requests made against debtor accounts, along with their cost, batch, and response details — from a shared folder into Snowflake. It follows the project's standard truncate-load-merge-archive pattern exactly (see `job_Address_Text_Load.md`), with no notable structural deviations. It has no scheduling information in this metadata — something outside Talend decides when it runs.
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tDBConnection_1 | `tSnowflakeConnection` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":2,"@type":"org.talend.components.snowflake. |
-| 2 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 3 | tJava_1 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 4 | tFileInputDelimited_1 | `tFileInputDelimited` | `USE_EXISTING_DYNAMIC`=false, `FILENAMETEXT`="When the input source is a stream or a zip file,f, `FILENAME`=context.filePath, `CSV_OPTION`=false, `ROWSEPARATOR`="|$|" |
-| 5 | tMap_1 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 6 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 7 | tDBRow_1 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 8 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 9 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 10 | tParallelize_1 | `tParallelize` | `WAIT_FOR`=All, `SLEEPTIME`=100, `DIE_ON_ERROR`=false, `CONNECTION_FORMAT`=row |
-| 11 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 12 | tJava_3 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 13 | tFileArchive_1 | `tFileArchive` | `SOURCE`=context.sourceDir, `SOURCE_FILE`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s, `SUB_DIRECTROY`=false, `TARGET`=context.archiveDir + context.fileName+".zip", `MKDIR`=true |
-| 14 | tFileList_3 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 15 | tJava_4 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 16 | tFileDelete_1 | `tFileDelete` | `FILENAME`=context.filePath, `DIRECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `PATH`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `FAILON`=false, `FOLDER`=false |
-| 17 | tJava_2 | `tJava` | `CODE`=context.archiveDir = context.archiveDir + TalendDa, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 18 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
+| Field | Value |
+|---|---|
+| Job name | ServiceHistory_Text_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | jmach@harriscollect.com |
+| Created | 2024-11-21T14:01:01.406-0800 |
+| Last Modified | 2025-10-02T10:57:17.878-0700 |
 
-## Schemas
+## Step-by-step data flow
 
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| RequestID | id_Integer | Yes | -1 |
-| AcctID | id_Integer | Yes | -1 |
-| DebtorID | id_Integer | Yes | -1 |
-| CreationDate | id_String | Yes | 30 |
-| ReturnedDate | id_String | Yes | 30 |
-| ServiceID | id_Integer | Yes | -1 |
-| RequestedBY | id_String | Yes | 256 |
-| RequestedProgram | id_String | Yes | 256 |
-| Processed | id_Integer | Yes | -1 |
-| XMLInfoRequested | id_String | Yes | -1 |
-| XMLInfoReturned | id_String | Yes | -1 |
-| FileName | id_String | Yes | -1 |
-| Cost | id_String | Yes | 30 |
-| SystemYear | id_Integer | Yes | -1 |
-| SystemMonth | id_Integer | Yes | -1 |
-| ServiceBatch | id_String | Yes | 20 |
-| VerifiedBy | id_String | Yes | 10 |
-| VerifiedDate | id_String | Yes | 30 |
-| BatchId | id_String | Yes | 30 |
-| ProfileID | id_String | Yes | -1 |
-| PackageID | id_Integer | Yes | -1 |
-| RequestingDate | id_String | Yes | 30 |
-| RequestedDate | id_String | Yes | 30 |
-| ResponseBatchID | id_String | Yes | -1 |
-| TypeName | id_String | Yes | 25 |
-| RequestID | id_Integer | Yes | -1 |
-| AcctID | id_Integer | Yes | -1 |
-| DebtorID | id_Integer | Yes | -1 |
-| CreationDate | id_String | Yes | 30 |
-| ReturnedDate | id_String | Yes | 30 |
-| ServiceID | id_Integer | Yes | -1 |
-| RequestedBY | id_String | Yes | 256 |
-| RequestedProgram | id_String | Yes | 256 |
-| Processed | id_Integer | Yes | -1 |
-| XMLInfoRequested | id_String | Yes | -1 |
-| XMLInfoReturned | id_String | Yes | -1 |
-| FileName | id_String | Yes | -1 |
-| Cost | id_String | Yes | 30 |
-| SystemYear | id_Integer | Yes | -1 |
-| SystemMonth | id_Integer | Yes | -1 |
-| ServiceBatch | id_String | Yes | 20 |
-| VerifiedBy | id_String | Yes | 10 |
-| VerifiedDate | id_String | Yes | 30 |
-| BatchId | id_String | Yes | 30 |
-| ProfileID | id_String | Yes | -1 |
-| PackageID | id_Integer | Yes | -1 |
-| RequestingDate | id_String | Yes | 30 |
-| RequestedDate | id_String | Yes | 30 |
-| ResponseBatchID | id_String | Yes | -1 |
-| TypeName | id_String | Yes | 25 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tMap_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| REQUESTID | id_Integer | No | -1 |
-| ACCTID | id_Integer | Yes | -1 |
-| DEBTORID | id_Integer | Yes | -1 |
-| CREATIONDATE | id_String | Yes | 30 |
-| RETURNEDDATE | id_String | Yes | 30 |
-| SERVICEID | id_Integer | Yes | -1 |
-| REQUESTEDBY | id_String | Yes | 256 |
-| REQUESTEDPROGRAM | id_String | Yes | 256 |
-| PROCESSED | id_Integer | Yes | -1 |
-| XMLINFOREQUESTED | id_String | Yes | 16777216 |
-| XMLINFORETURNED | id_String | Yes | 16777216 |
-| FILENAME | id_String | Yes | 2000 |
-| COST | id_String | Yes | 30 |
-| SYSTEMYEAR | id_Integer | Yes | -1 |
-| SYSTEMMONTH | id_Integer | Yes | -1 |
-| SERVICEBATCH | id_String | Yes | 30 |
-| VERIFIEDBY | id_String | Yes | 10 |
-| VERIFIEDDATE | id_String | Yes | 30 |
-| BATCHID | id_String | Yes | 16777216 |
-| PROFILEID | id_String | Yes | 16777216 |
-| PACKAGEID | id_Integer | Yes | -1 |
-| REQUESTINGDATE | id_String | Yes | 30 |
-| REQUESTEDDATE | id_String | Yes | 30 |
-| RESPONSEBATCHID | id_String | Yes | 16777216 |
-| TYPENAME | id_String | Yes | 25 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| REQUESTID | id_Integer | No | -1 |
-| ACCTID | id_Integer | Yes | -1 |
-| DEBTORID | id_Integer | Yes | -1 |
-| CREATIONDATE | id_String | Yes | 30 |
-| RETURNEDDATE | id_String | Yes | 30 |
-| SERVICEID | id_Integer | Yes | -1 |
-| REQUESTEDBY | id_String | Yes | 256 |
-| REQUESTEDPROGRAM | id_String | Yes | 256 |
-| PROCESSED | id_Integer | Yes | -1 |
-| XMLINFOREQUESTED | id_String | Yes | 16777216 |
-| XMLINFORETURNED | id_String | Yes | 16777216 |
-| FILENAME | id_String | Yes | 2000 |
-| COST | id_String | Yes | 30 |
-| SYSTEMYEAR | id_Integer | Yes | -1 |
-| SYSTEMMONTH | id_Integer | Yes | -1 |
-| SERVICEBATCH | id_String | Yes | 30 |
-| VERIFIEDBY | id_String | Yes | 10 |
-| VERIFIEDDATE | id_String | Yes | 30 |
-| BATCHID | id_String | Yes | 16777216 |
-| PROFILEID | id_String | Yes | 16777216 |
-| PACKAGEID | id_Integer | Yes | -1 |
-| REQUESTINGDATE | id_String | Yes | 30 |
-| REQUESTEDDATE | id_String | Yes | 30 |
-| RESPONSEBATCHID | id_String | Yes | 16777216 |
-| TYPENAME | id_String | Yes | 25 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tDBRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-## Data Flow
+1. **Set up.** `tPrejob_1` starts the job; `tJava_2` appends today's date to `context.archiveDir` and opens a log file; `tSetKeystore_1` configures the SSL client keystore; `tDBConnection_1` opens the Snowflake connection.
+2. **Empty the staging table.** In a separate, parallel start point, `tDBRow_1` runs `TRUNCATE TABLE SERVICEHISTORY_TXT;`.
+3. **Find and read the file.** `tFileList_1` lists files in `context.sourceDir` (skipping `.txt`); `tJava_1` captures the found path into `context.filePath`; `tFileInputDelimited_1` reads it as a pipe-delimited, US-ASCII-encoded file (using the repository schema named `svchist`) with a header row.
+4. **Transform and load.** `tMap_1` maps the file's columns (request ID, account/debtor IDs, creation/returned dates, service ID, requestor, cost, system year/month, batch/profile/package IDs, response batch ID, type name, etc.) onto the `SERVICEHISTORY_TXT` schema, adding `LOAD_DT`. The mapped rows go directly into `tDBOutput_1`, which inserts them into Snowflake.
+5. **Merge and clean up — in parallel.** `tParallelize_1` splits into two branches once the file has been listed:
+   - **Merge branch:** `tDBRow_2` calls `CALL MERGE_TXT_INTO_SERVICEHISTORY();`.
+   - **Cleanup branch:** the source file is listed again and archived (`tFileArchive_1`, zipped into `context.archiveDir`); it's also listed a third time and deleted (`tFileDelete_1`).
 
 ```mermaid
-graph LR
-    tFileList_1 -->|ITERATE| tJava_1
-    tFileList_1 -->|SUBJOB_OK| tParallelize_1
-    tJava_1 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tMap_1
-    tMap_1 -->|FLOW| tDBOutput_1
-    tDBRow_1 -->|SUBJOB_OK| tFileList_1
-    tPrejob_1 -->|COMPONENT_OK| tJava_2
-    tParallelize_1 -->|PARALLELIZE| tDBRow_2
-    tParallelize_1 -->|PARALLELIZE| tFileList_2
-    tFileList_2 -->|SUBJOB_OK| tFileList_3
-    tFileList_2 -->|ITERATE| tJava_3
-    tJava_3 -->|ITERATE| tFileArchive_1
-    tFileList_3 -->|ITERATE| tJava_4
-    tJava_4 -->|ITERATE| tFileDelete_1
-    tJava_2 -->|SUBJOB_OK| tSetKeystore_1
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
+flowchart TD
+    Prejob["tPrejob_1"] --> SetLog["tJava_2<br/>Set archive path + start log"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"]
+    Truncate["tDBRow_1<br/>TRUNCATE SERVICEHISTORY_TXT"] --> ListFiles1["tFileList_1<br/>Find newest source file"]
+    ListFiles1 -->|iterate| SetPath["tJava_1<br/>Capture file path"]
+    ListFiles1 --> Parallel["tParallelize_1"]
+    SetPath --> ReadFile["tFileInputDelimited_1<br/>Read pipe-delimited file"]
+    ReadFile -->|flow| Map["tMap_1<br/>Map columns"] --> Insert["tDBOutput_1<br/>INSERT into staging"]
+    Parallel --> Merge["tDBRow_2<br/>CALL MERGE_TXT_INTO_SERVICEHISTORY()"] & ListFiles2["tFileList_2"]
+    ListFiles2 -->|iterate| SetPath2["tJava_3"] --> Archive["tFileArchive_1<br/>Zip into archive dir"]
+    ListFiles2 --> ListFiles3["tFileList_3"]
+    ListFiles3 -->|iterate| SetPath3["tJava_4"] --> Delete["tFileDelete_1<br/>Delete source file"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| FIELDSEPARATOR / ROWSEPARATOR | `\|~\|` / `\|$\|` | The project's standard pipe-delimited format. |
+| CSVROWSEPARATOR | `\r\n` | Only relevant if CSV mode were used (it isn't here); same as `LetterType_Text_Load`, differs from most peers' `\n`. |
+| ESCAPE_CHAR / TEXT_ENCLOSURE | (empty) / (empty) | No quote/escape character is configured, same as `LetterType_Text_Load` and unlike most peer jobs which use `"` for both. |
+| HEADER | 1 | First line is a header, not data. |
+| ENCODING | US-ASCII | Plain ASCII, not ISO-8859-15. |
+| SCHEMA:REPOSITORY_SCHEMA_TYPE | `svchist` (repository schema) | Uses a centrally-defined column layout. |
+| EXCLUDEFILEMASK (on `tFileList_1`) | `*.txt` | `.txt` files are skipped. |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | SERVICEHISTORY_TXT | Loads the staging copy of the service-history table. |
+| Output action | INSERT | Adds rows only. |
+| Table action | NONE | Truncation is handled separately by `tDBRow_1`. |
+
+### Merge step: `tDBRow_2`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query | `CALL MERGE_TXT_INTO_SERVICEHISTORY();` | Folds staged rows into the permanent table; its own logic lives in Snowflake. |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none found — no `tRunJob` links.
+- **Context variables used:** `context.sourceDir`, `context.archiveDir`, `context.filePath`, `context.fileName`, `context.logDir`, `context.keystorePath` (all `Directories_0.1`).
+- **LEGACY_DW usage:** none — this job uses the shared Snowflake connection object, not `LEGACY_DW_0.1` variables directly.
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tPrejob` / `tParallelize` | Job-flow control. (see `job_Address_Text_Load.md`) |
+| `tFileList` | Lists files in a folder so the job can loop over them. (see `job_Address_Text_Load.md`) |
+| `tFileInputDelimited` | Reads a delimited text file row by row. (see `job_Address_Text_Load.md`) |
+| `tMap` | Maps/transforms columns from input to output. (see `job_Address_Text_Load.md`) |
+| `tDBOutput` / `tSnowflakeOutput` | Writes rows into a Snowflake table. (see `job_Address_Text_Load.md`) |
+| `tDBRow` / `tSnowflakeRow` | Runs a single SQL statement — used here for `TRUNCATE` and `CALL <procedure>`. (see `job_Address_Text_Load.md`) |
+| `tJava` | A small block of custom Java code. (see `job_Address_Text_Load.md`) |
+| `tFileArchive` | Compresses a file into a `.zip` and archives it. (see `job_Address_Text_Load.md`) |
+| `tFileDelete` | Deletes a file from disk. (see `job_Address_Text_Load.md`) |
+| `tSetKeystore` | Configures the SSL keystore for the Snowflake connection. (see `job_Address_Text_Load.md`) |
+
+## Issues observed
+
+- **No quote/escape character configured** (`ESCAPE_CHAR`/`TEXT_ENCLOSURE` both empty), same pattern as `LetterType_Text_Load` — worth confirming this is safe if any text field (e.g., `RequestedProgram`, comments) could ever contain a pipe character.
+- **No row counter (`tFlowMeter`)** between `tMap_1` and `tDBOutput_1`, unlike some peer jobs.
+- **No explicit error handling on the merge step** (no `tDie`/`tWarn`), same as most peers.
+- **The merge procedure's own logic is outside Talend**, same caveat as every other job that calls a `MERGE_TXT_INTO_*` procedure.

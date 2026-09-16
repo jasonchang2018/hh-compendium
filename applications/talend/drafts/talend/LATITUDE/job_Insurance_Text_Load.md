@@ -1,329 +1,105 @@
 # Talend Job: Insurance_Text_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Author**: jmach@harriscollect.com
-- **Created**: 2026-01-19T09:36:12.366-0800
-- **Last Modified**: 2026-04-28T17:04:32.926-0700
+This job loads patient/debtor insurance records (carrier, policy number, insured person details, including SSN) into Snowflake. It follows the standard text-load pattern — truncate staging, read and map the file, load staging, merge into the permanent `INSURANCE` table, archive/delete the source — but is one of a smaller number of jobs that also runs the mapped rows through a `tDataEncrypt` step before loading, presumably because the file carries sensitive fields like `InsuredSSN`.
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tDBConnection_1 | `tSnowflakeConnection` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":2,"@type":"org.talend.components.snowflake. |
-| 2 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 3 | tJava_1 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 4 | tFileInputDelimited_1 | `tFileInputDelimited` | `USE_EXISTING_DYNAMIC`=false, `FILENAMETEXT`="When the input source is a stream or a zip file,f, `FILENAME`=context.filePath, `CSV_OPTION`=false, `ROWSEPARATOR`="|$|" |
-| 5 | tDataEncrypt_1 | `tDataEncrypt` | `CRYPTO_METHOD`=AES, `CRYPTO_FILE_PATH`=context.cryptoPath, `GEN_CRYPTO_FILE_CONTROLLER`=false, `ALGO_VERSION`=2, `CONNECTION_FORMAT`=row |
-| 6 | tMap_1 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 7 | tFlowMeter_3 | `tFlowMeter` | `USEROWLABEL`=true, `METTERLABEL`="MyLabel", `ABSOLUTE`=Absolute, `CONNECTION_FORMAT`=row |
-| 8 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 9 | tDBRow_1 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 10 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 11 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 12 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 13 | tJava_2 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 14 | tFileArchive_1 | `tFileArchive` | `SOURCE`=context.sourceDir, `SOURCE_FILE`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s, `SUB_DIRECTROY`=false, `TARGET`=context.archiveDir + context.fileName+".zip", `MKDIR`=true |
-| 15 | tFileList_3 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 16 | tJava_4 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 17 | tFileDelete_1 | `tFileDelete` | `FILENAME`=context.filePath, `DIRECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `PATH`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `FAILON`=false, `FOLDER`=false |
-| 18 | tParallelize_1 | `tParallelize` | `WAIT_FOR`=All, `SLEEPTIME`=100, `DIE_ON_ERROR`=false, `CONNECTION_FORMAT`=row |
-| 19 | tJava_3 | `tJava` | `CODE`=context.archiveDir = context.archiveDir + TalendDa, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 20 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
+| Field | Value |
+|---|---|
+| Job name | Insurance_Text_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | jmach@harriscollect.com |
+| Created | 2026-01-19T09:36:12.366-0800 |
+| Last Modified | 2026-04-28T17:04:32.926-0700 |
 
-## Schemas
+## Step-by-step data flow
 
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| InsuranceId | id_BigDecimal | Yes | -1 |
-| Number | id_BigDecimal | Yes | -1 |
-| CarrierId | id_BigDecimal | Yes | -1 |
-| InsuredName | id_String | Yes | -1 |
-| InsuredStreet1 | id_String | Yes | -1 |
-| InsuredStreet2 | id_String | Yes | -1 |
-| InsuredCity | id_String | Yes | -1 |
-| InsuredState | id_String | Yes | -1 |
-| InsuredZip | id_String | Yes | -1 |
-| InsuredCountry | id_String | Yes | -1 |
-| InsuredCounty | id_String | Yes | -1 |
-| InsuredPhone | id_String | Yes | -1 |
-| InsuredBirthday | id_String | Yes | -1 |
-| InsuredSex | id_String | Yes | -1 |
-| InsuredEmployer | id_String | Yes | -1 |
-| AuthPmtToProvidor | id_BigDecimal | Yes | -1 |
-| AcceptAssignment | id_BigDecimal | Yes | -1 |
-| EmployerHealthPlan | id_String | Yes | -1 |
-| PolicyNumber | id_String | Yes | -1 |
-| PatientRelationToInsured | id_String | Yes | -1 |
-| Program | id_String | Yes | -1 |
-| GroupNumber | id_String | Yes | -1 |
-| GroupName | id_String | Yes | -1 |
-| AdditionalInfo | id_String | Yes | -1 |
-| DateCreated | id_String | Yes | -1 |
-| DateUpdated | id_String | Yes | -1 |
-| UpdateChecksum | id_BigDecimal | Yes | -1 |
-| CreatedBy | id_BigDecimal | Yes | -1 |
-| UpdatedBy | id_BigDecimal | Yes | -1 |
-| CoordinationNumber | id_String | Yes | -1 |
-| InsuredWorkPhone | id_String | Yes | -1 |
-| InsuredSSN | id_String | Yes | -1 |
-| Invalid | id_BigDecimal | Yes | -1 |
-| InvalidReason | id_String | Yes | -1 |
-| TimelyFiling | id_String | Yes | -1 |
-| Category | id_String | Yes | -1 |
-| InsuranceId | id_BigDecimal | Yes | -1 |
-| Number | id_BigDecimal | Yes | -1 |
-| CarrierId | id_BigDecimal | Yes | -1 |
-| InsuredName | id_String | Yes | -1 |
-| InsuredStreet1 | id_String | Yes | -1 |
-| InsuredStreet2 | id_String | Yes | -1 |
-| InsuredCity | id_String | Yes | -1 |
-| InsuredState | id_String | Yes | -1 |
-| InsuredZip | id_String | Yes | -1 |
-| InsuredCountry | id_String | Yes | -1 |
-| InsuredCounty | id_String | Yes | -1 |
-| InsuredPhone | id_String | Yes | -1 |
-| InsuredBirthday | id_String | Yes | -1 |
-| InsuredSex | id_String | Yes | -1 |
-| InsuredEmployer | id_String | Yes | -1 |
-| AuthPmtToProvidor | id_BigDecimal | Yes | -1 |
-| AcceptAssignment | id_BigDecimal | Yes | -1 |
-| EmployerHealthPlan | id_String | Yes | -1 |
-| PolicyNumber | id_String | Yes | -1 |
-| PatientRelationToInsured | id_String | Yes | -1 |
-| Program | id_String | Yes | -1 |
-| GroupNumber | id_String | Yes | -1 |
-| GroupName | id_String | Yes | -1 |
-| AdditionalInfo | id_String | Yes | -1 |
-| DateCreated | id_String | Yes | -1 |
-| DateUpdated | id_String | Yes | -1 |
-| UpdateChecksum | id_BigDecimal | Yes | -1 |
-| CreatedBy | id_BigDecimal | Yes | -1 |
-| UpdatedBy | id_BigDecimal | Yes | -1 |
-| CoordinationNumber | id_String | Yes | -1 |
-| InsuredWorkPhone | id_String | Yes | -1 |
-| InsuredSSN | id_String | Yes | -1 |
-| Invalid | id_BigDecimal | Yes | -1 |
-| InvalidReason | id_String | Yes | -1 |
-| TimelyFiling | id_String | Yes | -1 |
-| Category | id_String | Yes | -1 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tDataEncrypt_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| InsuranceId | id_BigDecimal | Yes | -1 |
-| Number | id_BigDecimal | Yes | -1 |
-| CarrierId | id_BigDecimal | Yes | -1 |
-| InsuredName | id_String | Yes | -1 |
-| InsuredStreet1 | id_String | Yes | -1 |
-| InsuredStreet2 | id_String | Yes | -1 |
-| InsuredCity | id_String | Yes | -1 |
-| InsuredState | id_String | Yes | -1 |
-| InsuredZip | id_String | Yes | -1 |
-| InsuredCountry | id_String | Yes | -1 |
-| InsuredCounty | id_String | Yes | -1 |
-| InsuredPhone | id_String | Yes | -1 |
-| InsuredBirthday | id_String | Yes | -1 |
-| InsuredSex | id_String | Yes | -1 |
-| InsuredEmployer | id_String | Yes | -1 |
-| AuthPmtToProvidor | id_BigDecimal | Yes | -1 |
-| AcceptAssignment | id_BigDecimal | Yes | -1 |
-| EmployerHealthPlan | id_String | Yes | -1 |
-| PolicyNumber | id_String | Yes | -1 |
-| PatientRelationToInsured | id_String | Yes | -1 |
-| Program | id_String | Yes | -1 |
-| GroupNumber | id_String | Yes | -1 |
-| GroupName | id_String | Yes | -1 |
-| AdditionalInfo | id_String | Yes | -1 |
-| DateCreated | id_String | Yes | -1 |
-| DateUpdated | id_String | Yes | -1 |
-| UpdateChecksum | id_BigDecimal | Yes | -1 |
-| CreatedBy | id_BigDecimal | Yes | -1 |
-| UpdatedBy | id_BigDecimal | Yes | -1 |
-| CoordinationNumber | id_String | Yes | -1 |
-| InsuredWorkPhone | id_String | Yes | -1 |
-| InsuredSSN | id_String | Yes | -1 |
-| Invalid | id_BigDecimal | Yes | -1 |
-| InvalidReason | id_String | Yes | -1 |
-| TimelyFiling | id_String | Yes | -1 |
-| Category | id_String | Yes | -1 |
-
-### tMap_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| INSURANCEID | id_BigDecimal | No | 38 |
-| NUMBER | id_BigDecimal | No | 38 |
-| CARRIER | id_BigDecimal | No | 38 |
-| INSUREDNAME | id_String | Yes | 50 |
-| INSUREDSTREET1 | id_String | Yes | 128 |
-| INSUREDSTREET2 | id_String | Yes | 128 |
-| INSUREDCITY | id_String | Yes | 50 |
-| INSUREDSTATE | id_String | Yes | 3 |
-| INSUREDZIP | id_String | Yes | 10 |
-| INSUREDCOUNTRY | id_String | Yes | 128 |
-| INSUREDCOUNTY | id_String | Yes | 128 |
-| INSUREDPHONE | id_String | Yes | 20 |
-| INSUREDBIRTHDAY | id_String | Yes | 30 |
-| INSUREDSEX | id_String | Yes | 1 |
-| INSUREDEMPLOYER | id_String | Yes | 50 |
-| AUTHPMTTOPROVIDOR | id_BigDecimal | No | 38 |
-| ACCEPTASSIGNMENT | id_BigDecimal | No | 38 |
-| EMPLOYERHEALTHPLAN | id_String | Yes | 50 |
-| POLICYNUMBER | id_String | Yes | 50 |
-| PATIENTRELATIONTOINSURED | id_String | Yes | 50 |
-| PROGRAM | id_String | Yes | 50 |
-| GROUPNUMBER | id_String | Yes | 50 |
-| GROUPNAME | id_String | Yes | 50 |
-| ADDITIONALINFO | id_String | Yes | 5000 |
-| DATECREATED | id_String | Yes | 30 |
-| DATEUPDATED | id_String | Yes | 30 |
-| UPDATECHECKSUM | id_BigDecimal | Yes | 38 |
-| CREATEDBY | id_BigDecimal | Yes | 38 |
-| UPDATEDBY | id_BigDecimal | Yes | 38 |
-| COORDINATIONNUMBER | id_String | Yes | 50 |
-| INSUREDWORKPHONE | id_String | Yes | 20 |
-| INSUREDSSN | id_String | Yes | 255 |
-| INVALID | id_BigDecimal | No | 38 |
-| INVALIDREASON | id_String | Yes | 16777216 |
-| TIMELYFILING | id_String | Yes | 16777216 |
-| CATEGORY | id_String | Yes | 15 |
-
-### tFlowMeter_3
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| INSURANCEID | id_BigDecimal | No | 38 |
-| NUMBER | id_BigDecimal | No | 38 |
-| CARRIER | id_BigDecimal | No | 38 |
-| INSUREDNAME | id_String | Yes | 50 |
-| INSUREDSTREET1 | id_String | Yes | 128 |
-| INSUREDSTREET2 | id_String | Yes | 128 |
-| INSUREDCITY | id_String | Yes | 50 |
-| INSUREDSTATE | id_String | Yes | 3 |
-| INSUREDZIP | id_String | Yes | 10 |
-| INSUREDCOUNTRY | id_String | Yes | 128 |
-| INSUREDCOUNTY | id_String | Yes | 128 |
-| INSUREDPHONE | id_String | Yes | 20 |
-| INSUREDBIRTHDAY | id_String | Yes | 30 |
-| INSUREDSEX | id_String | Yes | 1 |
-| INSUREDEMPLOYER | id_String | Yes | 50 |
-| AUTHPMTTOPROVIDOR | id_BigDecimal | No | 38 |
-| ACCEPTASSIGNMENT | id_BigDecimal | No | 38 |
-| EMPLOYERHEALTHPLAN | id_String | Yes | 50 |
-| POLICYNUMBER | id_String | Yes | 50 |
-| PATIENTRELATIONTOINSURED | id_String | Yes | 50 |
-| PROGRAM | id_String | Yes | 50 |
-| GROUPNUMBER | id_String | Yes | 50 |
-| GROUPNAME | id_String | Yes | 50 |
-| ADDITIONALINFO | id_String | Yes | 5000 |
-| DATECREATED | id_String | Yes | 30 |
-| DATEUPDATED | id_String | Yes | 30 |
-| UPDATECHECKSUM | id_BigDecimal | Yes | 38 |
-| CREATEDBY | id_BigDecimal | Yes | 38 |
-| UPDATEDBY | id_BigDecimal | Yes | 38 |
-| COORDINATIONNUMBER | id_String | Yes | 50 |
-| INSUREDWORKPHONE | id_String | Yes | 20 |
-| INSUREDSSN | id_String | Yes | 255 |
-| INVALID | id_BigDecimal | No | 38 |
-| INVALIDREASON | id_String | Yes | 16777216 |
-| TIMELYFILING | id_String | Yes | 16777216 |
-| CATEGORY | id_String | Yes | 15 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| INSURANCEID | id_BigDecimal | No | 38 |
-| NUMBER | id_BigDecimal | No | 38 |
-| CARRIER | id_BigDecimal | No | 38 |
-| INSUREDNAME | id_String | Yes | 50 |
-| INSUREDSTREET1 | id_String | Yes | 128 |
-| INSUREDSTREET2 | id_String | Yes | 128 |
-| INSUREDCITY | id_String | Yes | 50 |
-| INSUREDSTATE | id_String | Yes | 3 |
-| INSUREDZIP | id_String | Yes | 10 |
-| INSUREDCOUNTRY | id_String | Yes | 128 |
-| INSUREDCOUNTY | id_String | Yes | 128 |
-| INSUREDPHONE | id_String | Yes | 20 |
-| INSUREDBIRTHDAY | id_String | Yes | 30 |
-| INSUREDSEX | id_String | Yes | 1 |
-| INSUREDEMPLOYER | id_String | Yes | 50 |
-| AUTHPMTTOPROVIDOR | id_BigDecimal | No | 38 |
-| ACCEPTASSIGNMENT | id_BigDecimal | No | 38 |
-| EMPLOYERHEALTHPLAN | id_String | Yes | 50 |
-| POLICYNUMBER | id_String | Yes | 50 |
-| PATIENTRELATIONTOINSURED | id_String | Yes | 50 |
-| PROGRAM | id_String | Yes | 50 |
-| GROUPNUMBER | id_String | Yes | 50 |
-| GROUPNAME | id_String | Yes | 50 |
-| ADDITIONALINFO | id_String | Yes | 5000 |
-| DATECREATED | id_String | Yes | 30 |
-| DATEUPDATED | id_String | Yes | 30 |
-| UPDATECHECKSUM | id_BigDecimal | Yes | 38 |
-| CREATEDBY | id_BigDecimal | Yes | 38 |
-| UPDATEDBY | id_BigDecimal | Yes | 38 |
-| COORDINATIONNUMBER | id_String | Yes | 50 |
-| INSUREDWORKPHONE | id_String | Yes | 20 |
-| INSUREDSSN | id_String | Yes | 255 |
-| INVALID | id_BigDecimal | No | 38 |
-| INVALIDREASON | id_String | Yes | 16777216 |
-| TIMELYFILING | id_String | Yes | 16777216 |
-| CATEGORY | id_String | Yes | 15 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tDBRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-## Data Flow
+1. **Set up.** `tPrejob_1` starts the job; `tJava_3` sets the dated archive path and opens the log; `tSetKeystore_1` configures the SSL keystore; `tDBConnection_1` opens the Snowflake connection.
+2. **Empty the staging table.** `tDBRow_1` runs `TRUNCATE TABLE LIQUID_STAGING.INSURANCE;`.
+3. **Find the file.** `tFileList_1` lists files in `context.sourceDir` (skipping `.txt`), sorted by last-modified date. The match becomes `context.filePath` (`tJava_1`).
+4. **Read, encrypt, and reshape.** `tFileInputDelimited_1` reads the file as pipe-delimited (`|~|`/`|$|`), US-ASCII encoded, with a header row. The raw rows flow into `tDataEncrypt_1`, which encrypts the row data (AES, algorithm version 2) before it reaches `tMap_1`, which maps the (now-encrypted) columns onto the `INSURANCE` schema.
+5. **Load staging.** Mapped rows pass through a row counter (`tFlowMeter_3`) into `tDBOutput_1`, which inserts them into the staging table.
+6. **Merge and cleanup — in parallel.** `tParallelize_1` splits into:
+   - **Merge branch:** `tDBRow_2` runs `CALL MERGE_TXT_INTO_INSURANCE();`. No `tDie`/`tWarn` reacts to the result.
+   - **Cleanup branch:** the file is listed again, archived as a `.zip` into `context.archiveDir` (`tFileArchive_1`), and deleted (`tFileDelete_1`).
 
 ```mermaid
-graph LR
-    tFileList_1 -->|ITERATE| tJava_1
-    tFileList_1 -->|SUBJOB_OK| tParallelize_1
-    tJava_1 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tDataEncrypt_1
-    tDataEncrypt_1 -->|FLOW| tMap_1
-    tMap_1 -->|FLOW| tFlowMeter_3
-    tFlowMeter_3 -->|FLOW| tDBOutput_1
-    tDBRow_1 -->|SUBJOB_OK| tFileList_1
-    tPrejob_1 -->|COMPONENT_OK| tJava_3
-    tFileList_2 -->|SUBJOB_OK| tFileList_3
-    tFileList_2 -->|ITERATE| tJava_2
-    tJava_2 -->|ITERATE| tFileArchive_1
-    tFileList_3 -->|ITERATE| tJava_4
-    tJava_4 -->|ITERATE| tFileDelete_1
-    tParallelize_1 -->|PARALLELIZE| tDBRow_2
-    tParallelize_1 -->|PARALLELIZE| tFileList_2
-    tJava_3 -->|SUBJOB_OK| tSetKeystore_1
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
+flowchart TD
+    Prejob["tPrejob_1"] --> SetLog["tJava_3<br/>Set archive path + start log"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"]
+    Truncate["tDBRow_1<br/>TRUNCATE staging.INSURANCE"] --> ListFiles1["tFileList_1<br/>Find newest file"]
+    ListFiles1 -->|iterate| SetPath["tJava_1"] --> ReadFile["tFileInputDelimited_1"]
+    ListFiles1 --> Parallel["tParallelize_1"]
+    ReadFile -->|flow| Encrypt["tDataEncrypt_1<br/>Encrypt row data (AES)"] --> Map["tMap_1"] --> FlowMeter["tFlowMeter_3"] --> Insert["tDBOutput_1<br/>INSERT into staging"]
+    Parallel --> Merge["tDBRow_2<br/>CALL MERGE_TXT_INTO_INSURANCE()"]
+    Parallel --> ListFiles2["tFileList_2"]
+    ListFiles2 -->|iterate| SetPath2["tJava_2"] --> Archive["tFileArchive_1"]
+    ListFiles2 --> ListFiles3["tFileList_3"]
+    ListFiles3 -->|iterate| SetPath3["tJava_4"] --> Delete["tFileDelete_1"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| FIELDSEPARATOR / ROWSEPARATOR | `\|~\|` / `\|$\|` | Standard pipe-delimited format. |
+| ENCODING | US-ASCII | Matches `Carrier_Text_Load`/`cmi_Hermes_Recommendations_Load`. |
+| SCHEMA_REJECT | repository schema `"ins"` | Correctly points at an insurance-specific reject schema (unlike the mismatched "customer" reject schema in `Carrier_Text_Load` and others). |
+| EXCLUDEFILEMASK (on `tFileList_1`) | `*.txt` | `.txt` files skipped. |
+
+### Encryption step: `tDataEncrypt_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| CRYPTO_METHOD | AES | Rows are encrypted with AES before loading. |
+| SECRET_KEY / PASSWORD_M1 | redacted | The encryption key/password are not visible in this metadata. |
+| CRYPTO_FILE_PATH | `context.cryptoPath` | Path used for the encryption's supporting file — parameterized via context, unlike most of the hardcoded paths flagged below. |
+| ALGO_VERSION | 2 | Uses version 2 of Talend's encryption algorithm. |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | INSURANCE | Loads into the staging copy of this table. |
+| Output action | INSERT | Adds rows only. |
+| Table action | NONE | No table create/drop/truncate here. |
+
+### Merge step: `tDBRow_2`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query | `CALL MERGE_TXT_INTO_INSURANCE();` | Folds staged rows into the permanent `INSURANCE` table. |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none found — no `tRunJob` links.
+- **Context variables used:** `context.sourceDir`, `context.archiveDir`, `context.filePath`, `context.fileName`, `context.logDir`, `context.keystorePath`, `context.cryptoPath` (all `Directories_0.1`, except `cryptoPath` which is a job-specific addition not itself documented in `_shared_context.json`'s variable list). Uses the shared Snowflake connection object, not `LEGACY_DW_0.1` directly.
+- **Hardcoded values found:** `tFileInputDelimited_1.TEMP_DIR`, `tFileArchive_1.SOURCE_FILE`, `tFileDelete_1.DIRECTORY`/`PATH`, and `tSetKeystore_1.SSL_TRUSTSERVER_TRUSTSTORE` — the same fixed Windows paths seen project-wide.
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tPrejob` / `tParallelize` | Job-flow control (see `job_Address_Text_Load.md`). |
+| `tFileList` | Lists files to loop over (see `job_Address_Text_Load.md`). |
+| `tFileInputDelimited` | Reads a delimited text file (see `job_Address_Text_Load.md`). |
+| `tDataEncrypt` | Encrypts row data using a specified algorithm (here AES) and key/password before it moves further down the flow — not covered in the three reference docs. Used here because the file carries sensitive fields (e.g. Social Security Number). |
+| `tMap` | Maps/transforms columns (see `job_Address_Text_Load.md`). |
+| `tFlowMeter` | Counts rows passing a point in the flow (see `job_Address_Text_Load.md`). |
+| `tDBOutput` / `tSnowflakeOutput` | Writes rows to Snowflake (see `job_Address_Text_Load.md`). |
+| `tDBRow` / `tSnowflakeRow` | Runs a single SQL statement (see `job_Address_Text_Load.md`). |
+| `tJava` | Custom Java code blocks (see `job_Address_Text_Load.md`). |
+| `tFileArchive` | Zips a file into an archive location (see `job_Address_Text_Load.md`). |
+| `tFileDelete` | Deletes a file from disk (see `job_Address_Text_Load.md`). |
+| `tSetKeystore` | Configures the SSL keystore for Snowflake (see `job_Address_Text_Load.md`). |
+
+## Issues observed
+
+- **Encryption key/password are redacted in this metadata**, so it's not possible to confirm from Talend alone what's actually encrypted vs. left in the clear before the merge step — worth verifying with whoever manages the encryption keys, given the presence of `InsuredSSN` in the schema.
+- **No merge-result checking** — no `tDie`/`tWarn` reacts to the merge outcome, unlike `PatientInfo_Text_Load` and `cmi_Hermes_Recommendations_Load`.
+- **Hardcoded, machine-specific paths** exist alongside the parameterized ones (see Dependencies & configuration) — the same project-wide pattern flagged in `Address_Text_Load`.

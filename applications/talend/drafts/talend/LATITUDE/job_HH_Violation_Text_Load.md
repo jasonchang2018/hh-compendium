@@ -1,261 +1,113 @@
 # Talend Job: HH_Violation_Text_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Author**: jmach@harriscollect.com
-- **Created**: 2025-09-26T10:02:04.422-0700
-- **Last Modified**: 2026-07-29T09:26:05.042-0700
+This job loads highway/toll-violation records (`HH_VIOLATION` — tollway, plaza, lane, speed, plate/vehicle details) into Snowflake, following the standard truncate → load → merge → archive/delete pattern. It's distinguished from most peers by having an explicit bad-file handling path: if the source file fails to parse, the file is moved aside and the job dies with a specific message, instead of just letting Talend's generic error handling take over.
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tDBConnection_1 | `tSnowflakeConnection` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":2,"@type":"org.talend.components.snowflake. |
-| 2 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 3 | tJava_1 | `tJava` | `CODE`=context.archiveDir = context.archiveDir + TalendDa, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 4 | tDBRow_1 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 5 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 6 | tJava_2 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 7 | tFileInputDelimited_1 | `tFileInputDelimited` | `USE_EXISTING_DYNAMIC`=false, `FILENAMETEXT`="When the input source is a stream or a zip file,f, `FILENAME`=context.filePath, `CSV_OPTION`=false, `ROWSEPARATOR`="|$|" |
-| 8 | tFileProperties_1 | `tFileProperties` | `FILENAME`=context.filePath, `MD5`=false, `CONNECTION_FORMAT`=row |
-| 9 | tJavaRow_1 | `tJavaRow` | `CODE`=//Code generated according to input schema and out, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 10 | tMap_1 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 11 | tFlowMeter_1 | `tFlowMeter` | `USEROWLABEL`=true, `METTERLABEL`="MyLabel", `ABSOLUTE`=Absolute, `CONNECTION_FORMAT`=row |
-| 12 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 13 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 14 | tJava_3 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 15 | tFileArchive_1 | `tFileArchive` | `SOURCE`=context.sourceDir, `SOURCE_FILE`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s, `SUB_DIRECTROY`=false, `TARGET`=context.archiveDir + context.fileName+".zip", `MKDIR`=true |
-| 16 | tParallelize_1 | `tParallelize` | `WAIT_FOR`=All, `SLEEPTIME`=100, `DIE_ON_ERROR`=false, `CONNECTION_FORMAT`=row |
-| 17 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 18 | tFileList_3 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 19 | tJava_4 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 20 | tFileDelete_1 | `tFileDelete` | `FILENAME`=context.filePath, `DIRECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `PATH`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `FAILON`=true, `FOLDER`=false |
-| 21 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
-| 22 | tFileCopy_1 | `tFileCopy` | `FILENAME`=context.filePath, `ENABLE_COPY_DIRECTORY`=false, `SOURCE_DERECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace", `DESTINATION`=context.badFileDir, `RENAME`=false |
-| 23 | tDie_2 | `tDie` | `MESSAGE`="File parsing error: " + ((String)globalMap.get("t, `CODE`=4, `PRIORITY`=5, `EXIT_JVM`=false, `CONNECTION_FORMAT`=row |
+| Field | Value |
+|---|---|
+| Job name | HH_Violation_Text_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | jmach@harriscollect.com |
+| Created | 2025-09-26T10:02:04.422-0700 |
+| Last Modified | 2026-07-29T09:26:05.042-0700 |
 
-## Schemas
+## Step-by-step data flow
 
-### tDBRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| VIOLATIONID | id_BigDecimal | No | 38 |
-| ACCOUNTID | id_BigDecimal | No | 38 |
-| VIOLATIONDATETIME | id_String | Yes | 30 |
-| TOLLWAY | id_String | Yes | 20 |
-| ENTRYLANE | id_String | Yes | 20 |
-| TURNPIKE | id_String | Yes | 20 |
-| PLAZA | id_String | Yes | 20 |
-| LANE | id_String | Yes | 20 |
-| _CLASS | id_String | Yes | 50 |
-| LOCATIONDESC | id_String | Yes | 50 |
-| POSTEDSPEED | id_String | Yes | 4 |
-| RECORDEDSPEED | id_String | Yes | 4 |
-| VIOLATIONDESC | id_String | Yes | 50 |
-| VIOLATIONREF | id_String | Yes | 50 |
-| VIOLATIONTYPE | id_String | Yes | 50 |
-| VIOLATIONNUMBER | id_String | Yes | 25 |
-| STATEMENTID | id_String | Yes | 25 |
-| PLATENUMBER | id_String | Yes | 10 |
-| PLATESTATE | id_String | Yes | 4 |
-| PLATECITY | id_String | Yes | 25 |
-| VEHICLEYEAR | id_String | Yes | 4 |
-| VEHICLEMAKE | id_String | Yes | 20 |
-| VEHICLEVIN | id_String | Yes | 20 |
-| VEHICLEMODEL | id_String | Yes | 50 |
-| VIOLATIONID | id_BigDecimal | No | 38 |
-| ACCOUNTID | id_BigDecimal | No | 38 |
-| VIOLATIONDATETIME | id_String | Yes | 30 |
-| TOLLWAY | id_String | Yes | 20 |
-| ENTRYLANE | id_String | Yes | 20 |
-| TURNPIKE | id_String | Yes | 20 |
-| PLAZA | id_String | Yes | 20 |
-| LANE | id_String | Yes | 20 |
-| _CLASS | id_String | Yes | 50 |
-| LOCATIONDESC | id_String | Yes | 50 |
-| POSTEDSPEED | id_String | Yes | 4 |
-| RECORDEDSPEED | id_String | Yes | 4 |
-| VIOLATIONDESC | id_String | Yes | 50 |
-| VIOLATIONREF | id_String | Yes | 50 |
-| VIOLATIONTYPE | id_String | Yes | 50 |
-| VIOLATIONNUMBER | id_String | Yes | 25 |
-| STATEMENTID | id_String | Yes | 25 |
-| PLATENUMBER | id_String | Yes | 10 |
-| PLATESTATE | id_String | Yes | 4 |
-| PLATECITY | id_String | Yes | 25 |
-| VEHICLEYEAR | id_String | Yes | 4 |
-| VEHICLEMAKE | id_String | Yes | 20 |
-| VEHICLEVIN | id_String | Yes | 20 |
-| VEHICLEMODEL | id_String | Yes | 50 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tFileProperties_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| abs_path | id_String | Yes | 255 |
-| dirname | id_String | Yes | 255 |
-| basename | id_String | Yes | 255 |
-| mode_string | id_String | Yes | 10 |
-| size | id_Long | Yes | 20 |
-| mtime | id_Long | Yes | 20 |
-| mtime_string | id_String | Yes | 20 |
-
-### tJavaRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| abs_path | id_String | Yes | 255 |
-| dirname | id_String | Yes | 255 |
-| basename | id_String | Yes | 255 |
-| mode_string | id_String | Yes | 10 |
-| size | id_Long | Yes | 20 |
-| mtime | id_Long | Yes | 20 |
-| mtime_string | id_String | Yes | 20 |
-
-### tMap_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| LASTMODIFIED | id_BigDecimal | Yes | 38 |
-| VIOLATIONID | id_BigDecimal | No | 38 |
-| ACCOUNTID | id_BigDecimal | No | 38 |
-| VIOLATIONDATETIME | id_String | Yes | 30 |
-| TOLLWAY | id_String | Yes | 20 |
-| ENTRYLANE | id_String | Yes | 20 |
-| TURNPIKE | id_String | Yes | 20 |
-| PLAZA | id_String | Yes | 20 |
-| LANE | id_String | Yes | 20 |
-| _CLASS | id_String | Yes | 50 |
-| LOCATIONDESC | id_String | Yes | 50 |
-| POSTEDSPEED | id_String | Yes | 4 |
-| RECORDEDSPEED | id_String | Yes | 4 |
-| VIOLATIONDESC | id_String | Yes | 50 |
-| VIOLATIONREF | id_String | Yes | 50 |
-| VIOLATIONTYPE | id_String | Yes | 50 |
-| VIOLATIONNUMBER | id_String | Yes | 25 |
-| STATEMENTID | id_String | Yes | 25 |
-| PLATENUMBER | id_String | Yes | 10 |
-| PLATESTATE | id_String | Yes | 4 |
-| PLATECITY | id_String | Yes | 25 |
-| VEHICLEYEAR | id_String | Yes | 4 |
-| VEHICLEMAKE | id_String | Yes | 20 |
-| VEHICLEVIN | id_String | Yes | 20 |
-| VEHICLEMODEL | id_String | Yes | 50 |
-
-### tFlowMeter_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| LASTMODIFIED | id_BigDecimal | Yes | 38 |
-| VIOLATIONID | id_BigDecimal | No | 38 |
-| ACCOUNTID | id_BigDecimal | No | 38 |
-| VIOLATIONDATETIME | id_String | Yes | 30 |
-| TOLLWAY | id_String | Yes | 20 |
-| ENTRYLANE | id_String | Yes | 20 |
-| TURNPIKE | id_String | Yes | 20 |
-| PLAZA | id_String | Yes | 20 |
-| LANE | id_String | Yes | 20 |
-| _CLASS | id_String | Yes | 50 |
-| LOCATIONDESC | id_String | Yes | 50 |
-| POSTEDSPEED | id_String | Yes | 4 |
-| RECORDEDSPEED | id_String | Yes | 4 |
-| VIOLATIONDESC | id_String | Yes | 50 |
-| VIOLATIONREF | id_String | Yes | 50 |
-| VIOLATIONTYPE | id_String | Yes | 50 |
-| VIOLATIONNUMBER | id_String | Yes | 25 |
-| STATEMENTID | id_String | Yes | 25 |
-| PLATENUMBER | id_String | Yes | 10 |
-| PLATESTATE | id_String | Yes | 4 |
-| PLATECITY | id_String | Yes | 25 |
-| VEHICLEYEAR | id_String | Yes | 4 |
-| VEHICLEMAKE | id_String | Yes | 20 |
-| VEHICLEVIN | id_String | Yes | 20 |
-| VEHICLEMODEL | id_String | Yes | 50 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| LASTMODIFIED | id_BigDecimal | Yes | 38 |
-| VIOLATIONID | id_BigDecimal | No | 38 |
-| ACCOUNTID | id_BigDecimal | No | 38 |
-| VIOLATIONDATETIME | id_String | Yes | 30 |
-| TOLLWAY | id_String | Yes | 20 |
-| ENTRYLANE | id_String | Yes | 20 |
-| TURNPIKE | id_String | Yes | 20 |
-| PLAZA | id_String | Yes | 20 |
-| LANE | id_String | Yes | 20 |
-| _CLASS | id_String | Yes | 50 |
-| LOCATIONDESC | id_String | Yes | 50 |
-| POSTEDSPEED | id_String | Yes | 4 |
-| RECORDEDSPEED | id_String | Yes | 4 |
-| VIOLATIONDESC | id_String | Yes | 50 |
-| VIOLATIONREF | id_String | Yes | 50 |
-| VIOLATIONTYPE | id_String | Yes | 50 |
-| VIOLATIONNUMBER | id_String | Yes | 25 |
-| STATEMENTID | id_String | Yes | 25 |
-| PLATENUMBER | id_String | Yes | 10 |
-| PLATESTATE | id_String | Yes | 4 |
-| PLATECITY | id_String | Yes | 25 |
-| VEHICLEYEAR | id_String | Yes | 4 |
-| VEHICLEMAKE | id_String | Yes | 20 |
-| VEHICLEVIN | id_String | Yes | 20 |
-| VEHICLEMODEL | id_String | Yes | 50 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-## Data Flow
+1. **Set up.** `tPrejob_1` → `tSetKeystore_1` → `tDBConnection_1`; separately `tJava_1` (after the connection completes) appends today's date to `context.archiveDir` and opens a log file.
+2. **Empty the staging table.** `tDBRow_1` runs `TRUNCATE TABLE LIQUID_STAGING.HH_VIOLATION;`.
+3. **Find and read the file.** `tFileList_1` lists files in `context.sourceDir` (excluding `*.txt`), this time **sorted by modified date, oldest first** (`ORDER_BY_MODIFIEDDATE`=true, ascending) rather than "no particular order" like several peers. `tJava_2` captures the path; `tFileInputDelimited_1` reads it (`|~|`/`|$|`, quoted with `"`, header row, ISO-8859-15 encoding, empty rows removed, `DIE_ON_ERROR`=true).
+   - **If the file parses successfully:** flow continues to the map/load steps below, and separately to `tFileProperties_1` (per-file, gets the last-modified timestamp) → `tJavaRow_1` (stores it in `context.lastModified`).
+   - **If parsing fails (`COMPONENT_ERROR`):** `tFileCopy_1` moves the bad file into `context.badFileDir` (with `REMOVE_FILE`/`REPLACE_FILE` set so the original is cleared out), then `tDie_2` fails the job with the message `"File parsing error: " + <the file-input component's error message>` (exit code 4).
+4. **Transform and load staging.** `tMap_1` maps the file's columns onto the `HH_VIOLATION` schema, adding `LOAD_DT` and `LASTMODIFIED`. Rows pass through `tFlowMeter_1` into `tDBOutput_1`, which inserts them into staging.
+5. **Merge and clean up — in parallel.** `tParallelize_1` splits into:
+   - **Merge branch:** `tDBRow_2` runs `CALL MERGE_TXT_INTO_HH_VIOLATION();`.
+   - **Cleanup branch:** `tFileList_2` → `tJava_3` (captures path + name) → `tFileArchive_1` (zips into `context.archiveDir`); and `tFileList_3` → `tJava_4` (captures path + name) → `tFileDelete_1` (deletes the source file; `FAILON`=true here, unlike most peers, so a failed delete fails the whole job).
 
 ```mermaid
-graph LR
-    tDBConnection_1 -->|SUBJOB_OK| tJava_1
-    tPrejob_1 -->|COMPONENT_OK| tSetKeystore_1
-    tDBRow_1 -->|SUBJOB_OK| tFileList_1
-    tFileList_1 -->|ITERATE| tJava_2
-    tFileList_1 -->|SUBJOB_OK| tParallelize_1
-    tJava_2 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tMap_1
-    tFileInputDelimited_1 -->|ITERATE| tFileProperties_1
-    tFileInputDelimited_1 -->|COMPONENT_ERROR| tFileCopy_1
-    tFileProperties_1 -->|FLOW| tJavaRow_1
-    tMap_1 -->|FLOW| tFlowMeter_1
-    tFlowMeter_1 -->|FLOW| tDBOutput_1
-    tFileList_2 -->|ITERATE| tJava_3
-    tFileList_2 -->|SUBJOB_OK| tFileList_3
-    tJava_3 -->|ITERATE| tFileArchive_1
-    tParallelize_1 -->|PARALLELIZE| tFileList_2
-    tParallelize_1 -->|PARALLELIZE| tDBRow_2
-    tFileList_3 -->|ITERATE| tJava_4
-    tJava_4 -->|ITERATE| tFileDelete_1
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
-    tFileCopy_1 -->|SUBJOB_OK| tDie_2
+flowchart TD
+    Prejob["tPrejob_1"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"] --> SetLog["tJava_1<br/>Set archive path + start log"]
+    Truncate["tDBRow_1<br/>TRUNCATE staging.HH_VIOLATION"] --> ListFiles1["tFileList_1<br/>Find oldest source file"]
+    ListFiles1 -->|iterate| SetPath["tJava_2"] --> ReadFile["tFileInputDelimited_1"]
+    ListFiles1 --> Parallel["tParallelize_1"]
+    ReadFile -->|iterate| FileProps["tFileProperties_1"] --> StampTime["tJavaRow_1<br/>context.lastModified"]
+    ReadFile -->|flow| Map["tMap_1"] --> FlowMeter["tFlowMeter_1"] --> Insert["tDBOutput_1<br/>INSERT into staging.HH_VIOLATION"]
+    ReadFile -->|"parse error"| BadFile["tFileCopy_1<br/>Move file to badFileDir"] --> Die["tDie_2<br/>Fail job, exit code 4"]
+    Parallel --> ListFiles2["tFileList_2"] & Merge["tDBRow_2<br/>CALL MERGE_TXT_INTO_HH_VIOLATION()"]
+    ListFiles2 -->|iterate| SetPath2["tJava_3"] --> Archive["tFileArchive_1"]
+    ListFiles2 --> ListFiles3["tFileList_3"]
+    ListFiles3 -->|iterate| SetPath3["tJava_4"] --> Delete["tFileDelete_1<br/>FAILON=true"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| FIELDSEPARATOR / ROWSEPARATOR | `\|~\|` / `\|$\|` | Standard project pipe-delimited format. |
+| REMOVE_EMPTY_ROW | true | Blank lines in the file are skipped. |
+| ENCODING | ISO-8859-15 | Standard for most peer jobs. |
+| DIE_ON_ERROR | true | Combined with the `COMPONENT_ERROR` branch below, this is what routes parsing failures to the bad-file/die path rather than silently continuing. |
+| TEMP_DIR | `"C:/Talend-Studio-.../workspace"` | Hardcoded Windows path. |
+| ORDER_BY_MODIFIEDDATE (on `tFileList_1`) | true, ascending | Picks the **oldest** unprocessed file first, rather than "no particular order" as in `Bankruptcy_Text_Load`/`Debtor_Table_Text_Load`. |
+
+### Error path: `tFileCopy_1` → `tDie_2`
+
+| Setting | Value | What it means |
+|---|---|---|
+| DESTINATION (`tFileCopy_1`) | `context.badFileDir` | A dedicated "bad files" folder — this context variable is not part of the `Directories_0.1` group captured in `_shared_context.json` (see Issues observed). |
+| REMOVE_FILE / REPLACE_FILE | true / true | The original file is removed from the source folder once copied aside. |
+| MESSAGE (`tDie_2`) | `"File parsing error: " + <tFileInputDelimited_1 error message>` | Includes the actual parser error text. |
+| CODE (`tDie_2`) | 4 | Job exit code on failure. |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | HH_VIOLATION | Loads into the staging copy of the table. |
+| Output action | INSERT | Adds rows only. |
+| Table action | NONE | Table structure untouched. |
+
+### Merge step: `tDBRow_2`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query | `CALL MERGE_TXT_INTO_HH_VIOLATION();` | Runs the Snowflake merge procedure — no `tDie`/`tWarn` result check follows it. |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none found — no `tRunJob` links.
+- **Context variables used:** `context.sourceDir`, `context.archiveDir`, `context.filePath`, `context.fileName`, `context.logDir`, `context.keystorePath`, `context.lastModified` (all `Directories_0.1` or job-local), plus `context.badFileDir`, which is **not** part of the `Directories_0.1` group captured in `_shared_context.json`. Uses the shared Snowflake connection object, not `LEGACY_DW_0.1` variables directly.
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tPrejob` / `tParallelize` | Job-flow control (see job_Address_Text_Load.md). |
+| `tSnowflakeConnection` (`tDBConnection`) | Opens the shared Snowflake connection (see job_Bankruptcy_Text_Load.md). |
+| `tFileList` | Lists files for iteration (see job_Address_Text_Load.md). |
+| `tFileInputDelimited` | Reads a delimited text file (see job_Address_Text_Load.md). |
+| `tFileProperties` | Reads file-system metadata like last-modified time (see job_Address_Text_Load.md). |
+| `tJavaRow` | Custom code that runs once per row (see job_cmi_Hermes_Recommendations_Load.md). |
+| `tMap` | Maps/transforms columns (see job_Address_Text_Load.md). |
+| `tFlowMeter` | Counts rows passing through (see job_Address_Text_Load.md). |
+| `tDBOutput` / `tSnowflakeOutput` | Writes rows to Snowflake (see job_Address_Text_Load.md). |
+| `tDBRow` / `tSnowflakeRow` | Runs a single SQL statement (see job_Address_Text_Load.md). |
+| `tJava` | Custom Java code block (see job_Address_Text_Load.md). |
+| `tFileArchive` | Zips a file into an archive location (see job_Address_Text_Load.md). |
+| `tFileDelete` | Deletes a file (see job_Address_Text_Load.md). |
+| `tFileCopy` | Copies/moves a file (see job_Export_File_Check.md) — here used to relocate a bad file rather than mark a "done" file as seen. |
+| `tDie` | Fails the job with a specific message and exit code (see job_cmi_Hermes_Recommendations_Load.md). |
+| `tSetKeystore` | Configures the SSL keystore (see job_Address_Text_Load.md). |
+
+## Issues observed
+
+- **`context.badFileDir` is referenced but not defined in the `Directories_0.1` context group** captured in `_shared_context.json` — its actual folder location can't be confirmed from this metadata.
+- **`tFileDelete_1.FAILON` is `true`** here, unlike most peer jobs (`Bankruptcy_Text_Load`, `Debtor_Table_Text_Load`, `MiscExtra_Text_Load`, etc. all use `false`) — meaning a failed delete will fail this job outright, a stricter behavior than the norm.
+- **This is the only one of the 9 jobs reviewed with an explicit parse-error / bad-file path** (`tFileCopy_1` → `tDie_2`) — a good pattern, but it means peer jobs without it would simply hit Talend's generic error handling on a malformed file, with no automatic relocation of the bad file.
+- **Hardcoded, machine-specific paths** on `tFileInputDelimited_1.TEMP_DIR`, `tFileArchive_1.SOURCE_FILE`, `tFileDelete_1.DIRECTORY`/`PATH`, `tSetKeystore_1.SSL_TRUSTSERVER_TRUSTSTORE`, and `tFileCopy_1.SOURCE_DERECTORY` — the same project-wide pattern seen elsewhere.

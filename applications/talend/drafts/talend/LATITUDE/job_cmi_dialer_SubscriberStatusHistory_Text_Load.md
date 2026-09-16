@@ -1,138 +1,100 @@
 # Talend Job: cmi_dialer_SubscriberStatusHistory_Text_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Author**: jmach@harriscollect.com
-- **Created**: 2025-10-07T08:30:13.203-0700
-- **Last Modified**: 2026-07-12T14:09:46.200-0700
+This job loads a history of dialer subscriber SMS/text opt-in and opt-out status changes (`CMI_DIALER_SUBSCRIBERSTATUSHISTORY` — company code, phone number, event timestamp, and various opt-in/opt-out flags) into Snowflake. It follows the project's standard truncate → load → merge → archive/delete pattern, with one small gap compared to peers: it has no row-count (`tFlowMeter`) component in its load path.
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tDBConnection_1 | `tSnowflakeConnection` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":2,"@type":"org.talend.components.snowflake. |
-| 2 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 3 | tJava_1 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 4 | tFileInputDelimited_1 | `tFileInputDelimited` | `USE_EXISTING_DYNAMIC`=false, `FILENAMETEXT`="When the input source is a stream or a zip file,f, `FILENAME`=context.filePath, `CSV_OPTION`=false, `ROWSEPARATOR`="|$|" |
-| 5 | tMap_1 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 6 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":4,"@type":"org.talend.components.snowflake. |
-| 7 | tDBRow_1 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 8 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 9 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 10 | tJava_2 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 11 | tFileArchive_1 | `tFileArchive` | `SOURCE`=context.sourceDir, `SOURCE_FILE`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s, `SUB_DIRECTROY`=false, `TARGET`=context.archiveDir + context.fileName+".zip", `MKDIR`=true |
-| 12 | tParallelize_1 | `tParallelize` | `WAIT_FOR`=All, `SLEEPTIME`=100, `DIE_ON_ERROR`=false, `CONNECTION_FORMAT`=row |
-| 13 | tFileList_3 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 14 | tJava_3 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 15 | tFileDelete_1 | `tFileDelete` | `FILENAME`=context.filePath, `DIRECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `PATH`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `FAILON`=true, `FOLDER`=false |
-| 16 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 17 | tJava_4 | `tJava` | `CODE`=context.archiveDir = context.archiveDir + TalendDa, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 18 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
+| Field | Value |
+|---|---|
+| Job name | cmi_dialer_SubscriberStatusHistory_Text_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | jmach@harriscollect.com |
+| Created | 2025-10-07T08:30:13.203-0700 |
+| Last Modified | 2026-07-12T14:09:46.200-0700 |
 
-## Schemas
+## Step-by-step data flow
 
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| SUBSCRIBERSTATUSHISTORYID | id_BigDecimal | No | 38 |
-| PHONENUMBER | id_String | Yes | 20 |
-| EVENTOCCURREDAT | id_String | Yes | 30 |
-| OPTEDIN | id_BigDecimal | Yes | 38 |
-| OPTINPENDING | id_BigDecimal | Yes | 38 |
-| CANOPTIN | id_BigDecimal | Yes | 38 |
-| STATUSCHANGEDFROM | id_String | Yes | 50 |
-| OPTINDELIVERED | id_BigDecimal | Yes | 38 |
-| OPTOUTOVERRIDE | id_BigDecimal | Yes | 38 |
-| COMPANYCODE | id_String | Yes | 10 |
-| SUBSCRIBERSTATUSHISTORYID | id_BigDecimal | No | 38 |
-| PHONENUMBER | id_String | Yes | 20 |
-| EVENTOCCURREDAT | id_String | Yes | 30 |
-| OPTEDIN | id_BigDecimal | Yes | 38 |
-| OPTINPENDING | id_BigDecimal | Yes | 38 |
-| CANOPTIN | id_BigDecimal | Yes | 38 |
-| STATUSCHANGEDFROM | id_String | Yes | 50 |
-| OPTINDELIVERED | id_BigDecimal | Yes | 38 |
-| OPTOUTOVERRIDE | id_BigDecimal | Yes | 38 |
-| COMPANYCODE | id_String | Yes | 10 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tMap_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| SUBSCRIBERSTATUSHISTORYID | id_BigDecimal | No | 38 |
-| PHONENUMBER | id_String | Yes | 20 |
-| EVENTOCCURREDAT | id_String | Yes | 30 |
-| OPTEDIN | id_BigDecimal | Yes | 38 |
-| OPTINPENDING | id_BigDecimal | Yes | 38 |
-| CANOPTIN | id_BigDecimal | Yes | 38 |
-| STATUSCHANGEDFROM | id_String | Yes | 50 |
-| OPTINDELIVERED | id_BigDecimal | Yes | 38 |
-| OPTOUTOVERRIDE | id_BigDecimal | Yes | 38 |
-| COMPANYCODE | id_String | Yes | 10 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| SUBSCRIBERSTATUSHISTORYID | id_BigDecimal | No | 38 |
-| PHONENUMBER | id_String | Yes | 20 |
-| EVENTOCCURREDAT | id_String | Yes | 30 |
-| OPTEDIN | id_BigDecimal | Yes | 38 |
-| OPTINPENDING | id_BigDecimal | Yes | 38 |
-| CANOPTIN | id_BigDecimal | Yes | 38 |
-| STATUSCHANGEDFROM | id_String | Yes | 50 |
-| OPTINDELIVERED | id_BigDecimal | Yes | 38 |
-| OPTOUTOVERRIDE | id_BigDecimal | Yes | 38 |
-| COMPANYCODE | id_String | Yes | 10 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tDBRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-## Data Flow
+1. **Set up.** `tPrejob_1` → `tJava_4` (appends today's date to `context.archiveDir`, opens a log file) → `tSetKeystore_1` → `tDBConnection_1`.
+2. **Empty the staging table.** `tDBRow_1` runs `TRUNCATE TABLE CMI_DIALER_SUBSCRIBERSTATUSHISTORY_TXT;` (no `LIQUID_STAGING.` schema prefix).
+3. **Find and read the file.** `tFileList_1` lists files in `context.sourceDir` (excluding `*.txt`, no particular sort order); `tJava_1` captures the path; `tFileInputDelimited_1` reads it (`|~|`/`|$|`, header row, US-ASCII encoding, `DIE_ON_ERROR`=true).
+4. **Transform and load staging.** `tMap_1` maps `SUBSCRIBERSTATUSHISTORYID`, `COMPANYCODE`, `PHONENUMBER`, `EVENTOCCURREDAT`, `STATUSCHANGEDFROM`, and the opt-in/opt-out flags (`OPTEDIN`, `OPTINPENDING`, `OPTINDELIVERED`, `OPTOUTOVERRIDE`, `CANOPTIN`) onto the staging schema, adding `LOAD_DT`. Rows flow **directly** into `tDBOutput_1` — there is no `tFlowMeter` row-count step in this job's load path, unlike most peers.
+5. **Merge and clean up — in parallel.** `tParallelize_1` splits into:
+   - **Merge branch:** `tDBRow_2` runs `CALL MERGE_TXT_INTO_CMI_DIALER_SUBSCRIBERSTATUSHISTORY();`.
+   - **Cleanup branch:** `tFileList_2` → `tJava_2` (captures path + name) → `tFileArchive_1` (zips into `context.archiveDir`); and `tFileList_3` → `tJava_3` (captures path **only**, no `fileName` — but this branch only feeds `tFileDelete_1`, which doesn't need `fileName`, so this isn't a functional gap) → `tFileDelete_1` (deletes the source file; `FAILON`=true, like `HH_Violation_Text_Load`).
 
 ```mermaid
-graph LR
-    tFileList_1 -->|ITERATE| tJava_1
-    tFileList_1 -->|SUBJOB_OK| tParallelize_1
-    tJava_1 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tMap_1
-    tMap_1 -->|FLOW| tDBOutput_1
-    tDBRow_1 -->|SUBJOB_OK| tFileList_1
-    tFileList_2 -->|SUBJOB_OK| tFileList_3
-    tFileList_2 -->|ITERATE| tJava_2
-    tJava_2 -->|ITERATE| tFileArchive_1
-    tParallelize_1 -->|PARALLELIZE| tFileList_2
-    tParallelize_1 -->|PARALLELIZE| tDBRow_2
-    tFileList_3 -->|ITERATE| tJava_3
-    tJava_3 -->|ITERATE| tFileDelete_1
-    tPrejob_1 -->|COMPONENT_OK| tJava_4
-    tJava_4 -->|SUBJOB_OK| tSetKeystore_1
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
+flowchart TD
+    Prejob["tPrejob_1"] --> SetLog["tJava_4<br/>Set archive path + start log"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"]
+    Truncate["tDBRow_1<br/>TRUNCATE CMI_DIALER_SUBSCRIBERSTATUSHISTORY_TXT"] --> ListFiles1["tFileList_1<br/>Find source file"]
+    ListFiles1 -->|iterate| SetPath["tJava_1"] --> ReadFile["tFileInputDelimited_1"]
+    ListFiles1 --> Parallel["tParallelize_1"]
+    ReadFile -->|flow| Map["tMap_1"] --> Insert["tDBOutput_1<br/>INSERT into staging (no row counter)"]
+    Parallel --> ListFiles2["tFileList_2"] & Merge["tDBRow_2<br/>CALL MERGE_TXT_INTO_CMI_DIALER_SUBSCRIBERSTATUSHISTORY()"]
+    ListFiles2 -->|iterate| SetPath2["tJava_2"] --> Archive["tFileArchive_1"]
+    ListFiles2 --> ListFiles3["tFileList_3"]
+    ListFiles3 -->|iterate| SetPath3["tJava_3<br/>Capture path only"] --> Delete["tFileDelete_1<br/>FAILON=true"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| FIELDSEPARATOR / ROWSEPARATOR | `\|~\|` / `\|$\|` | Standard project pipe-delimited format. |
+| ENCODING | US-ASCII | Plain ASCII. |
+| DIE_ON_ERROR | true | A malformed row fails the job immediately. |
+| TEMP_DIR | `"C:/Talend-Studio-.../workspace"` | Hardcoded Windows path. |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | CMI_DIALER_SUBSCRIBERSTATUSHISTORY_TXT | Loads into the staging copy of the table. |
+| Output action | INSERT | Adds rows only. |
+| Table action | NONE | Table structure untouched. |
+
+### Merge step: `tDBRow_2`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query | `CALL MERGE_TXT_INTO_CMI_DIALER_SUBSCRIBERSTATUSHISTORY();` | Runs the Snowflake merge procedure, unqualified — the project's more common style. |
+
+### Delete: `tFileDelete_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FAILON | true | If deleting the source file fails, the job fails outright — stricter than the project default of `false` (seen in `Bankruptcy_Text_Load`, `Debtor_Table_Text_Load`, `MiscExtra_Text_Load`, etc.), but consistent with `HH_Violation_Text_Load`. |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none found — no `tRunJob` links.
+- **Context variables used:** `context.sourceDir`, `context.archiveDir`, `context.filePath`, `context.fileName`, `context.logDir`, `context.keystorePath` (all `Directories_0.1`). Uses the shared Snowflake connection object, not `LEGACY_DW_0.1` variables directly.
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tPrejob` / `tParallelize` | Job-flow control (see job_Address_Text_Load.md). |
+| `tSnowflakeConnection` (`tDBConnection`) | Opens the shared Snowflake connection (see job_Bankruptcy_Text_Load.md). |
+| `tFileList` | Lists files for iteration (see job_Address_Text_Load.md). |
+| `tFileInputDelimited` | Reads a delimited text file (see job_Address_Text_Load.md). |
+| `tMap` | Maps/transforms columns (see job_Address_Text_Load.md). |
+| `tDBOutput` / `tSnowflakeOutput` | Writes rows to Snowflake (see job_Address_Text_Load.md). |
+| `tDBRow` / `tSnowflakeRow` | Runs a single SQL statement (see job_Address_Text_Load.md). |
+| `tJava` | Custom Java code block (see job_Address_Text_Load.md). |
+| `tFileArchive` | Zips a file into an archive location (see job_Address_Text_Load.md). |
+| `tFileDelete` | Deletes a file (see job_Address_Text_Load.md). |
+| `tSetKeystore` | Configures the SSL keystore (see job_Address_Text_Load.md). |
+
+## Issues observed
+
+- **No `tFlowMeter` row-count component** between `tMap_1` and `tDBOutput_1` — every other Text_Load job in this batch of 9 includes one at this point in the flow; this job's row-count activity would not be logged the same way.
+- **`TRUNCATE TABLE CMI_DIALER_SUBSCRIBERSTATUSHISTORY_TXT;` omits the `LIQUID_STAGING.` schema prefix** used explicitly in several peer jobs — likely resolves correctly if the connection's default schema is `LIQUID_STAGING`, but worth confirming.
+- **`tFileDelete_1.FAILON` is `true`**, a stricter setting than most peers (only shared with `HH_Violation_Text_Load` among this batch) — a failed delete here fails the whole job.
+- **This job handles consent/opt-in data** (`OPTEDIN`, `OPTOUTOVERRIDE`, `CANOPTIN`) which is typically subject to TCPA-related compliance requirements; nothing in the metadata indicates special handling (encryption, access restriction) beyond the standard load pattern — worth confirming this matches the organization's data-handling policy for consent records.
+- **Hardcoded, machine-specific paths** on `tFileInputDelimited_1.TEMP_DIR`, `tFileArchive_1.SOURCE_FILE`, `tFileDelete_1.DIRECTORY`/`PATH`, and `tSetKeystore_1.SSL_TRUSTSERVER_TRUSTSTORE` — the same project-wide pattern seen elsewhere.

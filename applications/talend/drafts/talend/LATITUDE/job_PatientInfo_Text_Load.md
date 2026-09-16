@@ -1,438 +1,112 @@
 # Talend Job: PatientInfo_Text_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Author**: jmach@harriscollect.com
-- **Created**: 2026-01-21T09:33:39.210-0800
-- **Last Modified**: 2026-02-16T10:26:57.323-0800
+This job loads hospital/patient billing information (patient demographics, admission/discharge details, facility and doctor details, diagnosis and procedure codes) into Snowflake. It follows the standard truncate → load → merge → archive/delete pattern, encrypts the mapped rows before loading (like `Insurance_Text_Load`), and — like `cmi_Hermes_Recommendations_Load` — explicitly checks whether the Snowflake merge step succeeded, failing the job or logging a row count depending on the outcome.
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tDBConnection_1 | `tSnowflakeConnection` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":2,"@type":"org.talend.components.snowflake. |
-| 2 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 3 | tJava_1 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 4 | tFileInputDelimited_1 | `tFileInputDelimited` | `USE_EXISTING_DYNAMIC`=false, `FILENAMETEXT`="When the input source is a stream or a zip file,f, `FILENAME`=context.filePath, `CSV_OPTION`=false, `ROWSEPARATOR`="|$|" |
-| 5 | tMap_1 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 6 | tDataEncrypt_1 | `tDataEncrypt` | `CRYPTO_METHOD`=AES, `CRYPTO_FILE_PATH`=context.cryptoPath, `GEN_CRYPTO_FILE_CONTROLLER`=false, `ALGO_VERSION`=2, `CONNECTION_FORMAT`=row |
-| 7 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 8 | tDBRow_1 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 9 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 10 | tJavaRow_1 | `tJavaRow` | `CODE`=context.retValue = row2.RETVALUE;, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 11 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 12 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 13 | tJava_2 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 14 | tFileArchive_1 | `tFileArchive` | `SOURCE`=context.sourceDir, `SOURCE_FILE`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s, `SUB_DIRECTROY`=false, `TARGET`=context.archiveDir + context.fileName+".zip", `MKDIR`=true |
-| 15 | tFileList_3 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 16 | tJava_4 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 17 | tFileDelete_1 | `tFileDelete` | `FILENAME`=context.filePath, `DIRECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `PATH`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `FAILON`=false, `FOLDER`=false |
-| 18 | tParallelize_1 | `tParallelize` | `WAIT_FOR`=All, `SLEEPTIME`=100, `DIE_ON_ERROR`=false, `CONNECTION_FORMAT`=row |
-| 19 | tJava_3 | `tJava` | `CODE`=context.archiveDir = context.archiveDir + TalendDa, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 20 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
-| 21 | tDie_3 | `tDie` | `MESSAGE`="MERGE failed - result is " +context.retValue.toPl, `CODE`=4, `PRIORITY`=5, `EXIT_JVM`=false, `CONNECTION_FORMAT`=row |
-| 22 | tWarn_1 | `tWarn` | `MESSAGE`="MERGE succeeded - result is " +context.retValue.t, `CODE`=42, `PRIORITY`=4, `CONNECTION_FORMAT`=row |
+| Field | Value |
+|---|---|
+| Job name | PatientInfo_Text_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | jmach@harriscollect.com |
+| Created | 2026-01-21T09:33:39.210-0800 |
+| Last Modified | 2026-02-16T10:26:57.323-0800 |
 
-## Schemas
+## Step-by-step data flow
 
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| AccountID | id_BigDecimal | Yes | -1 |
-| Name | id_String | Yes | -1 |
-| Street1 | id_String | Yes | -1 |
-| Street2 | id_String | Yes | -1 |
-| City | id_String | Yes | -1 |
-| State | id_String | Yes | -1 |
-| ZipCode | id_String | Yes | -1 |
-| Country | id_String | Yes | -1 |
-| Phone | id_String | Yes | -1 |
-| SSN | id_String | Yes | -1 |
-| Sex | id_String | Yes | -1 |
-| Age | id_BigDecimal | Yes | -1 |
-| DOB | id_String | Yes | -1 |
-| MaritalStatus | id_String | Yes | -1 |
-| EmployerName | id_String | Yes | -1 |
-| WorkPhone | id_String | Yes | -1 |
-| PatientRecNumber | id_String | Yes | -1 |
-| GuarantorRecNumber | id_String | Yes | -1 |
-| AdmissionDate | id_String | Yes | -1 |
-| ServiceDate | id_String | Yes | -1 |
-| DischargeDate | id_String | Yes | -1 |
-| FacilityName | id_String | Yes | -1 |
-| FacilityStreet1 | id_String | Yes | -1 |
-| FacilityStreet2 | id_String | Yes | -1 |
-| FacilityCity | id_String | Yes | -1 |
-| FacilityState | id_String | Yes | -1 |
-| FacilityZipCode | id_String | Yes | -1 |
-| FacilityCountry | id_String | Yes | -1 |
-| FacilityPhone | id_String | Yes | -1 |
-| FacilityFax | id_String | Yes | -1 |
-| DoctorName | id_String | Yes | -1 |
-| DoctorPhone | id_String | Yes | -1 |
-| DoctorFax | id_String | Yes | -1 |
-| KinName | id_String | Yes | -1 |
-| KinStreet1 | id_String | Yes | -1 |
-| KinStreet2 | id_String | Yes | -1 |
-| KinCity | id_String | Yes | -1 |
-| KinState | id_String | Yes | -1 |
-| KinZipCode | id_String | Yes | -1 |
-| KinCountry | id_String | Yes | -1 |
-| KinPhone | id_String | Yes | -1 |
-| PatientRelationToGuarantor | id_String | Yes | -1 |
-| PatientRelationToGuarantorAdditionalInfo | id_String | Yes | -1 |
-| AccidentDate | id_String | Yes | -1 |
-| AccidentType | id_String | Yes | -1 |
-| FinancialClass | id_String | Yes | -1 |
-| ImportProcedures | id_String | Yes | -1 |
-| LocationCode | id_String | Yes | -1 |
-| Modifier | id_String | Yes | -1 |
-| PatientType | id_String | Yes | -1 |
-| PlaceOfServiceCode | id_String | Yes | -1 |
-| ProcedureCode | id_String | Yes | -1 |
-| ServicingProviderCode | id_String | Yes | -1 |
-| DiagnosisCode1 | id_String | Yes | -1 |
-| DiagnosisCode2 | id_String | Yes | -1 |
-| DiagnosisCode3 | id_String | Yes | -1 |
-| DoctorCode | id_String | Yes | -1 |
-| AttendingDoctorName | id_String | Yes | -1 |
-| AttendingDoctorPhone | id_String | Yes | -1 |
-| AttendingDoctorFax | id_String | Yes | -1 |
-| AttendingDoctorCode | id_String | Yes | -1 |
-| County | id_String | Yes | -1 |
-| FacilityCounty | id_String | Yes | -1 |
-| KinCounty | id_String | Yes | -1 |
-| AccountID | id_BigDecimal | Yes | -1 |
-| Name | id_String | Yes | -1 |
-| Street1 | id_String | Yes | -1 |
-| Street2 | id_String | Yes | -1 |
-| City | id_String | Yes | -1 |
-| State | id_String | Yes | -1 |
-| ZipCode | id_String | Yes | -1 |
-| Country | id_String | Yes | -1 |
-| Phone | id_String | Yes | -1 |
-| SSN | id_String | Yes | -1 |
-| Sex | id_String | Yes | -1 |
-| Age | id_BigDecimal | Yes | -1 |
-| DOB | id_String | Yes | -1 |
-| MaritalStatus | id_String | Yes | -1 |
-| EmployerName | id_String | Yes | -1 |
-| WorkPhone | id_String | Yes | -1 |
-| PatientRecNumber | id_String | Yes | -1 |
-| GuarantorRecNumber | id_String | Yes | -1 |
-| AdmissionDate | id_String | Yes | -1 |
-| ServiceDate | id_String | Yes | -1 |
-| DischargeDate | id_String | Yes | -1 |
-| FacilityName | id_String | Yes | -1 |
-| FacilityStreet1 | id_String | Yes | -1 |
-| FacilityStreet2 | id_String | Yes | -1 |
-| FacilityCity | id_String | Yes | -1 |
-| FacilityState | id_String | Yes | -1 |
-| FacilityZipCode | id_String | Yes | -1 |
-| FacilityCountry | id_String | Yes | -1 |
-| FacilityPhone | id_String | Yes | -1 |
-| FacilityFax | id_String | Yes | -1 |
-| DoctorName | id_String | Yes | -1 |
-| DoctorPhone | id_String | Yes | -1 |
-| DoctorFax | id_String | Yes | -1 |
-| KinName | id_String | Yes | -1 |
-| KinStreet1 | id_String | Yes | -1 |
-| KinStreet2 | id_String | Yes | -1 |
-| KinCity | id_String | Yes | -1 |
-| KinState | id_String | Yes | -1 |
-| KinZipCode | id_String | Yes | -1 |
-| KinCountry | id_String | Yes | -1 |
-| KinPhone | id_String | Yes | -1 |
-| PatientRelationToGuarantor | id_String | Yes | -1 |
-| PatientRelationToGuarantorAdditionalInfo | id_String | Yes | -1 |
-| AccidentDate | id_String | Yes | -1 |
-| AccidentType | id_String | Yes | -1 |
-| FinancialClass | id_String | Yes | -1 |
-| ImportProcedures | id_String | Yes | -1 |
-| LocationCode | id_String | Yes | -1 |
-| Modifier | id_String | Yes | -1 |
-| PatientType | id_String | Yes | -1 |
-| PlaceOfServiceCode | id_String | Yes | -1 |
-| ProcedureCode | id_String | Yes | -1 |
-| ServicingProviderCode | id_String | Yes | -1 |
-| DiagnosisCode1 | id_String | Yes | -1 |
-| DiagnosisCode2 | id_String | Yes | -1 |
-| DiagnosisCode3 | id_String | Yes | -1 |
-| DoctorCode | id_String | Yes | -1 |
-| AttendingDoctorName | id_String | Yes | -1 |
-| AttendingDoctorPhone | id_String | Yes | -1 |
-| AttendingDoctorFax | id_String | Yes | -1 |
-| AttendingDoctorCode | id_String | Yes | -1 |
-| County | id_String | Yes | -1 |
-| FacilityCounty | id_String | Yes | -1 |
-| KinCounty | id_String | Yes | -1 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tMap_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| ACCOUNTID | id_BigDecimal | No | 38 |
-| NAME | id_String | Yes | 75 |
-| STREET1 | id_String | Yes | 128 |
-| STREET2 | id_String | Yes | 128 |
-| CITY | id_String | Yes | 35 |
-| STATE | id_String | Yes | 5 |
-| ZIPCODE | id_String | Yes | 15 |
-| COUNTY | id_String | Yes | 50 |
-| COUNTRY | id_String | Yes | 25 |
-| PHONE | id_String | Yes | 20 |
-| SSN | id_String | Yes | 255 |
-| SEX | id_String | Yes | 1 |
-| AGE | id_BigDecimal | Yes | 38 |
-| DOB | id_String | Yes | 30 |
-| MARITALSTATUS | id_String | Yes | 1 |
-| EMPLOYERNAME | id_String | Yes | 75 |
-| WORKPHONE | id_String | Yes | 20 |
-| PATIENTRECNUMBER | id_String | Yes | 30 |
-| GUARANTORRECNUMBER | id_String | Yes | 30 |
-| ADMISSIONDATE | id_String | Yes | 30 |
-| SERVICEDATE | id_String | Yes | 30 |
-| DISCHARGEDATE | id_String | Yes | 30 |
-| FACILITYNAME | id_String | Yes | 75 |
-| FACILITYSTREET1 | id_String | Yes | 128 |
-| FACILITYSTREET2 | id_String | Yes | 128 |
-| FACILITYCITY | id_String | Yes | 35 |
-| FACILITYSTATE | id_String | Yes | 5 |
-| FACILITYZIPCODE | id_String | Yes | 15 |
-| FACILITYCOUNTY | id_String | Yes | 50 |
-| FACILITYCOUNTRY | id_String | Yes | 25 |
-| FACILITYPHONE | id_String | Yes | 20 |
-| FACILITYFAX | id_String | Yes | 20 |
-| DOCTORNAME | id_String | Yes | 75 |
-| DOCTORPHONE | id_String | Yes | 20 |
-| DOCTORFAX | id_String | Yes | 20 |
-| KINNAME | id_String | Yes | 75 |
-| KINSTREET1 | id_String | Yes | 128 |
-| KINSTREET2 | id_String | Yes | 128 |
-| KINCITY | id_String | Yes | 35 |
-| KINSTATE | id_String | Yes | 5 |
-| KINZIPCODE | id_String | Yes | 15 |
-| KINCOUNTY | id_String | Yes | 50 |
-| KINCOUNTRY | id_String | Yes | 25 |
-| KINPHONE | id_String | Yes | 20 |
-| HARDCOPY | id_String | Yes | 8388608 |
-| PATIENTRELATIONTOGUARANTOR | id_String | Yes | 25 |
-| PATIENTRELATIONTOGUARANTORADDITIONALINFO | id_String | Yes | 50 |
-| ACCIDENTDATE | id_String | Yes | 30 |
-| ACCIDENTTYPE | id_String | Yes | 25 |
-| FINANCIALCLASS | id_String | Yes | 25 |
-| IMPORTPROCEDURES | id_String | Yes | 25 |
-| LOCATIONCODE | id_String | Yes | 25 |
-| MODIFIER | id_String | Yes | 25 |
-| PATIENTTYPE | id_String | Yes | 25 |
-| PLACEOFSERVICECODE | id_String | Yes | 25 |
-| PROCEDURECODE | id_String | Yes | 25 |
-| SERVICINGPROVIDERCODE | id_String | Yes | 25 |
-| DIAGNOSISCODE1 | id_String | Yes | 25 |
-| DIAGNOSISCODE2 | id_String | Yes | 25 |
-| DIAGNOSISCODE3 | id_String | Yes | 25 |
-| DOCTORCODE | id_String | Yes | 5 |
-| ATTENDINGDOCTORNAME | id_String | Yes | 75 |
-| ATTENDINGDOCTORPHONE | id_String | Yes | 20 |
-| ATTENDINGDOCTORFAX | id_String | Yes | 20 |
-| ATTENDINGDOCTORCODE | id_String | Yes | 5 |
-
-### tDataEncrypt_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| ACCOUNTID | id_BigDecimal | No | 38 |
-| NAME | id_String | Yes | 75 |
-| STREET1 | id_String | Yes | 128 |
-| STREET2 | id_String | Yes | 128 |
-| CITY | id_String | Yes | 35 |
-| STATE | id_String | Yes | 5 |
-| ZIPCODE | id_String | Yes | 15 |
-| COUNTY | id_String | Yes | 50 |
-| COUNTRY | id_String | Yes | 25 |
-| PHONE | id_String | Yes | 20 |
-| SSN | id_String | Yes | 255 |
-| SEX | id_String | Yes | 1 |
-| AGE | id_BigDecimal | Yes | 38 |
-| DOB | id_String | Yes | 30 |
-| MARITALSTATUS | id_String | Yes | 1 |
-| EMPLOYERNAME | id_String | Yes | 75 |
-| WORKPHONE | id_String | Yes | 20 |
-| PATIENTRECNUMBER | id_String | Yes | 30 |
-| GUARANTORRECNUMBER | id_String | Yes | 30 |
-| ADMISSIONDATE | id_String | Yes | 30 |
-| SERVICEDATE | id_String | Yes | 30 |
-| DISCHARGEDATE | id_String | Yes | 30 |
-| FACILITYNAME | id_String | Yes | 75 |
-| FACILITYSTREET1 | id_String | Yes | 128 |
-| FACILITYSTREET2 | id_String | Yes | 128 |
-| FACILITYCITY | id_String | Yes | 35 |
-| FACILITYSTATE | id_String | Yes | 5 |
-| FACILITYZIPCODE | id_String | Yes | 15 |
-| FACILITYCOUNTY | id_String | Yes | 50 |
-| FACILITYCOUNTRY | id_String | Yes | 25 |
-| FACILITYPHONE | id_String | Yes | 20 |
-| FACILITYFAX | id_String | Yes | 20 |
-| DOCTORNAME | id_String | Yes | 75 |
-| DOCTORPHONE | id_String | Yes | 20 |
-| DOCTORFAX | id_String | Yes | 20 |
-| KINNAME | id_String | Yes | 75 |
-| KINSTREET1 | id_String | Yes | 128 |
-| KINSTREET2 | id_String | Yes | 128 |
-| KINCITY | id_String | Yes | 35 |
-| KINSTATE | id_String | Yes | 5 |
-| KINZIPCODE | id_String | Yes | 15 |
-| KINCOUNTY | id_String | Yes | 50 |
-| KINCOUNTRY | id_String | Yes | 25 |
-| KINPHONE | id_String | Yes | 20 |
-| HARDCOPY | id_String | Yes | 8388608 |
-| PATIENTRELATIONTOGUARANTOR | id_String | Yes | 25 |
-| PATIENTRELATIONTOGUARANTORADDITIONALINFO | id_String | Yes | 50 |
-| ACCIDENTDATE | id_String | Yes | 30 |
-| ACCIDENTTYPE | id_String | Yes | 25 |
-| FINANCIALCLASS | id_String | Yes | 25 |
-| IMPORTPROCEDURES | id_String | Yes | 25 |
-| LOCATIONCODE | id_String | Yes | 25 |
-| MODIFIER | id_String | Yes | 25 |
-| PATIENTTYPE | id_String | Yes | 25 |
-| PLACEOFSERVICECODE | id_String | Yes | 25 |
-| PROCEDURECODE | id_String | Yes | 25 |
-| SERVICINGPROVIDERCODE | id_String | Yes | 25 |
-| DIAGNOSISCODE1 | id_String | Yes | 25 |
-| DIAGNOSISCODE2 | id_String | Yes | 25 |
-| DIAGNOSISCODE3 | id_String | Yes | 25 |
-| DOCTORCODE | id_String | Yes | 5 |
-| ATTENDINGDOCTORNAME | id_String | Yes | 75 |
-| ATTENDINGDOCTORPHONE | id_String | Yes | 20 |
-| ATTENDINGDOCTORFAX | id_String | Yes | 20 |
-| ATTENDINGDOCTORCODE | id_String | Yes | 5 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| ACCOUNTID | id_BigDecimal | No | 38 |
-| NAME | id_String | Yes | 75 |
-| STREET1 | id_String | Yes | 128 |
-| STREET2 | id_String | Yes | 128 |
-| CITY | id_String | Yes | 35 |
-| STATE | id_String | Yes | 5 |
-| ZIPCODE | id_String | Yes | 15 |
-| COUNTY | id_String | Yes | 50 |
-| COUNTRY | id_String | Yes | 25 |
-| PHONE | id_String | Yes | 20 |
-| SSN | id_String | Yes | 255 |
-| SEX | id_String | Yes | 1 |
-| AGE | id_BigDecimal | Yes | 38 |
-| DOB | id_String | Yes | 30 |
-| MARITALSTATUS | id_String | Yes | 1 |
-| EMPLOYERNAME | id_String | Yes | 75 |
-| WORKPHONE | id_String | Yes | 20 |
-| PATIENTRECNUMBER | id_String | Yes | 30 |
-| GUARANTORRECNUMBER | id_String | Yes | 30 |
-| ADMISSIONDATE | id_String | Yes | 30 |
-| SERVICEDATE | id_String | Yes | 30 |
-| DISCHARGEDATE | id_String | Yes | 30 |
-| FACILITYNAME | id_String | Yes | 75 |
-| FACILITYSTREET1 | id_String | Yes | 128 |
-| FACILITYSTREET2 | id_String | Yes | 128 |
-| FACILITYCITY | id_String | Yes | 35 |
-| FACILITYSTATE | id_String | Yes | 5 |
-| FACILITYZIPCODE | id_String | Yes | 15 |
-| FACILITYCOUNTY | id_String | Yes | 50 |
-| FACILITYCOUNTRY | id_String | Yes | 25 |
-| FACILITYPHONE | id_String | Yes | 20 |
-| FACILITYFAX | id_String | Yes | 20 |
-| DOCTORNAME | id_String | Yes | 75 |
-| DOCTORPHONE | id_String | Yes | 20 |
-| DOCTORFAX | id_String | Yes | 20 |
-| KINNAME | id_String | Yes | 75 |
-| KINSTREET1 | id_String | Yes | 128 |
-| KINSTREET2 | id_String | Yes | 128 |
-| KINCITY | id_String | Yes | 35 |
-| KINSTATE | id_String | Yes | 5 |
-| KINZIPCODE | id_String | Yes | 15 |
-| KINCOUNTY | id_String | Yes | 50 |
-| KINCOUNTRY | id_String | Yes | 25 |
-| KINPHONE | id_String | Yes | 20 |
-| HARDCOPY | id_String | Yes | 8388608 |
-| PATIENTRELATIONTOGUARANTOR | id_String | Yes | 25 |
-| PATIENTRELATIONTOGUARANTORADDITIONALINFO | id_String | Yes | 50 |
-| ACCIDENTDATE | id_String | Yes | 30 |
-| ACCIDENTTYPE | id_String | Yes | 25 |
-| FINANCIALCLASS | id_String | Yes | 25 |
-| IMPORTPROCEDURES | id_String | Yes | 25 |
-| LOCATIONCODE | id_String | Yes | 25 |
-| MODIFIER | id_String | Yes | 25 |
-| PATIENTTYPE | id_String | Yes | 25 |
-| PLACEOFSERVICECODE | id_String | Yes | 25 |
-| PROCEDURECODE | id_String | Yes | 25 |
-| SERVICINGPROVIDERCODE | id_String | Yes | 25 |
-| DIAGNOSISCODE1 | id_String | Yes | 25 |
-| DIAGNOSISCODE2 | id_String | Yes | 25 |
-| DIAGNOSISCODE3 | id_String | Yes | 25 |
-| DOCTORCODE | id_String | Yes | 5 |
-| ATTENDINGDOCTORNAME | id_String | Yes | 75 |
-| ATTENDINGDOCTORPHONE | id_String | Yes | 20 |
-| ATTENDINGDOCTORFAX | id_String | Yes | 20 |
-| ATTENDINGDOCTORCODE | id_String | Yes | 5 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tDBRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| RETVALUE | id_BigDecimal | No | -1 |
-| RETVALUE | id_BigDecimal | No | -1 |
-| RETVALUE | id_BigDecimal | No | -1 |
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-## Data Flow
+1. **Set up.** `tPrejob_1` starts the job; `tJava_3` sets the dated archive path and opens the log; `tSetKeystore_1` configures the SSL keystore; `tDBConnection_1` opens the Snowflake connection.
+2. **Empty the staging table.** `tDBRow_1` runs `TRUNCATE TABLE LIQUID_STAGING.PATIENTINFO;`.
+3. **Find the file.** `tFileList_1` lists files in `context.sourceDir` (skipping `.txt`), sorted by last-modified date. The match becomes `context.filePath` (`tJava_1`).
+4. **Read, map, and encrypt.** `tFileInputDelimited_1` reads the file as pipe-delimited (`|~|`/`|$|`), US-ASCII encoded, with `DIE_ON_ERROR` set to true (a parse error fails the job outright). `tMap_1` maps the file's columns onto the `PATIENTINFO` schema; the mapped rows then pass through `tDataEncrypt_1` (AES encryption) before reaching `tDBOutput_1`.
+5. **Load staging.** `tDBOutput_1` inserts the (encrypted) rows into the staging table.
+6. **Merge, check the result, and clean up — in parallel.** `tParallelize_1` splits into two branches:
+   - **Merge branch:** `tDBRow_2` calls `CALL MERGE_TXT_INTO_PATIENTINFO();`, which returns a value captured by `tJavaRow_1` into `context.retValue`. Depending on that value, the job runs either `tDie_3` (fails the job with `"MERGE failed - result is " + context.retValue`, exit code 4) or `tWarn_1` (logs `"MERGE succeeded - result is " + context.retValue`, severity 42) — the same result-checking pattern documented in `cmi_Hermes_Recommendations_Load`. As with that job, **the exact condition that routes to one branch vs. the other isn't captured in this metadata** — only that both `RUN_IF` branches exist off `tJavaRow_1`.
+   - **Cleanup branch:** the file is listed again, archived into `context.archiveDir` as a `.zip` (`tFileArchive_1`), and deleted (`tFileDelete_1`).
 
 ```mermaid
-graph LR
-    tFileList_1 -->|ITERATE| tJava_1
-    tFileList_1 -->|SUBJOB_OK| tParallelize_1
-    tJava_1 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tMap_1
-    tMap_1 -->|FLOW| tDataEncrypt_1
-    tDataEncrypt_1 -->|FLOW| tDBOutput_1
-    tDBRow_1 -->|SUBJOB_OK| tFileList_1
-    tDBRow_2 -->|MAIN| tJavaRow_1
-    tJavaRow_1 -->|RUN_IF| tDie_3
-    tJavaRow_1 -->|RUN_IF| tWarn_1
-    tPrejob_1 -->|COMPONENT_OK| tJava_3
-    tFileList_2 -->|SUBJOB_OK| tFileList_3
-    tFileList_2 -->|ITERATE| tJava_2
-    tJava_2 -->|ITERATE| tFileArchive_1
-    tFileList_3 -->|ITERATE| tJava_4
-    tJava_4 -->|ITERATE| tFileDelete_1
-    tParallelize_1 -->|PARALLELIZE| tDBRow_2
-    tParallelize_1 -->|PARALLELIZE| tFileList_2
-    tJava_3 -->|SUBJOB_OK| tSetKeystore_1
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
+flowchart TD
+    Prejob["tPrejob_1"] --> SetLog["tJava_3<br/>Set archive path + start log"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"]
+    Truncate["tDBRow_1<br/>TRUNCATE staging.PATIENTINFO"] --> ListFiles1["tFileList_1<br/>Find newest file"]
+    ListFiles1 -->|iterate| SetPath["tJava_1"] --> ReadFile["tFileInputDelimited_1"]
+    ListFiles1 --> Parallel["tParallelize_1"]
+    ReadFile -->|flow| Map["tMap_1"] --> Encrypt["tDataEncrypt_1<br/>Encrypt row data (AES)"] --> Insert["tDBOutput_1<br/>INSERT into staging"]
+    Parallel --> Merge["tDBRow_2<br/>CALL MERGE_TXT_INTO_PATIENTINFO()"]
+    Merge --> CaptureResult["tJavaRow_1<br/>context.retValue = result"]
+    CaptureResult -->|"if merge failed"| Die["tDie_3<br/>Fail job"]
+    CaptureResult -->|"if merge succeeded"| Warn["tWarn_1<br/>Log result"]
+    Parallel --> ListFiles2["tFileList_2"]
+    ListFiles2 -->|iterate| SetPath2["tJava_2"] --> Archive["tFileArchive_1"]
+    ListFiles2 --> ListFiles3["tFileList_3"]
+    ListFiles3 -->|iterate| SetPath3["tJava_4"] --> Delete["tFileDelete_1"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| FIELDSEPARATOR / ROWSEPARATOR | `\|~\|` / `\|$\|` | Standard pipe-delimited format. |
+| ENCODING | US-ASCII | Matches `Carrier_Text_Load`/`Insurance_Text_Load`. |
+| DIE_ON_ERROR | true | A file-parsing error fails the job. |
+| SCHEMA_REJECT | repository schema `"patient"` | Correctly points at a patient-specific reject schema (unlike the "customer" mismatch seen in some other jobs). |
+
+### Encryption step: `tDataEncrypt_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| CRYPTO_METHOD | AES | Rows encrypted with AES, same as `Insurance_Text_Load`. |
+| ALGO_VERSION | 2 | Version 2 of Talend's encryption algorithm. |
+| CRYPTO_FILE_PATH | `context.cryptoPath` | Parameterized via context. |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | PATIENTINFO | Loads into the staging copy of this table. |
+| Output action | INSERT | Adds rows only. |
+| Table action | NONE | No table create/drop/truncate here. |
+
+### Merge & result check: `tDBRow_2` → `tJavaRow_1` → `tDie_3` / `tWarn_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query (`tDBRow_2`) | `CALL MERGE_TXT_INTO_PATIENTINFO();` | Runs the Snowflake merge procedure; its `RETVALUE` output column is captured. |
+| `context.retValue` assignment | `context.retValue = row2.RETVALUE;` | Copies the procedure's returned value into a context variable for the `tDie`/`tWarn` branches to read. |
+| `tDie_3` message | `"MERGE failed - result is " + context.retValue.toPlainString()` (exit code 4, priority 5) | Fails the job if the merge reports failure. |
+| `tWarn_1` message | `"MERGE succeeded - result is " + context.retValue.toPlainString()` (code 42, priority 4) | Logs the result and continues if the merge succeeded. |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none found — no `tRunJob` links.
+- **Context variables used:** `context.sourceDir`, `context.archiveDir`, `context.filePath`, `context.fileName`, `context.logDir`, `context.keystorePath`, `context.cryptoPath`, plus the job-local `context.retValue` (all `Directories_0.1` except `cryptoPath`/`retValue`, which are job-specific additions). Uses the shared Snowflake connection object, not `LEGACY_DW_0.1` directly.
+- **Hardcoded values found:** `tFileInputDelimited_1.TEMP_DIR`, `tFileArchive_1.SOURCE_FILE`, `tFileDelete_1.DIRECTORY`/`PATH`, and `tSetKeystore_1.SSL_TRUSTSERVER_TRUSTSTORE` — the same fixed Windows paths seen project-wide.
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tPrejob` / `tParallelize` | Job-flow control (see `job_Address_Text_Load.md`). |
+| `tFileList` | Lists files to loop over (see `job_Address_Text_Load.md`). |
+| `tFileInputDelimited` | Reads a delimited text file (see `job_Address_Text_Load.md`). |
+| `tMap` | Maps/transforms columns (see `job_Address_Text_Load.md`). |
+| `tDataEncrypt` | Encrypts row data (AES here) before it moves further down the flow — see `job_Insurance_Text_Load.md` for the fuller explanation (not covered in the original three reference docs). |
+| `tDBOutput` / `tSnowflakeOutput` | Writes rows to Snowflake (see `job_Address_Text_Load.md`). |
+| `tDBRow` / `tSnowflakeRow` | Runs a single SQL statement (see `job_Address_Text_Load.md`). |
+| `tJavaRow` | Custom code capturing the merge procedure's return value (see `job_cmi_Hermes_Recommendations_Load.md`). |
+| `tDie` | Fails the job immediately with a specific message and exit code (see `job_cmi_Hermes_Recommendations_Load.md`). |
+| `tWarn` | Logs a warning without failing the job (see `job_cmi_Hermes_Recommendations_Load.md`). |
+| `tJava` | Custom Java code blocks (see `job_Address_Text_Load.md`). |
+| `tFileArchive` | Zips a file into an archive location (see `job_Address_Text_Load.md`). |
+| `tFileDelete` | Deletes a file from disk (see `job_Address_Text_Load.md`). |
+| `tSetKeystore` | Configures the SSL keystore for Snowflake (see `job_Address_Text_Load.md`). |
+
+## Issues observed
+
+- **The pass/fail condition on the merge-result check isn't in the metadata**, same caveat as `cmi_Hermes_Recommendations_Load` — only that both `RUN_IF` branches exist off `tJavaRow_1`.
+- **Encryption key/password are redacted**, so it's not possible to independently verify from Talend alone what's encrypted before the merge — worth checking given the sensitive nature of patient billing data (SSN-adjacent fields like `PatientRecNumber`/`GuarantorRecNumber` are present in the schema).
+- **Hardcoded, machine-specific paths** exist alongside the parameterized ones — the same project-wide pattern.

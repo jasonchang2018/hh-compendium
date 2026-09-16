@@ -1,180 +1,105 @@
 # Talend Job: master_prediction_proposal_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Author**: jmach@harriscollect.com
-- **Created**: 2026-03-11T14:43:22.039-0700
-- **Last Modified**: 2026-03-12T19:47:23.647-0700
+This job loads predicted-outreach proposals (which contact channel and message template to try next for an account, the associated phone number, subteam, text type, and a proposed settlement amount, plus VoApps-specific fields for voice message delivery) into Snowflake. It follows the truncate → load → check-result → archive/delete pattern seen in other jobs with explicit merge-result handling, but with one important difference: the step that folds staged rows into the permanent table is an **`INSERT` stored procedure, not a `MERGE`** — the only job in this set of 9 where that's true.
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 2 | tJava_1 | `tJava` | `CODE`=context.archiveDir = context.archiveDir + TalendDa, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 3 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
-| 4 | tDBConnection_1 | `tSnowflakeConnection` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":2,"@type":"org.talend.components.snowflake. |
-| 5 | tWarn_1 | `tWarn` | `MESSAGE`=context.retValue.toString() + " rows inserted or u, `CODE`=42, `PRIORITY`=4, `CONNECTION_FORMAT`=row |
-| 6 | tDBRow_1 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 7 | tJavaRow_1 | `tJavaRow` | `CODE`=context.retValue = row1.RETVALUE;, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 8 | tParallelize_1 | `tParallelize` | `WAIT_FOR`=All, `SLEEPTIME`=100, `DIE_ON_ERROR`=false, `CONNECTION_FORMAT`=row |
-| 9 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 10 | tJava_2 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 11 | tFileInputDelimited_1 | `tFileInputDelimited` | `COMPONENT_NAME`=tFileInputDelimited, `VERSION`=0.102 (ALPHA), `FAMILY`=File/Input, `START`=false, `STARTABLE`=true |
-| 12 | tMap_1 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 13 | tFlowMeter_2 | `tFlowMeter` | `USEROWLABEL`=true, `METTERLABEL`="MyLabel", `ABSOLUTE`=Absolute, `CONNECTION_FORMAT`=row |
-| 14 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":4,"@type":"org.talend.components.snowflake. |
-| 15 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 16 | tDie_1 | `tDie` | `MESSAGE`="MERGE failed - error code " + context.retValue.to, `CODE`=4, `PRIORITY`=5, `EXIT_JVM`=false, `CONNECTION_FORMAT`=row |
-| 17 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 18 | tJava_3 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 19 | tFileDelete_1 | `tFileDelete` | `FILENAME`=context.filePath, `DIRECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `PATH`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `FAILON`=true, `FOLDER`=false |
-| 20 | tFileList_3 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 21 | tJava_4 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 22 | tFileArchive_1 | `tFileArchive` | `SOURCE`=context.sourceDir, `SOURCE_FILE`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s, `SUB_DIRECTROY`=false, `TARGET`=context.archiveDir + context.fileName+".zip", `MKDIR`=true |
+| Field | Value |
+|---|---|
+| Job name | master_prediction_proposal_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | jmach@harriscollect.com |
+| Created | 2026-03-11T14:43:22.039-0700 |
+| Last Modified | 2026-03-12T19:47:23.647-0700 |
 
-## Schemas
+## Step-by-step data flow
 
-### tDBRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| RETVALUE | id_Long | Yes | -1 |
-| RETVALUE | id_Long | Yes | -1 |
-| RETVALUE | id_Long | Yes | -1 |
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| NUMBER | id_BigDecimal | Yes | -1 |
-| PROPOSED_CHANNEL | id_String | Yes | -1 |
-| TEMPLATE | id_String | Yes | -1 |
-| PHONE_NUMBER | id_String | Yes | -1 |
-| SUBTEAM | id_String | Yes | -1 |
-| TEXT_TYPE | id_String | Yes | -1 |
-| SETTLEMENT_AMT | id_String | Yes | -1 |
-| VOAPPS_TARGET_DATE | id_String | Yes | -1 |
-| VOAPPS_CALLER_NUMBER | id_String | Yes | -1 |
-| VOAPPS_MESSAGE_ID | id_String | Yes | -1 |
-| VOAPPS_ZIP_CODE | id_String | Yes | -1 |
-| VOAPPS_VOICE_APPEND | id_String | Yes | -1 |
-| HERMES_REQUEST_ID | id_String | Yes | -1 |
-| NUMBER | id_BigDecimal | Yes | -1 |
-| PROPOSED_CHANNEL | id_String | Yes | -1 |
-| TEMPLATE | id_String | Yes | -1 |
-| PHONE_NUMBER | id_String | Yes | -1 |
-| SUBTEAM | id_String | Yes | -1 |
-| TEXT_TYPE | id_String | Yes | -1 |
-| SETTLEMENT_AMT | id_String | Yes | -1 |
-| VOAPPS_TARGET_DATE | id_String | Yes | -1 |
-| VOAPPS_CALLER_NUMBER | id_String | Yes | -1 |
-| VOAPPS_MESSAGE_ID | id_String | Yes | -1 |
-| VOAPPS_ZIP_CODE | id_String | Yes | -1 |
-| VOAPPS_VOICE_APPEND | id_String | Yes | -1 |
-| HERMES_REQUEST_ID | id_String | Yes | -1 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tMap_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| NUMBER | id_BigDecimal | Yes | 38 |
-| PROPOSED_CHANNEL | id_String | Yes | 16777216 |
-| TEMPLATE | id_String | Yes | 16777216 |
-| PHONE_NUMBER | id_String | Yes | 16777216 |
-| SUBTEAM | id_String | Yes | 16777216 |
-| TEXT_TYPE | id_String | Yes | 16777216 |
-| SETTLEMENT_AMT | id_String | Yes | 16777216 |
-| VOAPPS_TARGET_DATE | id_String | Yes | 16777216 |
-| VOAPPS_CALLER_NUMBER | id_String | Yes | 16777216 |
-| VOAPPS_MESSAGE_ID | id_String | Yes | 16777216 |
-| VOAPPS_ZIP_CODE | id_String | Yes | 16777216 |
-| VOAPPS_VOICE_APPEND | id_String | Yes | 16777216 |
-| HERMES_REQUEST_ID | id_String | Yes | 16777216 |
-
-### tFlowMeter_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| NUMBER | id_BigDecimal | Yes | 38 |
-| PROPOSED_CHANNEL | id_String | Yes | 16777216 |
-| TEMPLATE | id_String | Yes | 16777216 |
-| PHONE_NUMBER | id_String | Yes | 16777216 |
-| SUBTEAM | id_String | Yes | 16777216 |
-| TEXT_TYPE | id_String | Yes | 16777216 |
-| SETTLEMENT_AMT | id_String | Yes | 16777216 |
-| VOAPPS_TARGET_DATE | id_String | Yes | 16777216 |
-| VOAPPS_CALLER_NUMBER | id_String | Yes | 16777216 |
-| VOAPPS_MESSAGE_ID | id_String | Yes | 16777216 |
-| VOAPPS_ZIP_CODE | id_String | Yes | 16777216 |
-| VOAPPS_VOICE_APPEND | id_String | Yes | 16777216 |
-| HERMES_REQUEST_ID | id_String | Yes | 16777216 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| NUMBER | id_BigDecimal | Yes | 38 |
-| PROPOSED_CHANNEL | id_String | Yes | 16777216 |
-| TEMPLATE | id_String | Yes | 16777216 |
-| PHONE_NUMBER | id_String | Yes | 16777216 |
-| SUBTEAM | id_String | Yes | 16777216 |
-| TEXT_TYPE | id_String | Yes | 16777216 |
-| SETTLEMENT_AMT | id_String | Yes | 16777216 |
-| VOAPPS_TARGET_DATE | id_String | Yes | 16777216 |
-| VOAPPS_CALLER_NUMBER | id_String | Yes | 16777216 |
-| VOAPPPS_MESSAGE_ID | id_String | Yes | 16777216 |
-| VOAPPS_ZIP_CODE | id_String | Yes | 16777216 |
-| VOAPPS_VOICE_APPEND | id_String | Yes | 16777216 |
-| HERMES_REQUEST_ID | id_String | Yes | 16777216 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-## Data Flow
+1. **Set up.** `tPrejob_1` triggers `tJava_1`, which appends today's date to `context.archiveDir` and opens a log file; this chains into `tSetKeystore_1` and `tDBConnection_1`.
+2. **Empty the staging table.** `tDBRow_2` runs `TRUNCATE TABLE LIQUID_STAGING.MASTER_PREDICTION_PROPOSAL;` (component named `_2`, not `_1` — see Issues observed for the numbering quirk, same pattern as `Dialer_CallTracking_Load`).
+3. **Find the file.** `tFileList_1` lists files in `context.sourceDir` (skipping `*.txt`), explicitly sorted by modified date, ascending — oldest file first, the same pattern used by `Dialer_CallTracking_Load`, `ScheduledPayment_Text_Load`, and `Voapps_Response_Load`.
+4. **Read the file.** `tFileInputDelimited_1` reads it with `FIELDSEPARATOR: ","` and `ROWSEPARATOR: "\n"` — comma-delimited, not the project's usual pipe format (the same deviation seen in `Voapps_Response_Load`, and unsurprising given this data includes the same VoApps-related columns). US-ASCII encoded, `DIE_ON_ERROR: false`.
+5. **Transform.** `tMap_1` maps the columns (account number, proposed channel, template, phone number, subteam, text type, settlement amount, and the VoApps target date/caller number/message ID/zip code/voice-append flag/Hermes request ID) onto the `MASTER_PREDICTION_PROPOSAL` schema, adding `LOAD_DT`.
+6. **Load staging.** Mapped rows pass through a row counter (`tFlowMeter_2`) into `tDBOutput_1`, inserting into `MASTER_PREDICTION_PROPOSAL`.
+7. **Insert into the permanent table and check the result — in parallel with cleanup.** Once the file-list subjob completes, `tParallelize_1` splits into:
+   - **Insert branch:** `tDBRow_1` calls `CALL INSERT_TXT_INTO_MASTER_PREDICTION_PROPOSAL();` — note the procedure name itself says `INSERT_TXT_INTO_...`, not `MERGE_TXT_INTO_...` like every other job in this project. `tJavaRow_1` copies the returned value into `context.retValue`, and the job runs `tDie_1` (fails the job: `"MERGE failed - error code " + context.retValue"`, exit code 4 — note the error message text still says "MERGE failed" even though the underlying procedure is an insert, likely copy-pasted from the standard pattern) or `tWarn_1` (logs `"<count> rows inserted or updated"`, severity 42) depending on the outcome.
+   - **Cleanup branch:** the source file is listed again (`tFileList_3`), archived (`tFileArchive_1`); a second listing (`tFileList_2`) drives deletion (`tFileDelete_1`, with `FAILON: true`).
 
 ```mermaid
-graph LR
-    tPrejob_1 -->|COMPONENT_OK| tJava_1
-    tJava_1 -->|SUBJOB_OK| tSetKeystore_1
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
-    tDBRow_1 -->|MAIN| tJavaRow_1
-    tJavaRow_1 -->|RUN_IF| tDie_1
-    tJavaRow_1 -->|RUN_IF| tWarn_1
-    tParallelize_1 -->|PARALLELIZE| tFileList_3
-    tParallelize_1 -->|PARALLELIZE| tDBRow_1
-    tFileList_1 -->|ITERATE| tJava_2
-    tFileList_1 -->|SUBJOB_OK| tParallelize_1
-    tJava_2 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tMap_1
-    tMap_1 -->|FLOW| tFlowMeter_2
-    tFlowMeter_2 -->|FLOW| tDBOutput_1
-    tDBRow_2 -->|SUBJOB_OK| tFileList_1
-    tFileList_2 -->|ITERATE| tJava_3
-    tJava_3 -->|ITERATE| tFileDelete_1
-    tFileList_3 -->|ITERATE| tJava_4
-    tFileList_3 -->|SUBJOB_OK| tFileList_2
-    tJava_4 -->|ITERATE| tFileArchive_1
+flowchart TD
+    Prejob["tPrejob_1"] --> SetLog["tJava_1<br/>Set archive path + start log"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"]
+    Truncate["tDBRow_2<br/>TRUNCATE staging.MASTER_PREDICTION_PROPOSAL"] --> ListFiles1["tFileList_1<br/>Find oldest-modified file"]
+    ListFiles1 -->|iterate| SetPath["tJava_2"] --> ReadFile["tFileInputDelimited_1<br/>Read COMMA-delimited file"]
+    ListFiles1 --> Parallel["tParallelize_1"]
+    ReadFile -->|flow| Map["tMap_1"] --> FlowMeter["tFlowMeter_2"] --> Insert["tDBOutput_1<br/>INSERT into staging"]
+    Parallel --> ListFiles3["tFileList_3"] & InsertProc["tDBRow_1<br/>CALL INSERT_TXT_INTO_MASTER_PREDICTION_PROPOSAL()"]
+    InsertProc --> CaptureResult["tJavaRow_1<br/>context.retValue = result"]
+    CaptureResult -->|"if failed"| Die["tDie_1<br/>Fail job"]
+    CaptureResult -->|"if succeeded"| Warn["tWarn_1<br/>Log row count"]
+    ListFiles3 -->|iterate| SetPath4["tJava_4"] --> Archive["tFileArchive_1"]
+    ListFiles3 --> ListFiles2["tFileList_2"]
+    ListFiles2 -->|iterate| SetPath3["tJava_3"] --> Delete["tFileDelete_1<br/>FAILON=true"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| FIELDSEPARATOR | `,` | Comma-separated — not the project's usual `\|~\|` pipe format. |
+| ROWSEPARATOR | `\n` | Plain newline-delimited rows. |
+| ENCODING | US-ASCII | Plain ASCII text. |
+| DIRECTORY ordering (`tFileList_1`) | `ORDER_BY_MODIFIEDDATE=true`, ascending | Explicitly processes the oldest untouched file first. |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | MASTER_PREDICTION_PROPOSAL | Staging table for prediction/proposal records. |
+| Output action | INSERT | Adds rows only. |
+
+### Insert step & result check: `tDBRow_1` → `tJavaRow_1` → `tDie_1` / `tWarn_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query (`tDBRow_1`) | `CALL INSERT_TXT_INTO_MASTER_PREDICTION_PROPOSAL();` | Runs a Snowflake procedure that inserts staged rows into the permanent table — an `INSERT`, not a `MERGE`, which is the naming convention every other `MERGE_TXT_INTO_*` procedure in the project follows. |
+| `tDie_1` message | `"MERGE failed - error code " + context.retValue` (exit code 4) | Fails the job if the procedure reports an error. The message text says "MERGE failed" even though the procedure is an insert — likely reused boilerplate from the standard pattern. |
+| `tWarn_1` message | `context.retValue + " rows inserted or updated"` (severity 42) | Logs a row count and continues on success. |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none found — no `tRunJob` links.
+- **Context variables used:** `context.sourceDir`, `context.archiveDir`, `context.filePath`, `context.fileName`, `context.logDir`, `context.keystorePath`, `context.retValue` (all `Directories_0.1` plus the job-local `retValue`). Uses the shared Snowflake connection object, not `LEGACY_DW_*` variables directly.
+- **Related jobs:** the loaded `hermes_request_id` and VoApps columns closely mirror those in `Voapps_Response_Load` and the Hermes recommendation jobs, though no `tRunJob` link exists between them.
+- **Hardcoded values found:** `tSetKeystore_1.SSL_TRUSTSERVER_TRUSTSTORE`, `tFileInputDelimited_1.TEMP_DIR`, `tFileDelete_1.DIRECTORY`/`PATH`, and `tFileArchive_1.SOURCE_FILE` are fixed paths rather than context variables.
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tPrejob` / `tParallelize` | Setup-before-main-start, concurrent branches (see job_Address_Text_Load.md). |
+| `tFileList` | Lists files for the job to loop over (see job_Address_Text_Load.md). |
+| `tFileInputDelimited` | Reads a delimited text file (see job_Address_Text_Load.md). |
+| `tMap` | Maps/transforms columns (see job_Address_Text_Load.md). |
+| `tFlowMeter` | Counts rows passing a point, for logging (see job_Address_Text_Load.md). |
+| `tDBOutput` / `tSnowflakeOutput` | Writes rows into Snowflake (see job_Address_Text_Load.md). |
+| `tDBRow` / `tSnowflakeRow` | Runs a single SQL statement (see job_Address_Text_Load.md). |
+| `tJava` / `tJavaRow` | Custom code blocks; `tJavaRow` here captures the insert procedure's return value (see job_cmi_Hermes_Recommendations_Load.md). |
+| `tDie` | Fails the job immediately with a message and exit code (see job_cmi_Hermes_Recommendations_Load.md). |
+| `tWarn` | Logs a warning without failing the job (see job_cmi_Hermes_Recommendations_Load.md). |
+| `tFileArchive` | Zips a file into an archive location (see job_Address_Text_Load.md). |
+| `tFileDelete` | Deletes a file from disk (see job_Address_Text_Load.md). |
+| `tSetKeystore` | Configures the SSL keystore for the Snowflake connection (see job_Address_Text_Load.md). |
+
+## Issues observed
+
+- **This job calls an `INSERT` procedure, not a `MERGE` procedure — unlike every other load job in the project.** `INSERT_TXT_INTO_MASTER_PREDICTION_PROPOSAL()` inserts staged rows rather than reconciling (matching/updating/inserting) them the way `MERGE_TXT_INTO_*` procedures do elsewhere. **This raises a real question of whether reprocessing the same source file (or reprocessing after a failed run) would insert duplicate rows into the permanent `MASTER_PREDICTION_PROPOSAL` table**, since there's no merge-key matching to prevent it. This should be confirmed with whoever owns the Snowflake procedure — is there deduplication logic inside the procedure itself, or is this table expected to only ever receive strictly new, never-repeated rows?
+- **The `tDie_1` failure message says "MERGE failed"** even though the procedure being called is an insert — cosmetic, but could mislead someone triaging a failure log into looking for merge-specific issues that don't apply here.
+- **Component numbering is reversed from the usual convention** (`tDBRow_1` = the insert/proc call, `tDBRow_2` = the truncate) — same quirk as `Dialer_CallTracking_Load`.
+- **Source file format deviates from the project standard** — comma-delimited rather than the usual `\|~\|`/`\|$\|` pipe format, consistent with `Voapps_Response_Load`'s similar VoApps-related data.
+- **The exact pass/fail threshold on `context.retValue` isn't in the metadata** — same caveat as the other `tDie`/`tWarn` jobs in this project.
+- **File pickup order deviates from the norm** — explicitly oldest-first.

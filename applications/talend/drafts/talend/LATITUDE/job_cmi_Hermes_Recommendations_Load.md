@@ -1,160 +1,91 @@
 # Talend Job: cmi_Hermes_Recommendations_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Author**: jmach@harriscollect.com
-- **Created**: 2026-03-04T10:25:20.254-0800
-- **Last Modified**: 2026-03-04T16:11:38.780-0800
+This job loads Hermes contact-channel recommendations (which channel — e.g. phone number — to try next for a given account) into Snowflake. It follows the same overall pattern as `Address_Text_Load` — truncate a staging table, load the current file, merge into the permanent table, archive/delete the source file — but it's one of only 8 jobs in the project that explicitly checks whether that Snowflake merge succeeded and reacts differently depending on the outcome (fail the job vs. just log a count), which makes it a good example of the project's error-handling pattern.
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 2 | tJava_1 | `tJava` | `CODE`=context.archiveDir = context.archiveDir + TalendDa, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 3 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
-| 4 | tDBConnection_1 | `tSnowflakeConnection` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":2,"@type":"org.talend.components.snowflake. |
-| 5 | tDBRow_1 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 6 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 7 | tJava_2 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 8 | tFileInputDelimited_1 | `tFileInputDelimited` | `USE_EXISTING_DYNAMIC`=false, `FILENAMETEXT`="When the input source is a stream or a zip file,f, `FILENAME`=context.filePath, `CSV_OPTION`=false, `ROWSEPARATOR`="|$|" |
-| 9 | tMap_1 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 10 | tFlowMeter_2 | `tFlowMeter` | `USEROWLABEL`=true, `METTERLABEL`="MyLabel", `ABSOLUTE`=Absolute, `CONNECTION_FORMAT`=row |
-| 11 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 12 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 13 | tJavaRow_1 | `tJavaRow` | `CODE`=context.retValue = row3.RETVALUE;, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 14 | tParallelize_1 | `tParallelize` | `WAIT_FOR`=All, `SLEEPTIME`=100, `DIE_ON_ERROR`=false, `CONNECTION_FORMAT`=row |
-| 15 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 16 | tJava_3 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 17 | tFileDelete_1 | `tFileDelete` | `FILENAME`=context.filePath, `DIRECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `PATH`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `FAILON`=true, `FOLDER`=false |
-| 18 | tFileList_3 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 19 | tJava_4 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 20 | tFileArchive_1 | `tFileArchive` | `SOURCE`=context.sourceDir, `SOURCE_FILE`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s, `SUB_DIRECTROY`=false, `TARGET`=context.archiveDir + context.fileName+".zip", `MKDIR`=true |
-| 21 | tDie_1 | `tDie` | `MESSAGE`="MERGE failed - error code " + context.retValue.to, `CODE`=4, `PRIORITY`=5, `EXIT_JVM`=false, `CONNECTION_FORMAT`=row |
-| 22 | tWarn_1 | `tWarn` | `MESSAGE`=context.retValue.toString() + " rows inserted or u, `CODE`=42, `PRIORITY`=4, `CONNECTION_FORMAT`=row |
+| Field | Value |
+|---|---|
+| Job name | cmi_Hermes_Recommendations_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | jmach@harriscollect.com |
+| Created | 2026-03-04T10:25:20.254-0800 |
+| Last Modified | 2026-03-04T16:11:38.780-0800 |
 
-## Schemas
+## Step-by-step data flow
 
-### tDBRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| Id | id_BigDecimal | Yes | -1 |
-| NUMBER | id_BigDecimal | Yes | -1 |
-| PROPOSED_CHANNEL | id_String | Yes | -1 |
-| phonenumber | id_String | Yes | -1 |
-| hermes_request_id | id_String | Yes | -1 |
-| CreatedWhenUTC | id_String | Yes | -1 |
-| UpdatedWhenUTC | id_String | Yes | -1 |
-| ProcessOutcome | id_String | Yes | -1 |
-| Comments | id_String | Yes | -1 |
-| Id | id_BigDecimal | Yes | -1 |
-| NUMBER | id_BigDecimal | Yes | -1 |
-| PROPOSED_CHANNEL | id_String | Yes | -1 |
-| phonenumber | id_String | Yes | -1 |
-| hermes_request_id | id_String | Yes | -1 |
-| CreatedWhenUTC | id_String | Yes | -1 |
-| UpdatedWhenUTC | id_String | Yes | -1 |
-| ProcessOutcome | id_String | Yes | -1 |
-| Comments | id_String | Yes | -1 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tMap_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| ID | id_BigDecimal | No | 38 |
-| NUMBER | id_BigDecimal | Yes | 38 |
-| PROPOSED_CHANNEL | id_String | Yes | 50 |
-| PHONENUMBER | id_String | Yes | 20 |
-| HERMES_REQUEST_ID | id_String | Yes | 50 |
-| CREATEDWHEN_UTC | id_String | Yes | 50 |
-| UPDATEDWHEN_UTC | id_String | Yes | 50 |
-| PROCESS_OUTCOME | id_String | Yes | 50 |
-| COMMENTS | id_String | Yes | 16777216 |
-
-### tFlowMeter_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| ID | id_BigDecimal | No | 38 |
-| NUMBER | id_BigDecimal | Yes | 38 |
-| PROPOSED_CHANNEL | id_String | Yes | 50 |
-| PHONENUMBER | id_String | Yes | 20 |
-| HERMES_REQUEST_ID | id_String | Yes | 50 |
-| CREATEDWHEN_UTC | id_String | Yes | 50 |
-| UPDATEDWHEN_UTC | id_String | Yes | 50 |
-| PROCESS_OUTCOME | id_String | Yes | 50 |
-| COMMENTS | id_String | Yes | 16777216 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| ID | id_BigDecimal | No | 38 |
-| NUMBER | id_BigDecimal | Yes | 38 |
-| PROPOSED_CHANNEL | id_String | Yes | 50 |
-| PHONENUMBER | id_String | Yes | 20 |
-| HERMES_REQUEST_ID | id_String | Yes | 50 |
-| CREATEDWHEN_UTC | id_String | Yes | 50 |
-| UPDATEDWHEN_UTC | id_String | Yes | 50 |
-| PROCESS_OUTCOME | id_String | Yes | 50 |
-| COMMENTS | id_String | Yes | 16777216 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| RETVALUE | id_Long | Yes | -1 |
-| RETVALUE | id_Long | Yes | -1 |
-| RETVALUE | id_Long | Yes | -1 |
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-## Data Flow
+1. **Set up.** `tJava_1` prepares logging; `tSetKeystore_1` configures the SSL keystore; `tDBConnection_1` opens the Snowflake connection.
+2. **Empty the staging table.** `tDBRow_1` runs `TRUNCATE TABLE LIQUID_STAGING.CMI_HERMES_RECOMMENDATIONS;`.
+3. **Find and read the file.** `tFileList_1` finds the newest matching file in `context.sourceDir` (skipping `.txt` files); `tFileInputDelimited_1` reads it as a pipe-delimited, US-ASCII-encoded file with a header row.
+4. **Transform.** `tMap_1` maps the file's columns onto the recommendation schema (`ID`, `NUMBER`, `PROPOSED_CHANNEL`, `PHONENUMBER`, `HERMES_REQUEST_ID`, `CREATEDWHEN_UTC`, `UPDATEDWHEN_UTC`, `PROCESS_OUTCOME`, `COMMENTS`, plus `LOAD_DT`).
+5. **Load staging.** Mapped rows pass through a row counter (`tFlowMeter_2`) into `tDBOutput_1`, which inserts them into the staging table. (Its schema also carries Snowflake's built-in reject-row columns — `columnName`, `rowNumber`, `errorMessage`, `sqlState`, etc. — for rows that fail to load; see Glossary.)
+6. **Merge and check the result — in parallel with archiving.** `tParallelize_1` splits into two branches that run at the same time:
+   - **Merge branch:** `tDBRow_2` calls `CALL MERGE_TXT_INTO_CMI_HERMES_RECOMMENDATIONS();` — a Snowflake stored procedure that folds the staged rows into the permanent table and returns a value. `tJavaRow_1` copies that return value into `context.retValue`. Depending on that value, the job either runs `tDie_1` (fails the job with the message `"MERGE failed - error code " + context.retValue`, exit code 4) or `tWarn_1` (logs `"<count> rows inserted or updated"`, severity code 42, without failing the job). **Which specific value routes to which branch is not captured in this metadata** — only that both are wired as `RUN_IF` branches off the same code (see Issues observed).
+   - **Cleanup branch:** the source file is listed again, deleted (`tFileDelete_1`), and separately listed and archived (`tFileArchive_1`) into `context.archiveDir`.
 
 ```mermaid
-graph LR
-    tPrejob_1 -->|COMPONENT_OK| tJava_1
-    tJava_1 -->|SUBJOB_OK| tSetKeystore_1
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
-    tDBRow_1 -->|SUBJOB_OK| tFileList_1
-    tFileList_1 -->|ITERATE| tJava_2
-    tFileList_1 -->|SUBJOB_OK| tParallelize_1
-    tJava_2 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tMap_1
-    tMap_1 -->|FLOW| tFlowMeter_2
-    tFlowMeter_2 -->|FLOW| tDBOutput_1
-    tDBRow_2 -->|MAIN| tJavaRow_1
-    tJavaRow_1 -->|RUN_IF| tDie_1
-    tJavaRow_1 -->|RUN_IF| tWarn_1
-    tParallelize_1 -->|PARALLELIZE| tFileList_3
-    tParallelize_1 -->|PARALLELIZE| tDBRow_2
-    tFileList_2 -->|ITERATE| tJava_3
-    tJava_3 -->|ITERATE| tFileDelete_1
-    tFileList_3 -->|ITERATE| tJava_4
-    tFileList_3 -->|SUBJOB_OK| tFileList_2
-    tJava_4 -->|ITERATE| tFileArchive_1
+flowchart TD
+    Prejob["tPrejob_1"] --> SetLog["tJava_1"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"]
+    Truncate["tDBRow_1<br/>TRUNCATE staging table"] --> ListFiles1["tFileList_1<br/>Find newest file"]
+    ListFiles1 -->|iterate| SetPath["tJava_2"] --> ReadFile["tFileInputDelimited_1"]
+    ListFiles1 --> Parallel["tParallelize_1"]
+    ReadFile -->|flow| Map["tMap_1"] --> FlowMeter["tFlowMeter_2"] --> Insert["tDBOutput_1<br/>INSERT into staging"]
+    Parallel --> ListFiles3["tFileList_3"] & Merge["tDBRow_2<br/>CALL MERGE_TXT_INTO_...()"]
+    Merge --> CaptureResult["tJavaRow_1<br/>context.retValue = result"]
+    CaptureResult -->|"if merge failed"| Die["tDie_1<br/>Fail job"]
+    CaptureResult -->|"if merge succeeded"| Warn["tWarn_1<br/>Log row count"]
+    ListFiles3 -->|iterate| SetPath4["tJava_4"] --> Archive["tFileArchive_1"]
+    ListFiles3 --> ListFiles2["tFileList_2"]
+    ListFiles2 -->|iterate| SetPath3["tJava_3"] --> Delete["tFileDelete_1"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| FIELDSEPARATOR / ROWSEPARATOR | `\|~\|` / `\|$\|` | Same custom pipe-delimited format used across this project's "text load" jobs. |
+| ENCODING | US-ASCII | Notably plain ASCII here, not ISO-8859-15 like `Address_Text_Load` — worth confirming this is intentional if the file can ever contain non-ASCII characters (e.g., accented names). |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | CMI_HERMES_RECOMMENDATIONS | Loads into the staging copy of this table (schema `LIQUID_STAGING`, per the preceding `TRUNCATE`). |
+| Output action | INSERT | Adds rows only — no update/delete at this step. |
+
+### Merge & result check: `tDBRow_2` → `tJavaRow_1` → `tDie_1` / `tWarn_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query (`tDBRow_2`) | `CALL MERGE_TXT_INTO_CMI_HERMES_RECOMMENDATIONS();` | Runs the Snowflake procedure that merges staged rows into the permanent table. |
+| `tDie_1` message | `"MERGE failed - error code " + context.retValue` (exit code 4) | Fails the job outright if the merge reports an error. |
+| `tWarn_1` message | `context.retValue + " rows inserted or updated"` (severity 42) | Logs a row count and continues if the merge succeeded — this job does not hard-fail on a successful merge. |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none — no `tRunJob` links found.
+- **Context variables used:** `context.sourceDir`, `context.archiveDir`, `context.filePath`, `context.fileName`, `context.logDir`, `context.keystorePath` (all `Directories_0.1`). Like `Address_Text_Load`, it uses the shared Snowflake connection object rather than referencing `LEGACY_DW_0.1` variables by name.
+- **Related jobs:** `cmi_VoApp_Results_Load`, `Dialer_CallTracking_Load`, `master_prediction_proposal_Load`, and `PatientInfo_Text_Load` follow the same truncate → load → merge → die/warn pattern (see `05_operational_runbook.md`).
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tDie` | Fails the job immediately with a specific message and exit code — used here when the merge procedure reports failure. |
+| `tWarn` | Logs a warning message without failing the job — used here to record how many rows the merge affected when it succeeds. |
+| `tJavaRow` | A small custom-code step that runs once per row (or, as used here, once to capture a single returned value) — here it copies the merge procedure's return value into a context variable so `tDie`/`tWarn` can react to it. |
+| Snowflake reject columns (`columnName`, `rowNumber`, `errorMessage`, `sqlState`, `code`, etc.) | Extra schema columns Snowflake's output component adds automatically to capture details about any row that fails to load — not part of the actual `CMI_HERMES_RECOMMENDATIONS` business data. |
+
+(See `job_Address_Text_Load.md` for the shared components — `tFileList`, `tFileInputDelimited`, `tMap`, `tFlowMeter`, `tFileArchive`, `tFileDelete`, `tSetKeystore` — which behave the same way here.)
+
+## Issues observed
+
+- **The pass/fail condition itself isn't in the metadata.** The job clearly branches on `context.retValue` (one path to `tDie_1`, one to `tWarn_1`, both wired as `RUN_IF` links), but the actual condition expression on each link isn't captured by the extractor — only that both branches exist. Confirm the exact success/failure threshold with the job's author or in Talend Studio directly before relying on this write-up for incident response.
+- **File encoding differs from other jobs in the project** (US-ASCII here vs. ISO-8859-15 in `Address_Text_Load` and most peers) — flagging in case this is accidental rather than intentional, since a non-ASCII character in a Hermes file would fail to load without an obvious explanation.
+- **The merge procedure's own logic is outside Talend**, same caveat as every other job that calls a `MERGE_TXT_INTO_*` procedure (see `04_data_lineage_map.md`).

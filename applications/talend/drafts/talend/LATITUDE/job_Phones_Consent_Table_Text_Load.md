@@ -1,150 +1,91 @@
 # Talend Job: Phones_Consent_Table_Text_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Author**: jmach@harriscollect.com
-- **Created**: 2024-12-11T09:26:45.341-0800
-- **Last Modified**: 2026-04-29T14:49:08.883-0700
+This job loads phone-consent records — whether a given phone number has consented to manual calls, autodialer calls, fax, text, or pre-recorded messages, along with who obtained that consent and when — into Snowflake. It follows the standard truncate → load → merge → archive/delete pattern exactly, with no notable deviations.
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tDBConnection_1 | `tSnowflakeConnection` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":2,"@type":"org.talend.components.snowflake. |
-| 2 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 3 | tJava_1 | `tJava` | `CODE`=context.filePath= ((String)globalMap.get("tFileLis, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 4 | tFileInputDelimited_1 | `tFileInputDelimited` | `USE_EXISTING_DYNAMIC`=false, `FILENAMETEXT`="When the input source is a stream or a zip file,f, `FILENAME`=context.filePath, `CSV_OPTION`=false, `ROWSEPARATOR`="|$|" |
-| 5 | tMap_1 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 6 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 7 | tDBRow_1 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 8 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 9 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 10 | tParallelize_1 | `tParallelize` | `WAIT_FOR`=All, `SLEEPTIME`=100, `DIE_ON_ERROR`=false, `CONNECTION_FORMAT`=row |
-| 11 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 12 | tJava_3 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 13 | tFileArchive_1 | `tFileArchive` | `SOURCE`=context.sourceDir, `SOURCE_FILE`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s, `SUB_DIRECTROY`=false, `TARGET`=context.archiveDir + context.fileName+".zip", `MKDIR`=true |
-| 14 | tFileList_3 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 15 | tJava_4 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 16 | tFileDelete_1 | `tFileDelete` | `FILENAME`=context.filePath, `DIRECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `PATH`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `FAILON`=false, `FOLDER`=false |
-| 17 | tJava_2 | `tJava` | `CODE`=context.archiveDir = context.archiveDir + TalendDa, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 18 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
+| Field | Value |
+|---|---|
+| Job name | Phones_Consent_Table_Text_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | jmach@harriscollect.com |
+| Created | 2024-12-11T09:26:45.341-0800 |
+| Last Modified | 2026-04-29T14:49:08.883-0700 |
 
-## Schemas
+## Step-by-step data flow
 
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| PHONESCONSENTID | id_BigDecimal | No | -1 |
-| MASTERPHONEID | id_BigDecimal | No | -1 |
-| ALLOWMANUALCALL | id_BigDecimal | Yes | -1 |
-| ALLOWAUTODIALER | id_BigDecimal | Yes | -1 |
-| ALLOWFAX | id_BigDecimal | Yes | -1 |
-| ALLOWTEXT | id_BigDecimal | Yes | -1 |
-| WRITTENCONSENT | id_BigDecimal | No | -1 |
-| OBTAINEDFROM | id_String | Yes | 100 |
-| DOCUMENTATIONID | id_BigDecimal | Yes | -1 |
-| USERID | id_BigDecimal | Yes | -1 |
-| EFFECTIVEDATE | id_String | No | 30 |
-| COMMENT | id_String | Yes | 16777216 |
-| AllowPreRecMes | id_BigDecimal | Yes | -1 |
-| PHONESCONSENTID | id_BigDecimal | No | -1 |
-| MASTERPHONEID | id_BigDecimal | No | -1 |
-| ALLOWMANUALCALL | id_BigDecimal | Yes | -1 |
-| ALLOWAUTODIALER | id_BigDecimal | Yes | -1 |
-| ALLOWFAX | id_BigDecimal | Yes | -1 |
-| ALLOWTEXT | id_BigDecimal | Yes | -1 |
-| WRITTENCONSENT | id_BigDecimal | No | -1 |
-| OBTAINEDFROM | id_String | Yes | 100 |
-| DOCUMENTATIONID | id_BigDecimal | Yes | -1 |
-| USERID | id_BigDecimal | Yes | -1 |
-| EFFECTIVEDATE | id_String | No | 30 |
-| COMMENT | id_String | Yes | 16777216 |
-| AllowPreRecMes | id_BigDecimal | Yes | -1 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tMap_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| PHONESCONSENTID | id_BigDecimal | No | 38 |
-| MASTERPHONEID | id_BigDecimal | No | 38 |
-| ALLOWMANUALCALL | id_BigDecimal | Yes | 38 |
-| ALLOWAUTODIALER | id_BigDecimal | Yes | 38 |
-| ALLOWFAX | id_BigDecimal | Yes | 38 |
-| ALLOWTEXT | id_BigDecimal | Yes | 38 |
-| WRITTENCONSENT | id_BigDecimal | No | 38 |
-| OBTAINEDFROM | id_String | Yes | 100 |
-| DOCUMENTATIONID | id_BigDecimal | Yes | 38 |
-| USERID | id_BigDecimal | Yes | 38 |
-| EFFECTIVEDATE | id_String | No | 30 |
-| COMMENT | id_String | Yes | 16777216 |
-| AllowPreRecMes | id_BigDecimal | Yes | -1 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| PHONESCONSENTID | id_BigDecimal | No | 38 |
-| MASTERPHONEID | id_BigDecimal | No | 38 |
-| ALLOWMANUALCALL | id_BigDecimal | Yes | 38 |
-| ALLOWAUTODIALER | id_BigDecimal | Yes | 38 |
-| ALLOWFAX | id_BigDecimal | Yes | 38 |
-| ALLOWTEXT | id_BigDecimal | Yes | 38 |
-| WRITTENCONSENT | id_BigDecimal | No | 38 |
-| OBTAINEDFROM | id_String | Yes | 100 |
-| DOCUMENTATIONID | id_BigDecimal | Yes | 38 |
-| USERID | id_BigDecimal | Yes | 38 |
-| EFFECTIVEDATE | id_String | No | 30 |
-| COMMENT | id_String | Yes | 16777216 |
-| AllowPreRecMes | id_BigDecimal | Yes | -1 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tDBRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-## Data Flow
+1. **Set up.** `tPrejob_1` triggers `tJava_2`, which appends today's date to `context.archiveDir` and opens a log file; this chains into `tSetKeystore_1` and `tDBConnection_1`.
+2. **Empty the staging table.** `tDBRow_1` runs `TRUNCATE TABLE PHONES_CONSENT_TXT;` (no explicit schema prefix — see Issues observed).
+3. **Find the file.** `tFileList_1` lists files in `context.sourceDir` (skipping `*.txt`), with no explicit sort order.
+4. **Read and reshape the file.** `tFileInputDelimited_1` reads the file as pipe-delimited (`|~|`/`|$|`), US-ASCII encoded, with a header row, covering consent ID, master phone ID, four Boolean-style consent flags (manual call, autodialer, fax, text), whether written consent was obtained, who obtained it, a documentation ID, effective date, comment, and a pre-recorded-message flag. `tMap_1` maps these onto the `PHONES_CONSENT_TXT` schema, adding `LOAD_DT`.
+5. **Load staging.** Mapped rows flow directly into `tDBOutput_1` (no row counter), inserting into `PHONES_CONSENT_TXT`.
+6. **Merge and clean up — in parallel.** Once the file-list subjob completes, `tParallelize_1` splits into: `tDBRow_2` calling `CALL MERGE_TXT_INTO_PHONES_CONSENT();`, and a file-listing chain (`tFileList_2` → `tFileList_3` → delete; `tFileList_2` also drives archiving).
 
 ```mermaid
-graph LR
-    tFileList_1 -->|ITERATE| tJava_1
-    tFileList_1 -->|SUBJOB_OK| tParallelize_1
-    tJava_1 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tMap_1
-    tMap_1 -->|FLOW| tDBOutput_1
-    tDBRow_1 -->|SUBJOB_OK| tFileList_1
-    tPrejob_1 -->|COMPONENT_OK| tJava_2
-    tParallelize_1 -->|PARALLELIZE| tDBRow_2
-    tParallelize_1 -->|PARALLELIZE| tFileList_2
-    tFileList_2 -->|SUBJOB_OK| tFileList_3
-    tFileList_2 -->|ITERATE| tJava_3
-    tJava_3 -->|ITERATE| tFileArchive_1
-    tFileList_3 -->|ITERATE| tJava_4
-    tJava_4 -->|ITERATE| tFileDelete_1
-    tJava_2 -->|SUBJOB_OK| tSetKeystore_1
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
+flowchart TD
+    Prejob["tPrejob_1"] --> SetLog["tJava_2<br/>Set archive path + start log"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"]
+    Truncate["tDBRow_1<br/>TRUNCATE PHONES_CONSENT_TXT"] --> ListFiles1["tFileList_1<br/>Find source file"]
+    ListFiles1 -->|iterate| SetPath["tJava_1"] --> ReadFile["tFileInputDelimited_1"]
+    ListFiles1 --> Parallel["tParallelize_1"]
+    ReadFile -->|flow| Map["tMap_1"] --> Insert["tDBOutput_1<br/>INSERT into PHONES_CONSENT_TXT"]
+    Parallel --> Merge["tDBRow_2<br/>CALL MERGE_TXT_INTO_PHONES_CONSENT()"] & ListFiles2["tFileList_2"]
+    ListFiles2 -->|iterate| SetPath3["tJava_3"] --> Archive["tFileArchive_1"]
+    ListFiles2 --> ListFiles3["tFileList_3"]
+    ListFiles3 -->|iterate| SetPath4["tJava_4"] --> Delete["tFileDelete_1"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| FIELDSEPARATOR / ROWSEPARATOR | `\|~\|` / `\|$\|` | Standard project pipe-delimited format. |
+| HEADER | 1 | First line is a header. |
+| ENCODING | US-ASCII | Plain ASCII text. |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | PHONES_CONSENT_TXT | Staging table for phone consent records. |
+| Output action | INSERT | Adds rows only. |
+
+### Merge step: `tDBRow_2`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query | `CALL MERGE_TXT_INTO_PHONES_CONSENT();` | Snowflake procedure that folds staged rows into the permanent `PHONES_CONSENT` table. |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none found — no `tRunJob` links.
+- **Context variables used:** `context.sourceDir`, `context.archiveDir`, `context.filePath`, `context.fileName`, `context.logDir`, `context.keystorePath` (all `Directories_0.1`). Uses the shared Snowflake connection object, not `LEGACY_DW_*` variables directly.
+- **Hardcoded values found:** `tFileInputDelimited_1.TEMP_DIR`, `tFileArchive_1.SOURCE_FILE`, `tFileDelete_1.DIRECTORY`/`PATH`, and `tSetKeystore_1.SSL_TRUSTSERVER_TRUSTSTORE` are fixed paths rather than context variables.
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tPrejob` / `tParallelize` | Setup-before-main-start, concurrent branches (see job_Address_Text_Load.md). |
+| `tFileList` | Lists files for the job to loop over (see job_Address_Text_Load.md). |
+| `tFileInputDelimited` | Reads a delimited text file (see job_Address_Text_Load.md). |
+| `tMap` | Maps/transforms columns (see job_Address_Text_Load.md). |
+| `tDBOutput` / `tSnowflakeOutput` | Writes rows into Snowflake (see job_Address_Text_Load.md). |
+| `tDBRow` / `tSnowflakeRow` | Runs a single SQL statement (see job_Address_Text_Load.md). |
+| `tJava` | Custom Java code block (see job_Address_Text_Load.md). |
+| `tFileArchive` | Zips a file into an archive location (see job_Address_Text_Load.md). |
+| `tFileDelete` | Deletes a file from disk (see job_Address_Text_Load.md). |
+| `tSetKeystore` | Configures the SSL keystore for the Snowflake connection (see job_Address_Text_Load.md). |
+
+## Issues observed
+
+- **The staging truncate doesn't qualify its schema** (`TRUNCATE TABLE PHONES_CONSENT_TXT;`, no `LIQUID_STAGING.` prefix) — same pattern as other jobs in this batch; likely relies on the connection's default schema.
+- **No row-count logging** — no `tFlowMeter` component between `tMap_1` and `tDBOutput_1`.
+- **`tFileDelete_1.FAILON` is `false`**, meaning a failed delete of the source file won't fail the job.
+- **Several hardcoded, machine-specific paths** exist alongside parameterized ones — see Dependencies & configuration.
+- **The merge procedure's own logic is outside Talend** and not visible in this metadata.

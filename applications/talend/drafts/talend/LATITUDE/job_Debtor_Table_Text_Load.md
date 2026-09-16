@@ -1,747 +1,108 @@
 # Talend Job: Debtor_Table_Text_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Author**: jmach@harriscollect.com
-- **Created**: 2024-10-18T11:58:22.215-0700
-- **Last Modified**: 2026-05-26T11:52:52.066-0700
+This job loads debtor (consumer/account-holder) records into Snowflake, following the project's standard truncate → load → merge → archive/delete pattern. It stands out among this project's "text load" jobs because it runs the data through an encryption step (`tDataEncrypt_1`) before loading it to staging — the only one of this batch of 9 jobs to do so — reflecting that the `DEBTOR_TXT` table carries sensitive personal data (SSN, date of birth, portal password/salt, etc.).
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tDBConnection_1 | `tSnowflakeConnection` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":2,"@type":"org.talend.components.snowflake. |
-| 2 | tDBRow_1 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 3 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 4 | tJava_1 | `tJava` | `CODE`=context.filePath= ((String)globalMap.get("tFileLis, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 5 | tFileInputDelimited_1 | `tFileInputDelimited` | `USE_EXISTING_DYNAMIC`=false, `FILENAMETEXT`="When the input source is a stream or a zip file,f, `FILENAME`=context.filePath, `CSV_OPTION`=false, `ROWSEPARATOR`="|$|" |
-| 6 | tJavaRow_1 | `tJavaRow` | `CODE`=//Code generated according to input schema and out, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 7 | tDataEncrypt_1 | `tDataEncrypt` | `CRYPTO_METHOD`=AES, `CRYPTO_FILE_PATH`=context.cryptoPath, `GEN_CRYPTO_FILE_CONTROLLER`=false, `ALGO_VERSION`=2, `CONNECTION_FORMAT`=row |
-| 8 | tMap_1 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 9 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":4,"@type":"org.talend.components.snowflake. |
-| 10 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 11 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 12 | tJava_2 | `tJava` | `CODE`=context.archiveDir = context.archiveDir + TalendDa, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 13 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 14 | tJava_3 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 15 | tFileArchive_1 | `tFileArchive` | `SOURCE`=context.sourceDir, `SOURCE_FILE`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s, `SUB_DIRECTROY`=false, `TARGET`=context.archiveDir + context.fileName+".zip", `MKDIR`=true |
-| 16 | tParallelize_1 | `tParallelize` | `WAIT_FOR`=All, `SLEEPTIME`=100, `DIE_ON_ERROR`=false, `CONNECTION_FORMAT`=row |
-| 17 | tFileList_3 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 18 | tJava_4 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 19 | tFileDelete_1 | `tFileDelete` | `FILENAME`=context.filePath, `DIRECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `PATH`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `FAILON`=false, `FOLDER`=false |
-| 20 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
+| Field | Value |
+|---|---|
+| Job name | Debtor_Table_Text_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | jmach@harriscollect.com |
+| Created | 2024-10-18T11:58:22.215-0700 |
+| Last Modified | 2026-05-26T11:52:52.066-0700 |
 
-## Schemas
+## Step-by-step data flow
 
-### tDBRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| NUMBER | id_BigDecimal | Yes | 38 |
-| SEQ | id_BigDecimal | Yes | 38 |
-| NAME | id_String | Yes | 16777216 |
-| STREET1 | id_String | Yes | 16777216 |
-| STREET2 | id_String | Yes | 16777216 |
-| CITY | id_String | Yes | 16777216 |
-| STATE | id_String | Yes | 16777216 |
-| ZIPCODE | id_String | Yes | 16777216 |
-| HOMEPHONE | id_String | Yes | 16777216 |
-| WORKPHONE | id_String | Yes | 16777216 |
-| SSN | id_String | Yes | 16777216 |
-| MR | id_String | Yes | 16777216 |
-| OTHERNAME | id_String | Yes | 16777216 |
-| DOB | id_String | Yes | 16777216 |
-| JOBNAME | id_String | Yes | 16777216 |
-| JOBADDR1 | id_String | Yes | 16777216 |
-| JOBADDR2 | id_String | Yes | 16777216 |
-| JOBCSZ | id_String | Yes | 16777216 |
-| JOBMEMO | id_String | Yes | 16777216 |
-| RELATIONSHIP | id_String | Yes | 16777216 |
-| SPOUSE | id_String | Yes | 16777216 |
-| SPOUSEJOBNAME | id_String | Yes | 16777216 |
-| SPOUSEJOBADDR1 | id_String | Yes | 16777216 |
-| SPOUSEJOBADDR2 | id_String | Yes | 16777216 |
-| SPOUSEJOBCSZ | id_String | Yes | 16777216 |
-| SPOUSEJOBMEMO | id_String | Yes | 16777216 |
-| SPOUSEHOMEPHONE | id_String | Yes | 16777216 |
-| SPOUSEWORKPHONE | id_String | Yes | 16777216 |
-| SPOUSERESPONSIBLE | id_String | Yes | 16777216 |
-| PAGER | id_String | Yes | 16777216 |
-| OTHERPHONE1 | id_String | Yes | 16777216 |
-| OTHERPHONETYPE | id_String | Yes | 16777216 |
-| OTHERPHONE2 | id_String | Yes | 16777216 |
-| OTHERPHONE2TYPE | id_String | Yes | 16777216 |
-| OTHERPHONE3 | id_String | Yes | 16777216 |
-| OTHERPHONE3TYPE | id_String | Yes | 16777216 |
-| DEBTORMEMO | id_String | Yes | 16777216 |
-| LANGUAGE | id_String | Yes | 16777216 |
-| DLNUM | id_String | Yes | 16777216 |
-| FAX | id_String | Yes | 16777216 |
-| EMAIL | id_String | Yes | 16777216 |
-| DEBTORID | id_String | Yes | 16777216 |
-| DATECREATED | id_String | Yes | 16777216 |
-| DATEUPDATED | id_String | Yes | 16777216 |
-| COUNTRY | id_String | Yes | 16777216 |
-| DATETIMEENTERED | id_String | Yes | 16777216 |
-| RESPONSIBLE | id_String | Yes | 16777216 |
-| FIRSTNAME | id_String | Yes | 16777216 |
-| MIDDLENAME | id_String | Yes | 16777216 |
-| LASTNAME | id_String | Yes | 16777216 |
-| SUFFIX | id_String | Yes | 16777216 |
-| ISBUSINESS | id_String | Yes | 16777216 |
-| ISPARSED | id_String | Yes | 16777216 |
-| CBREXCEPTION | id_String | Yes | 16777216 |
-| CBREXCLUDE | id_String | Yes | 16777216 |
-| USPSKEYLINE | id_String | Yes | 16777216 |
-| EARLYTIMEZONE | id_String | Yes | 16777216 |
-| LATETIMEZONE | id_String | Yes | 16777216 |
-| BUSINESSNAME | id_String | Yes | 16777216 |
-| PREFIX | id_String | Yes | 16777216 |
-| GENDER | id_String | Yes | 16777216 |
-| OBSERVESDST | id_String | Yes | 16777216 |
-| REGIONCODE | id_String | Yes | 16777216 |
-| COUNTY | id_String | Yes | 16777216 |
-| TIMEZONEOVERRIDE | id_String | Yes | 16777216 |
-| ISHOMEOWNER | id_String | Yes | 16777216 |
-| PHONESYNCFLAG | id_String | Yes | 16777216 |
-| ISAUTHORIZEDACCOUNTUSER | id_String | Yes | 16777216 |
-| CBREXCEPTION32 | id_String | Yes | 16777216 |
-| CBRECOACODE | id_String | Yes | 16777216 |
-| CONTACTMETHOD | id_String | Yes | 16777216 |
-| LASTCALLATTEMPTDATE | id_String | Yes | 16777216 |
-| TOTALCALLATTEMPTS | id_String | Yes | 16777216 |
-| NEXTALLOWABLECALLATTEMPTDATE | id_String | Yes | 16777216 |
-| NEXTALLOWABLECALLREASON | id_String | Yes | 16777216 |
-| JOBCITY | id_String | Yes | 50 |
-| JOBSTATE | id_String | Yes | 3 |
-| JOBZIPCODE | id_String | Yes | 10 |
-| JOBCOUNTY | id_String | Yes | 50 |
-| JOBCOUNTRY | id_String | Yes | 50 |
-| SPOUSEJOBCITY | id_String | Yes | 50 |
-| SPOUSEJOBSTATE | id_String | Yes | 3 |
-| SPOUSEJOBZIPCODE | id_String | Yes | 10 |
-| SPOUSEJOBCOUNTY | id_String | Yes | 50 |
-| SPOUSEJOBCOUNTRY | id_String | Yes | 50 |
-| JOINEDDEBTORID | id_Integer | Yes | 38 |
-| REEVALUATEJOINS | id_Integer | Yes | 38 |
-| DONOTJOIN | id_Integer | Yes | 38 |
-| ID1 | id_String | Yes | 50 |
-| ID2 | id_String | Yes | 50 |
-| PURN | id_String | Yes | 50 |
-| ISLIABLE | id_Integer | Yes | 38 |
-| SHOULDQUEUE | id_Integer | Yes | 38 |
-| WORKED | id_String | Yes | 16777216 |
-| CONTACTED | id_String | Yes | 16777216 |
-| AUTHORIZEDFORDEBTORID | id_Integer | Yes | 38 |
-| JOBVERIFIED | id_Integer | Yes | 38 |
-| JOBVERIFIEDBY | id_String | Yes | 255 |
-| JOBVERIFIEDWHEN | id_String | Yes | 16777216 |
-| PORTALUSERNAME | id_String | Yes | 50 |
-| PORTALPASSWORD | id_String | Yes | 255 |
-| PORTALPASSWORDSALT | id_String | Yes | 255 |
-| PORTALVERIFYCODE | id_String | Yes | 10 |
-| TIMEZONECODE | id_String | Yes | 50 |
-| STATEATDEBTORIGINATION | id_String | Yes | 3 |
-| NUMBER | id_BigDecimal | Yes | 38 |
-| SEQ | id_BigDecimal | Yes | 38 |
-| NAME | id_String | Yes | 16777216 |
-| STREET1 | id_String | Yes | 16777216 |
-| STREET2 | id_String | Yes | 16777216 |
-| CITY | id_String | Yes | 16777216 |
-| STATE | id_String | Yes | 16777216 |
-| ZIPCODE | id_String | Yes | 16777216 |
-| HOMEPHONE | id_String | Yes | 16777216 |
-| WORKPHONE | id_String | Yes | 16777216 |
-| SSN | id_String | Yes | 16777216 |
-| MR | id_String | Yes | 16777216 |
-| OTHERNAME | id_String | Yes | 16777216 |
-| DOB | id_String | Yes | 16777216 |
-| JOBNAME | id_String | Yes | 16777216 |
-| JOBADDR1 | id_String | Yes | 16777216 |
-| JOBADDR2 | id_String | Yes | 16777216 |
-| JOBCSZ | id_String | Yes | 16777216 |
-| JOBMEMO | id_String | Yes | 16777216 |
-| RELATIONSHIP | id_String | Yes | 16777216 |
-| SPOUSE | id_String | Yes | 16777216 |
-| SPOUSEJOBNAME | id_String | Yes | 16777216 |
-| SPOUSEJOBADDR1 | id_String | Yes | 16777216 |
-| SPOUSEJOBADDR2 | id_String | Yes | 16777216 |
-| SPOUSEJOBCSZ | id_String | Yes | 16777216 |
-| SPOUSEJOBMEMO | id_String | Yes | 16777216 |
-| SPOUSEHOMEPHONE | id_String | Yes | 16777216 |
-| SPOUSEWORKPHONE | id_String | Yes | 16777216 |
-| SPOUSERESPONSIBLE | id_String | Yes | 16777216 |
-| PAGER | id_String | Yes | 16777216 |
-| OTHERPHONE1 | id_String | Yes | 16777216 |
-| OTHERPHONETYPE | id_String | Yes | 16777216 |
-| OTHERPHONE2 | id_String | Yes | 16777216 |
-| OTHERPHONE2TYPE | id_String | Yes | 16777216 |
-| OTHERPHONE3 | id_String | Yes | 16777216 |
-| OTHERPHONE3TYPE | id_String | Yes | 16777216 |
-| DEBTORMEMO | id_String | Yes | 16777216 |
-| LANGUAGE | id_String | Yes | 16777216 |
-| DLNUM | id_String | Yes | 16777216 |
-| FAX | id_String | Yes | 16777216 |
-| EMAIL | id_String | Yes | 16777216 |
-| DEBTORID | id_String | Yes | 16777216 |
-| DATECREATED | id_String | Yes | 16777216 |
-| DATEUPDATED | id_String | Yes | 16777216 |
-| COUNTRY | id_String | Yes | 16777216 |
-| DATETIMEENTERED | id_String | Yes | 16777216 |
-| RESPONSIBLE | id_String | Yes | 16777216 |
-| FIRSTNAME | id_String | Yes | 16777216 |
-| MIDDLENAME | id_String | Yes | 16777216 |
-| LASTNAME | id_String | Yes | 16777216 |
-| SUFFIX | id_String | Yes | 16777216 |
-| ISBUSINESS | id_String | Yes | 16777216 |
-| ISPARSED | id_String | Yes | 16777216 |
-| CBREXCEPTION | id_String | Yes | 16777216 |
-| CBREXCLUDE | id_String | Yes | 16777216 |
-| USPSKEYLINE | id_String | Yes | 16777216 |
-| EARLYTIMEZONE | id_String | Yes | 16777216 |
-| LATETIMEZONE | id_String | Yes | 16777216 |
-| BUSINESSNAME | id_String | Yes | 16777216 |
-| PREFIX | id_String | Yes | 16777216 |
-| GENDER | id_String | Yes | 16777216 |
-| OBSERVESDST | id_String | Yes | 16777216 |
-| REGIONCODE | id_String | Yes | 16777216 |
-| COUNTY | id_String | Yes | 16777216 |
-| TIMEZONEOVERRIDE | id_String | Yes | 16777216 |
-| ISHOMEOWNER | id_String | Yes | 16777216 |
-| PHONESYNCFLAG | id_String | Yes | 16777216 |
-| ISAUTHORIZEDACCOUNTUSER | id_String | Yes | 16777216 |
-| CBREXCEPTION32 | id_String | Yes | 16777216 |
-| CBRECOACODE | id_String | Yes | 16777216 |
-| CONTACTMETHOD | id_String | Yes | 16777216 |
-| LASTCALLATTEMPTDATE | id_String | Yes | 16777216 |
-| TOTALCALLATTEMPTS | id_String | Yes | 16777216 |
-| NEXTALLOWABLECALLATTEMPTDATE | id_String | Yes | 16777216 |
-| NEXTALLOWABLECALLREASON | id_String | Yes | 16777216 |
-| JOBCITY | id_String | Yes | 50 |
-| JOBSTATE | id_String | Yes | 3 |
-| JOBZIPCODE | id_String | Yes | 10 |
-| JOBCOUNTY | id_String | Yes | 50 |
-| JOBCOUNTRY | id_String | Yes | 50 |
-| SPOUSEJOBCITY | id_String | Yes | 50 |
-| SPOUSEJOBSTATE | id_String | Yes | 3 |
-| SPOUSEJOBZIPCODE | id_String | Yes | 10 |
-| SPOUSEJOBCOUNTY | id_String | Yes | 50 |
-| SPOUSEJOBCOUNTRY | id_String | Yes | 50 |
-| JOINEDDEBTORID | id_Integer | Yes | 38 |
-| REEVALUATEJOINS | id_Integer | Yes | 38 |
-| DONOTJOIN | id_Integer | Yes | 38 |
-| ID1 | id_String | Yes | 50 |
-| ID2 | id_String | Yes | 50 |
-| PURN | id_String | Yes | 50 |
-| ISLIABLE | id_Integer | Yes | 38 |
-| SHOULDQUEUE | id_Integer | Yes | 38 |
-| WORKED | id_String | Yes | 16777216 |
-| CONTACTED | id_String | Yes | 16777216 |
-| AUTHORIZEDFORDEBTORID | id_Integer | Yes | 38 |
-| JOBVERIFIED | id_Integer | Yes | 38 |
-| JOBVERIFIEDBY | id_String | Yes | 255 |
-| JOBVERIFIEDWHEN | id_String | Yes | 16777216 |
-| PORTALUSERNAME | id_String | Yes | 50 |
-| PORTALPASSWORD | id_String | Yes | 255 |
-| PORTALPASSWORDSALT | id_String | Yes | 255 |
-| PORTALVERIFYCODE | id_String | Yes | 10 |
-| TIMEZONECODE | id_String | Yes | 50 |
-| STATEATDEBTORIGINATION | id_String | Yes | 3 |
-| LAST4SSN | id_String | Yes | 4 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tJavaRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| NUMBER | id_BigDecimal | Yes | 38 |
-| SEQ | id_BigDecimal | Yes | 38 |
-| NAME | id_String | Yes | 16777216 |
-| STREET1 | id_String | Yes | 16777216 |
-| STREET2 | id_String | Yes | 16777216 |
-| CITY | id_String | Yes | 16777216 |
-| STATE | id_String | Yes | 16777216 |
-| ZIPCODE | id_String | Yes | 16777216 |
-| HOMEPHONE | id_String | Yes | 16777216 |
-| WORKPHONE | id_String | Yes | 16777216 |
-| SSN | id_String | Yes | 16777216 |
-| MR | id_String | Yes | 16777216 |
-| OTHERNAME | id_String | Yes | 16777216 |
-| DOB | id_String | Yes | 16777216 |
-| JOBNAME | id_String | Yes | 16777216 |
-| JOBADDR1 | id_String | Yes | 16777216 |
-| JOBADDR2 | id_String | Yes | 16777216 |
-| JOBCSZ | id_String | Yes | 16777216 |
-| JOBMEMO | id_String | Yes | 16777216 |
-| RELATIONSHIP | id_String | Yes | 16777216 |
-| SPOUSE | id_String | Yes | 16777216 |
-| SPOUSEJOBNAME | id_String | Yes | 16777216 |
-| SPOUSEJOBADDR1 | id_String | Yes | 16777216 |
-| SPOUSEJOBADDR2 | id_String | Yes | 16777216 |
-| SPOUSEJOBCSZ | id_String | Yes | 16777216 |
-| SPOUSEJOBMEMO | id_String | Yes | 16777216 |
-| SPOUSEHOMEPHONE | id_String | Yes | 16777216 |
-| SPOUSEWORKPHONE | id_String | Yes | 16777216 |
-| SPOUSERESPONSIBLE | id_String | Yes | 16777216 |
-| PAGER | id_String | Yes | 16777216 |
-| OTHERPHONE1 | id_String | Yes | 16777216 |
-| OTHERPHONETYPE | id_String | Yes | 16777216 |
-| OTHERPHONE2 | id_String | Yes | 16777216 |
-| OTHERPHONE2TYPE | id_String | Yes | 16777216 |
-| OTHERPHONE3 | id_String | Yes | 16777216 |
-| OTHERPHONE3TYPE | id_String | Yes | 16777216 |
-| DEBTORMEMO | id_String | Yes | 16777216 |
-| LANGUAGE | id_String | Yes | 16777216 |
-| DLNUM | id_String | Yes | 16777216 |
-| FAX | id_String | Yes | 16777216 |
-| EMAIL | id_String | Yes | 16777216 |
-| DEBTORID | id_String | Yes | 16777216 |
-| DATECREATED | id_String | Yes | 16777216 |
-| DATEUPDATED | id_String | Yes | 16777216 |
-| COUNTRY | id_String | Yes | 16777216 |
-| DATETIMEENTERED | id_String | Yes | 16777216 |
-| RESPONSIBLE | id_String | Yes | 16777216 |
-| FIRSTNAME | id_String | Yes | 16777216 |
-| MIDDLENAME | id_String | Yes | 16777216 |
-| LASTNAME | id_String | Yes | 16777216 |
-| SUFFIX | id_String | Yes | 16777216 |
-| ISBUSINESS | id_String | Yes | 16777216 |
-| ISPARSED | id_String | Yes | 16777216 |
-| CBREXCEPTION | id_String | Yes | 16777216 |
-| CBREXCLUDE | id_String | Yes | 16777216 |
-| USPSKEYLINE | id_String | Yes | 16777216 |
-| EARLYTIMEZONE | id_String | Yes | 16777216 |
-| LATETIMEZONE | id_String | Yes | 16777216 |
-| BUSINESSNAME | id_String | Yes | 16777216 |
-| PREFIX | id_String | Yes | 16777216 |
-| GENDER | id_String | Yes | 16777216 |
-| OBSERVESDST | id_String | Yes | 16777216 |
-| REGIONCODE | id_String | Yes | 16777216 |
-| COUNTY | id_String | Yes | 16777216 |
-| TIMEZONEOVERRIDE | id_String | Yes | 16777216 |
-| ISHOMEOWNER | id_String | Yes | 16777216 |
-| PHONESYNCFLAG | id_String | Yes | 16777216 |
-| ISAUTHORIZEDACCOUNTUSER | id_String | Yes | 16777216 |
-| CBREXCEPTION32 | id_String | Yes | 16777216 |
-| CBRECOACODE | id_String | Yes | 16777216 |
-| CONTACTMETHOD | id_String | Yes | 16777216 |
-| LASTCALLATTEMPTDATE | id_String | Yes | 16777216 |
-| TOTALCALLATTEMPTS | id_String | Yes | 16777216 |
-| NEXTALLOWABLECALLATTEMPTDATE | id_String | Yes | 16777216 |
-| NEXTALLOWABLECALLREASON | id_String | Yes | 16777216 |
-| JOBCITY | id_String | Yes | 50 |
-| JOBSTATE | id_String | Yes | 3 |
-| JOBZIPCODE | id_String | Yes | 10 |
-| JOBCOUNTY | id_String | Yes | 50 |
-| JOBCOUNTRY | id_String | Yes | 50 |
-| SPOUSEJOBCITY | id_String | Yes | 50 |
-| SPOUSEJOBSTATE | id_String | Yes | 3 |
-| SPOUSEJOBZIPCODE | id_String | Yes | 10 |
-| SPOUSEJOBCOUNTY | id_String | Yes | 50 |
-| SPOUSEJOBCOUNTRY | id_String | Yes | 50 |
-| JOINEDDEBTORID | id_Integer | Yes | 38 |
-| REEVALUATEJOINS | id_Integer | Yes | 38 |
-| DONOTJOIN | id_Integer | Yes | 38 |
-| ID1 | id_String | Yes | 50 |
-| ID2 | id_String | Yes | 50 |
-| PURN | id_String | Yes | 50 |
-| ISLIABLE | id_Integer | Yes | 38 |
-| SHOULDQUEUE | id_Integer | Yes | 38 |
-| WORKED | id_String | Yes | 16777216 |
-| CONTACTED | id_String | Yes | 16777216 |
-| AUTHORIZEDFORDEBTORID | id_Integer | Yes | 38 |
-| JOBVERIFIED | id_Integer | Yes | 38 |
-| JOBVERIFIEDBY | id_String | Yes | 255 |
-| JOBVERIFIEDWHEN | id_String | Yes | 16777216 |
-| PORTALUSERNAME | id_String | Yes | 50 |
-| PORTALPASSWORD | id_String | Yes | 255 |
-| PORTALPASSWORDSALT | id_String | Yes | 255 |
-| PORTALVERIFYCODE | id_String | Yes | 10 |
-| TIMEZONECODE | id_String | Yes | 50 |
-| STATEATDEBTORIGINATION | id_String | Yes | 3 |
-| LAST4SSN | id_String | Yes | 4 |
-
-### tDataEncrypt_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| NUMBER | id_BigDecimal | Yes | 38 |
-| SEQ | id_BigDecimal | Yes | 38 |
-| NAME | id_String | Yes | 16777216 |
-| STREET1 | id_String | Yes | 16777216 |
-| STREET2 | id_String | Yes | 16777216 |
-| CITY | id_String | Yes | 16777216 |
-| STATE | id_String | Yes | 16777216 |
-| ZIPCODE | id_String | Yes | 16777216 |
-| HOMEPHONE | id_String | Yes | 16777216 |
-| WORKPHONE | id_String | Yes | 16777216 |
-| SSN | id_String | Yes | 16777216 |
-| MR | id_String | Yes | 16777216 |
-| OTHERNAME | id_String | Yes | 16777216 |
-| DOB | id_String | Yes | 16777216 |
-| JOBNAME | id_String | Yes | 16777216 |
-| JOBADDR1 | id_String | Yes | 16777216 |
-| JOBADDR2 | id_String | Yes | 16777216 |
-| JOBCSZ | id_String | Yes | 16777216 |
-| JOBMEMO | id_String | Yes | 16777216 |
-| RELATIONSHIP | id_String | Yes | 16777216 |
-| SPOUSE | id_String | Yes | 16777216 |
-| SPOUSEJOBNAME | id_String | Yes | 16777216 |
-| SPOUSEJOBADDR1 | id_String | Yes | 16777216 |
-| SPOUSEJOBADDR2 | id_String | Yes | 16777216 |
-| SPOUSEJOBCSZ | id_String | Yes | 16777216 |
-| SPOUSEJOBMEMO | id_String | Yes | 16777216 |
-| SPOUSEHOMEPHONE | id_String | Yes | 16777216 |
-| SPOUSEWORKPHONE | id_String | Yes | 16777216 |
-| SPOUSERESPONSIBLE | id_String | Yes | 16777216 |
-| PAGER | id_String | Yes | 16777216 |
-| OTHERPHONE1 | id_String | Yes | 16777216 |
-| OTHERPHONETYPE | id_String | Yes | 16777216 |
-| OTHERPHONE2 | id_String | Yes | 16777216 |
-| OTHERPHONE2TYPE | id_String | Yes | 16777216 |
-| OTHERPHONE3 | id_String | Yes | 16777216 |
-| OTHERPHONE3TYPE | id_String | Yes | 16777216 |
-| DEBTORMEMO | id_String | Yes | 16777216 |
-| LANGUAGE | id_String | Yes | 16777216 |
-| DLNUM | id_String | Yes | 16777216 |
-| FAX | id_String | Yes | 16777216 |
-| EMAIL | id_String | Yes | 16777216 |
-| DEBTORID | id_String | Yes | 16777216 |
-| DATECREATED | id_String | Yes | 16777216 |
-| DATEUPDATED | id_String | Yes | 16777216 |
-| COUNTRY | id_String | Yes | 16777216 |
-| DATETIMEENTERED | id_String | Yes | 16777216 |
-| RESPONSIBLE | id_String | Yes | 16777216 |
-| FIRSTNAME | id_String | Yes | 16777216 |
-| MIDDLENAME | id_String | Yes | 16777216 |
-| LASTNAME | id_String | Yes | 16777216 |
-| SUFFIX | id_String | Yes | 16777216 |
-| ISBUSINESS | id_String | Yes | 16777216 |
-| ISPARSED | id_String | Yes | 16777216 |
-| CBREXCEPTION | id_String | Yes | 16777216 |
-| CBREXCLUDE | id_String | Yes | 16777216 |
-| USPSKEYLINE | id_String | Yes | 16777216 |
-| EARLYTIMEZONE | id_String | Yes | 16777216 |
-| LATETIMEZONE | id_String | Yes | 16777216 |
-| BUSINESSNAME | id_String | Yes | 16777216 |
-| PREFIX | id_String | Yes | 16777216 |
-| GENDER | id_String | Yes | 16777216 |
-| OBSERVESDST | id_String | Yes | 16777216 |
-| REGIONCODE | id_String | Yes | 16777216 |
-| COUNTY | id_String | Yes | 16777216 |
-| TIMEZONEOVERRIDE | id_String | Yes | 16777216 |
-| ISHOMEOWNER | id_String | Yes | 16777216 |
-| PHONESYNCFLAG | id_String | Yes | 16777216 |
-| ISAUTHORIZEDACCOUNTUSER | id_String | Yes | 16777216 |
-| CBREXCEPTION32 | id_String | Yes | 16777216 |
-| CBRECOACODE | id_String | Yes | 16777216 |
-| CONTACTMETHOD | id_String | Yes | 16777216 |
-| LASTCALLATTEMPTDATE | id_String | Yes | 16777216 |
-| TOTALCALLATTEMPTS | id_String | Yes | 16777216 |
-| NEXTALLOWABLECALLATTEMPTDATE | id_String | Yes | 16777216 |
-| NEXTALLOWABLECALLREASON | id_String | Yes | 16777216 |
-| JOBCITY | id_String | Yes | 50 |
-| JOBSTATE | id_String | Yes | 3 |
-| JOBZIPCODE | id_String | Yes | 10 |
-| JOBCOUNTY | id_String | Yes | 50 |
-| JOBCOUNTRY | id_String | Yes | 50 |
-| SPOUSEJOBCITY | id_String | Yes | 50 |
-| SPOUSEJOBSTATE | id_String | Yes | 3 |
-| SPOUSEJOBZIPCODE | id_String | Yes | 10 |
-| SPOUSEJOBCOUNTY | id_String | Yes | 50 |
-| SPOUSEJOBCOUNTRY | id_String | Yes | 50 |
-| JOINEDDEBTORID | id_Integer | Yes | 38 |
-| REEVALUATEJOINS | id_Integer | Yes | 38 |
-| DONOTJOIN | id_Integer | Yes | 38 |
-| ID1 | id_String | Yes | 50 |
-| ID2 | id_String | Yes | 50 |
-| PURN | id_String | Yes | 50 |
-| ISLIABLE | id_Integer | Yes | 38 |
-| SHOULDQUEUE | id_Integer | Yes | 38 |
-| WORKED | id_String | Yes | 16777216 |
-| CONTACTED | id_String | Yes | 16777216 |
-| AUTHORIZEDFORDEBTORID | id_Integer | Yes | 38 |
-| JOBVERIFIED | id_Integer | Yes | 38 |
-| JOBVERIFIEDBY | id_String | Yes | 255 |
-| JOBVERIFIEDWHEN | id_String | Yes | 16777216 |
-| PORTALUSERNAME | id_String | Yes | 50 |
-| PORTALPASSWORD | id_String | Yes | 255 |
-| PORTALPASSWORDSALT | id_String | Yes | 255 |
-| PORTALVERIFYCODE | id_String | Yes | 10 |
-| TIMEZONECODE | id_String | Yes | 50 |
-| STATEATDEBTORIGINATION | id_String | Yes | 3 |
-| LAST4SSN | id_String | Yes | 4 |
-
-### tMap_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| NUMBER | id_BigDecimal | Yes | 38 |
-| SEQ | id_BigDecimal | Yes | 38 |
-| NAME | id_String | Yes | 16777216 |
-| STREET1 | id_String | Yes | 16777216 |
-| STREET2 | id_String | Yes | 16777216 |
-| CITY | id_String | Yes | 16777216 |
-| STATE | id_String | Yes | 16777216 |
-| ZIPCODE | id_String | Yes | 16777216 |
-| HOMEPHONE | id_String | Yes | 16777216 |
-| WORKPHONE | id_String | Yes | 16777216 |
-| SSN | id_String | Yes | 16777216 |
-| MR | id_String | Yes | 16777216 |
-| OTHERNAME | id_String | Yes | 16777216 |
-| DOB | id_String | Yes | 16777216 |
-| JOBNAME | id_String | Yes | 16777216 |
-| JOBADDR1 | id_String | Yes | 16777216 |
-| JOBADDR2 | id_String | Yes | 16777216 |
-| JOBCSZ | id_String | Yes | 16777216 |
-| JOBMEMO | id_String | Yes | 16777216 |
-| RELATIONSHIP | id_String | Yes | 16777216 |
-| SPOUSE | id_String | Yes | 16777216 |
-| SPOUSEJOBNAME | id_String | Yes | 16777216 |
-| SPOUSEJOBADDR1 | id_String | Yes | 16777216 |
-| SPOUSEJOBADDR2 | id_String | Yes | 16777216 |
-| SPOUSEJOBCSZ | id_String | Yes | 16777216 |
-| SPOUSEJOBMEMO | id_String | Yes | 16777216 |
-| SPOUSEHOMEPHONE | id_String | Yes | 16777216 |
-| SPOUSEWORKPHONE | id_String | Yes | 16777216 |
-| SPOUSERESPONSIBLE | id_String | Yes | 16777216 |
-| PAGER | id_String | Yes | 16777216 |
-| OTHERPHONE1 | id_String | Yes | 16777216 |
-| OTHERPHONETYPE | id_String | Yes | 16777216 |
-| OTHERPHONE2 | id_String | Yes | 16777216 |
-| OTHERPHONE2TYPE | id_String | Yes | 16777216 |
-| OTHERPHONE3 | id_String | Yes | 16777216 |
-| OTHERPHONE3TYPE | id_String | Yes | 16777216 |
-| DEBTORMEMO | id_String | Yes | 16777216 |
-| LANGUAGE | id_String | Yes | 16777216 |
-| DLNUM | id_String | Yes | 16777216 |
-| FAX | id_String | Yes | 16777216 |
-| EMAIL | id_String | Yes | 16777216 |
-| DEBTORID | id_String | Yes | 16777216 |
-| DATECREATED | id_String | Yes | 16777216 |
-| DATEUPDATED | id_String | Yes | 16777216 |
-| COUNTRY | id_String | Yes | 16777216 |
-| DATETIMEENTERED | id_String | Yes | 16777216 |
-| RESPONSIBLE | id_String | Yes | 16777216 |
-| FIRSTNAME | id_String | Yes | 16777216 |
-| MIDDLENAME | id_String | Yes | 16777216 |
-| LASTNAME | id_String | Yes | 16777216 |
-| SUFFIX | id_String | Yes | 16777216 |
-| ISBUSINESS | id_String | Yes | 16777216 |
-| ISPARSED | id_String | Yes | 16777216 |
-| CBREXCEPTION | id_String | Yes | 16777216 |
-| CBREXCLUDE | id_String | Yes | 16777216 |
-| USPSKEYLINE | id_String | Yes | 16777216 |
-| EARLYTIMEZONE | id_String | Yes | 16777216 |
-| LATETIMEZONE | id_String | Yes | 16777216 |
-| BUSINESSNAME | id_String | Yes | 16777216 |
-| PREFIX | id_String | Yes | 16777216 |
-| GENDER | id_String | Yes | 16777216 |
-| OBSERVESDST | id_String | Yes | 16777216 |
-| REGIONCODE | id_String | Yes | 16777216 |
-| COUNTY | id_String | Yes | 16777216 |
-| TIMEZONEOVERRIDE | id_String | Yes | 16777216 |
-| ISHOMEOWNER | id_String | Yes | 16777216 |
-| PHONESYNCFLAG | id_String | Yes | 16777216 |
-| ISAUTHORIZEDACCOUNTUSER | id_String | Yes | 16777216 |
-| CBREXCEPTION32 | id_String | Yes | 16777216 |
-| CBRECOACODE | id_String | Yes | 16777216 |
-| CONTACTMETHOD | id_String | Yes | 16777216 |
-| LASTCALLATTEMPTDATE | id_String | Yes | 16777216 |
-| TOTALCALLATTEMPTS | id_String | Yes | 16777216 |
-| NEXTALLOWABLECALLATTEMPTDATE | id_String | Yes | 16777216 |
-| NEXTALLOWABLECALLREASON | id_String | Yes | 16777216 |
-| JOBCITY | id_String | Yes | 50 |
-| JOBSTATE | id_String | Yes | 3 |
-| JOBZIPCODE | id_String | Yes | 10 |
-| JOBCOUNTY | id_String | Yes | 50 |
-| JOBCOUNTRY | id_String | Yes | 50 |
-| SPOUSEJOBCITY | id_String | Yes | 50 |
-| SPOUSEJOBSTATE | id_String | Yes | 3 |
-| SPOUSEJOBZIPCODE | id_String | Yes | 10 |
-| SPOUSEJOBCOUNTY | id_String | Yes | 50 |
-| SPOUSEJOBCOUNTRY | id_String | Yes | 50 |
-| JOINEDDEBTORID | id_Integer | Yes | 38 |
-| REEVALUATEJOINS | id_Integer | Yes | 38 |
-| DONOTJOIN | id_Integer | Yes | 38 |
-| ID1 | id_String | Yes | 50 |
-| ID2 | id_String | Yes | 50 |
-| PURN | id_String | Yes | 50 |
-| ISLIABLE | id_Integer | Yes | 38 |
-| SHOULDQUEUE | id_Integer | Yes | 38 |
-| WORKED | id_String | Yes | 16777216 |
-| CONTACTED | id_String | Yes | 16777216 |
-| AUTHORIZEDFORDEBTORID | id_Integer | Yes | 38 |
-| JOBVERIFIED | id_Integer | Yes | 38 |
-| JOBVERIFIEDBY | id_String | Yes | 255 |
-| JOBVERIFIEDWHEN | id_String | Yes | 16777216 |
-| PORTALUSERNAME | id_String | Yes | 50 |
-| PORTALPASSWORD | id_String | Yes | 255 |
-| PORTALPASSWORDSALT | id_String | Yes | 255 |
-| PORTALVERIFYCODE | id_String | Yes | 10 |
-| TIMEZONECODE | id_String | Yes | 50 |
-| STATEATDEBTORIGINATION | id_String | Yes | 3 |
-| LAST4SSN | id_String | Yes | 4 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| NUMBER | id_BigDecimal | Yes | 38 |
-| SEQ | id_BigDecimal | Yes | 38 |
-| NAME | id_String | Yes | 16777216 |
-| STREET1 | id_String | Yes | 16777216 |
-| STREET2 | id_String | Yes | 16777216 |
-| CITY | id_String | Yes | 16777216 |
-| STATE | id_String | Yes | 16777216 |
-| ZIPCODE | id_String | Yes | 16777216 |
-| HOMEPHONE | id_String | Yes | 16777216 |
-| WORKPHONE | id_String | Yes | 16777216 |
-| SSN | id_String | Yes | 16777216 |
-| MR | id_String | Yes | 16777216 |
-| OTHERNAME | id_String | Yes | 16777216 |
-| DOB | id_String | Yes | 16777216 |
-| JOBNAME | id_String | Yes | 16777216 |
-| JOBADDR1 | id_String | Yes | 16777216 |
-| JOBADDR2 | id_String | Yes | 16777216 |
-| JOBCSZ | id_String | Yes | 16777216 |
-| JOBMEMO | id_String | Yes | 16777216 |
-| RELATIONSHIP | id_String | Yes | 16777216 |
-| SPOUSE | id_String | Yes | 16777216 |
-| SPOUSEJOBNAME | id_String | Yes | 16777216 |
-| SPOUSEJOBADDR1 | id_String | Yes | 16777216 |
-| SPOUSEJOBADDR2 | id_String | Yes | 16777216 |
-| SPOUSEJOBCSZ | id_String | Yes | 16777216 |
-| SPOUSEJOBMEMO | id_String | Yes | 16777216 |
-| SPOUSEHOMEPHONE | id_String | Yes | 16777216 |
-| SPOUSEWORKPHONE | id_String | Yes | 16777216 |
-| SPOUSERESPONSIBLE | id_String | Yes | 16777216 |
-| PAGER | id_String | Yes | 16777216 |
-| OTHERPHONE1 | id_String | Yes | 16777216 |
-| OTHERPHONETYPE | id_String | Yes | 16777216 |
-| OTHERPHONE2 | id_String | Yes | 16777216 |
-| OTHERPHONE2TYPE | id_String | Yes | 16777216 |
-| OTHERPHONE3 | id_String | Yes | 16777216 |
-| OTHERPHONE3TYPE | id_String | Yes | 16777216 |
-| DEBTORMEMO | id_String | Yes | 16777216 |
-| LANGUAGE | id_String | Yes | 16777216 |
-| DLNUM | id_String | Yes | 16777216 |
-| FAX | id_String | Yes | 16777216 |
-| EMAIL | id_String | Yes | 16777216 |
-| DEBTORID | id_String | Yes | 16777216 |
-| DATECREATED | id_String | Yes | 16777216 |
-| DATEUPDATED | id_String | Yes | 16777216 |
-| COUNTRY | id_String | Yes | 16777216 |
-| DATETIMEENTERED | id_String | Yes | 16777216 |
-| RESPONSIBLE | id_String | Yes | 16777216 |
-| FIRSTNAME | id_String | Yes | 16777216 |
-| MIDDLENAME | id_String | Yes | 16777216 |
-| LASTNAME | id_String | Yes | 16777216 |
-| SUFFIX | id_String | Yes | 16777216 |
-| ISBUSINESS | id_String | Yes | 16777216 |
-| ISPARSED | id_String | Yes | 16777216 |
-| CBREXCEPTION | id_String | Yes | 16777216 |
-| CBREXCLUDE | id_String | Yes | 16777216 |
-| USPSKEYLINE | id_String | Yes | 16777216 |
-| EARLYTIMEZONE | id_String | Yes | 16777216 |
-| LATETIMEZONE | id_String | Yes | 16777216 |
-| BUSINESSNAME | id_String | Yes | 16777216 |
-| PREFIX | id_String | Yes | 16777216 |
-| GENDER | id_String | Yes | 16777216 |
-| OBSERVESDST | id_String | Yes | 16777216 |
-| REGIONCODE | id_String | Yes | 16777216 |
-| COUNTY | id_String | Yes | 16777216 |
-| TIMEZONEOVERRIDE | id_String | Yes | 16777216 |
-| ISHOMEOWNER | id_String | Yes | 16777216 |
-| PHONESYNCFLAG | id_String | Yes | 16777216 |
-| ISAUTHORIZEDACCOUNTUSER | id_String | Yes | 16777216 |
-| CBREXCEPTION32 | id_String | Yes | 16777216 |
-| CBRECOACODE | id_String | Yes | 16777216 |
-| CONTACTMETHOD | id_String | Yes | 16777216 |
-| LASTCALLATTEMPTDATE | id_String | Yes | 16777216 |
-| TOTALCALLATTEMPTS | id_String | Yes | 16777216 |
-| NEXTALLOWABLECALLATTEMPTDATE | id_String | Yes | 16777216 |
-| NEXTALLOWABLECALLREASON | id_String | Yes | 16777216 |
-| JOBCITY | id_String | Yes | 50 |
-| JOBSTATE | id_String | Yes | 3 |
-| JOBZIPCODE | id_String | Yes | 10 |
-| JOBCOUNTY | id_String | Yes | 50 |
-| JOBCOUNTRY | id_String | Yes | 50 |
-| SPOUSEJOBCITY | id_String | Yes | 50 |
-| SPOUSEJOBSTATE | id_String | Yes | 3 |
-| SPOUSEJOBZIPCODE | id_String | Yes | 10 |
-| SPOUSEJOBCOUNTY | id_String | Yes | 50 |
-| SPOUSEJOBCOUNTRY | id_String | Yes | 50 |
-| JOINEDDEBTORID | id_Integer | Yes | 38 |
-| REEVALUATEJOINS | id_Integer | Yes | 38 |
-| DONOTJOIN | id_Integer | Yes | 38 |
-| ID1 | id_String | Yes | 50 |
-| ID2 | id_String | Yes | 50 |
-| PURN | id_String | Yes | 50 |
-| ISLIABLE | id_Integer | Yes | 38 |
-| SHOULDQUEUE | id_Integer | Yes | 38 |
-| WORKED | id_String | Yes | 16777216 |
-| CONTACTED | id_String | Yes | 16777216 |
-| AUTHORIZEDFORDEBTORID | id_Integer | Yes | 38 |
-| JOBVERIFIED | id_Integer | Yes | 38 |
-| JOBVERIFIEDBY | id_String | Yes | 255 |
-| JOBVERIFIEDWHEN | id_String | Yes | 16777216 |
-| PORTALUSERNAME | id_String | Yes | 50 |
-| PORTALPASSWORD | id_String | Yes | 255 |
-| PORTALPASSWORDSALT | id_String | Yes | 255 |
-| PORTALVERIFYCODE | id_String | Yes | 10 |
-| TIMEZONECODE | id_String | Yes | 50 |
-| STATEATDEBTORIGINATION | id_String | Yes | 3 |
-| LAST4SSN | id_String | Yes | 4 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-## Data Flow
+1. **Set up.** `tPrejob_1` → `tJava_2` (appends today's date to `context.archiveDir`, opens a log file) → `tSetKeystore_1` → `tDBConnection_1`.
+2. **Empty the staging table.** `tDBRow_1` runs `TRUNCATE TABLE DEBTOR_TXT;` — notably without the `LIQUID_STAGING.` schema prefix that most peer jobs use.
+3. **Find and read the file.** `tFileList_1` lists files in `context.sourceDir` (excluding `*.txt`); `tJava_1` captures the path into `context.filePath`; `tFileInputDelimited_1` reads it as a pipe-delimited file (`|~|` fields, `|$|` rows, quoted with `"`, header row, US-ASCII encoding, `DIE_ON_ERROR` set to **false** — unlike most peers).
+4. **Copy, then encrypt, then map.** `tJavaRow_1` does a straight one-to-one copy of every input column to the output row (no transformation — likely just a schema pass-through step ahead of encryption). `tDataEncrypt_1` then encrypts the row using AES (algorithm version 2) via a job-specific key file at `context.cryptoPath`; the exact column(s) encrypted are not visible in this metadata (see Issues observed). `tMap_1` then adds `LOAD_DT` and maps everything onto the `DEBTOR_TXT` schema.
+5. **Load staging.** The mapped rows flow straight into `tDBOutput_1`, which inserts them into the staging table (no `tFlowMeter` row counter in this branch, unlike most peers).
+6. **Merge and clean up — in parallel.** `tParallelize_1` splits into:
+   - **Merge branch:** `tDBRow_2` runs `CALL MERGE_TXT_INTO_DEBTORS();` — note the procedure name (`DEBTORS`, plural) doesn't match the staging table name (`DEBTOR_TXT`) or the job name (`Debtor_Table_Text_Load`).
+   - **Cleanup branch:** `tFileList_2` → `tJava_3` (captures path + name) → `tFileArchive_1` (zips into `context.archiveDir`); and separately `tFileList_3` → `tJava_4` (captures path + name) → `tFileDelete_1` (deletes the source file).
 
 ```mermaid
-graph LR
-    tDBRow_1 -->|SUBJOB_OK| tFileList_1
-    tFileList_1 -->|ITERATE| tJava_1
-    tFileList_1 -->|SUBJOB_OK| tParallelize_1
-    tJava_1 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tJavaRow_1
-    tJavaRow_1 -->|FLOW| tDataEncrypt_1
-    tDataEncrypt_1 -->|FLOW| tMap_1
-    tMap_1 -->|FLOW| tDBOutput_1
-    tPrejob_1 -->|COMPONENT_OK| tJava_2
-    tJava_2 -->|SUBJOB_OK| tSetKeystore_1
-    tFileList_2 -->|SUBJOB_OK| tFileList_3
-    tFileList_2 -->|ITERATE| tJava_3
-    tJava_3 -->|ITERATE| tFileArchive_1
-    tParallelize_1 -->|PARALLELIZE| tFileList_2
-    tParallelize_1 -->|PARALLELIZE| tDBRow_2
-    tFileList_3 -->|ITERATE| tJava_4
-    tJava_4 -->|ITERATE| tFileDelete_1
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
+flowchart TD
+    Prejob["tPrejob_1"] --> SetLog["tJava_2<br/>Set archive path + start log"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"]
+    Truncate["tDBRow_1<br/>TRUNCATE DEBTOR_TXT"] --> ListFiles1["tFileList_1<br/>Find source file"]
+    ListFiles1 -->|iterate| SetPath["tJava_1<br/>Capture file path"] --> ReadFile["tFileInputDelimited_1"]
+    ListFiles1 --> Parallel["tParallelize_1"]
+    ReadFile -->|flow| Copy["tJavaRow_1<br/>Column pass-through"] --> Encrypt["tDataEncrypt_1<br/>AES encrypt"] --> Map["tMap_1"] --> Insert["tDBOutput_1<br/>INSERT into DEBTOR_TXT"]
+    Parallel --> ListFiles2["tFileList_2"] & Merge["tDBRow_2<br/>CALL MERGE_TXT_INTO_DEBTORS()"]
+    ListFiles2 -->|iterate| SetPath2["tJava_3"] --> Archive["tFileArchive_1"]
+    ListFiles2 --> ListFiles3["tFileList_3"]
+    ListFiles3 -->|iterate| SetPath3["tJava_4"] --> Delete["tFileDelete_1"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| FIELDSEPARATOR / ROWSEPARATOR | `\|~\|` / `\|$\|` | Standard project pipe-delimited format. |
+| ESCAPE_CHAR / TEXT_ENCLOSURE | `"` | Values may be quoted with double quotes (useful for fields like names/addresses that could contain the delimiter). |
+| ENCODING | US-ASCII | Plain ASCII. |
+| DIE_ON_ERROR | false | A malformed row is skipped/logged rather than failing the whole job — unlike `Bankruptcy_Text_Load` and `cmi_CustomerGrouping_Text_Load`, which set this to `true`. |
+| TEMP_DIR | `"C:/Talend-Studio-.../workspace"` | Hardcoded Windows path. |
+
+### Encryption step: `tDataEncrypt_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| CRYPTO_METHOD | AES | Symmetric encryption algorithm. |
+| ALGO_VERSION | 2 | Talend's internal encryption-algorithm version. |
+| CRYPTO_FILE_PATH | `context.cryptoPath` | Path to a key file used for encryption — this context variable does not appear in the `Directories_0.1` group captured in `_shared_context.json`, so its actual value/location is unknown from this metadata (see Issues observed). |
+| SECRET_KEY / PASSWORD_M1 / SECRET_TYPE | *(redacted)* | Encryption key material — not visible in this metadata. |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | DEBTOR_TXT | Loads into the staging copy of the debtor table. |
+| Output action | INSERT | Adds rows only. |
+| Table action | NONE | Table structure untouched. |
+
+### Merge step: `tDBRow_2`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query | `CALL MERGE_TXT_INTO_DEBTORS();` | Runs the Snowflake merge procedure — note the name mismatch with the table/job name (see Issues observed). |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none found — no `tRunJob` links.
+- **Context variables used:** `context.sourceDir`, `context.archiveDir`, `context.filePath`, `context.fileName`, `context.logDir`, `context.keystorePath` (all `Directories_0.1`), plus `context.cryptoPath`, which is **not** one of the variables captured in the `Directories_0.1` group in `_shared_context.json` — its value can't be confirmed from the provided metadata. Uses the shared Snowflake connection object, not `LEGACY_DW_0.1` variables directly.
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tPrejob` / `tParallelize` | Job-flow control (see job_Address_Text_Load.md). |
+| `tSnowflakeConnection` (`tDBConnection`) | Opens the shared Snowflake connection (see job_Bankruptcy_Text_Load.md). |
+| `tFileList` | Lists files for iteration (see job_Address_Text_Load.md). |
+| `tFileInputDelimited` | Reads a delimited text file (see job_Address_Text_Load.md). |
+| `tJavaRow` | Custom code that runs once per row (see job_cmi_Hermes_Recommendations_Load.md) — here used for a straight column-to-column copy ahead of encryption. |
+| `tDataEncrypt` | **Not covered in the reference docs.** Encrypts the value of one or more columns in each row using a chosen algorithm (here AES) and a key sourced from an external file, before the row continues downstream. The specific column(s) it encrypts aren't visible in this metadata — the component's input and output schemas list the identical set of column names, so there's no way to tell from this extract which fields (most likely `SSN`, `DOB`, `PORTALPASSWORD`/`PORTALPASSWORDSALT`, or similar) are actually transformed versus passed through unchanged. |
+| `tMap` | Maps/transforms columns (see job_Address_Text_Load.md). |
+| `tDBOutput` / `tSnowflakeOutput` | Writes rows to Snowflake (see job_Address_Text_Load.md). |
+| `tDBRow` / `tSnowflakeRow` | Runs a single SQL statement (see job_Address_Text_Load.md). |
+| `tJava` | Custom Java code block (see job_Address_Text_Load.md). |
+| `tFileArchive` | Zips a file into an archive location (see job_Address_Text_Load.md). |
+| `tFileDelete` | Deletes a file (see job_Address_Text_Load.md). |
+| `tSetKeystore` | Configures the SSL keystore (see job_Address_Text_Load.md). |
+
+## Issues observed
+
+- **Which columns `tDataEncrypt_1` actually encrypts cannot be determined from this metadata.** Given `DEBTOR_TXT`'s schema includes `SSN`, `DOB`, `PORTALPASSWORD`, and `PORTALPASSWORDSALT`, it is plausible one or more of these are the encryption target, but this is an inference, not a confirmed fact — verify with the team or in Talend Studio directly.
+- **`context.cryptoPath` is referenced but not defined in the `Directories_0.1` context group** captured in `_shared_context.json` — unlike every other context variable this job uses. Its actual dev/prod values are unknown from the provided metadata.
+- **Merge procedure name (`MERGE_TXT_INTO_DEBTORS`) doesn't match the staging table (`DEBTOR_TXT`) or the job name (`Debtor_Table_Text_Load`)** — a naming inconsistency compared to peers where the procedure name mirrors the table name closely (e.g. `MERGE_TXT_INTO_ADDRESS` for the `ADDRESS` table).
+- **`TRUNCATE TABLE DEBTOR_TXT;` omits the `LIQUID_STAGING.` schema prefix** that most peer jobs use explicitly — likely resolves the same way if the connection's default schema is `LIQUID_STAGING`, but worth confirming.
+- **No `tFlowMeter` row-count component** in the load path, unlike most other Text_Load jobs in this project.
+- **Hardcoded, machine-specific paths** on `tSetKeystore_1`, `tFileInputDelimited_1.TEMP_DIR`, `tFileArchive_1.SOURCE_FILE`, and `tFileDelete_1.DIRECTORY`/`PATH` — the same project-wide pattern seen elsewhere.

@@ -1,340 +1,108 @@
 # Talend Job: Deceased_Text_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Created**: 2026-06-25T16:01:26.740-0700
-- **Last Modified**: 2026-06-25T16:25:55.828-0700
+This job loads deceased-debtor records (SSNs, dates of death, executor/court/probate details) from a shared folder into Snowflake, following the project's standard truncate-load-merge-archive-delete pattern. It differs from most peers in one important way: before the rows reach Snowflake, they pass through an encryption step (`tDataEncrypt_1`) — appropriate given the sensitive SSN and probate data involved. It has no `tDie`/`tWarn` reacting to the merge outcome.
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 2 | tJava_1 | `tJava` | `CODE`=context.archiveDir = context.archiveDir + TalendDa, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 3 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
-| 4 | tDBConnection_1 | `tSnowflakeConnection` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":2,"@type":"org.talend.components.snowflake. |
-| 5 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 6 | tJava_2 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 7 | tFileInputDelimited_1 | `tFileInputDelimited` | `USE_EXISTING_DYNAMIC`=false, `FILENAMETEXT`="When the input source is a stream or a zip file,f, `FILENAME`=context.filePath, `CSV_OPTION`=false, `ROWSEPARATOR`="|$|" |
-| 8 | tDataEncrypt_1 | `tDataEncrypt` | `CRYPTO_METHOD`=AES, `CRYPTO_FILE_PATH`=context.cryptoPath, `GEN_CRYPTO_FILE_CONTROLLER`=false, `ALGO_VERSION`=2, `CONNECTION_FORMAT`=row |
-| 9 | tMap_2 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 10 | tFlowMeter_4 | `tFlowMeter` | `USEROWLABEL`=true, `METTERLABEL`="MyLabel", `ABSOLUTE`=Absolute, `CONNECTION_FORMAT`=row |
-| 11 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":4,"@type":"org.talend.components.snowflake. |
-| 12 | tDBRow_1 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 13 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 14 | tJava_3 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 15 | tFileArchive_1 | `tFileArchive` | `SOURCE`=context.sourceDir, `SOURCE_FILE`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s, `SUB_DIRECTROY`=false, `TARGET`=context.archiveDir + context.fileName+".zip", `MKDIR`=true |
-| 16 | tFileList_3 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 17 | tJava_4 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 18 | tFileDelete_1 | `tFileDelete` | `FILENAME`=context.filePath, `DIRECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `PATH`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `FAILON`=false, `FOLDER`=false |
-| 19 | tParallelize_1 | `tParallelize` | `WAIT_FOR`=All, `SLEEPTIME`=100, `DIE_ON_ERROR`=false, `CONNECTION_FORMAT`=row |
-| 20 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
+| Field | Value |
+|---|---|
+| Job name | Deceased_Text_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | *(blank in metadata — not recorded)* |
+| Created | 2026-06-25T16:01:26.740-0700 |
+| Last Modified | 2026-06-25T16:25:55.828-0700 |
 
-## Schemas
+## Step-by-step data flow
 
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| ID | id_BigDecimal | Yes | -1 |
-| AccountID | id_BigDecimal | Yes | -1 |
-| DebtorID | id_BigDecimal | Yes | -1 |
-| SSN | id_String | Yes | 255 |
-| FirstName | id_String | Yes | 30 |
-| LastName | id_String | Yes | 30 |
-| State | id_String | Yes | 3 |
-| PostalCode | id_String | Yes | 10 |
-| DOB | id_String | Yes | 30 |
-| DOD | id_String | Yes | 30 |
-| MatchCode | id_String | Yes | 5 |
-| TransmittedDate | id_String | Yes | 30 |
-| ClaimDeadline | id_String | Yes | 30 |
-| DateFiled | id_String | Yes | 30 |
-| CaseNumber | id_String | Yes | 20 |
-| Executor | id_String | Yes | 50 |
-| ExecutorPhone | id_String | Yes | 50 |
-| ExecutorFax | id_String | Yes | 50 |
-| ExecutorStreet1 | id_String | Yes | 128 |
-| ExecutorStreet2 | id_String | Yes | 128 |
-| ExecutorState | id_String | Yes | 3 |
-| ExecutorCity | id_String | Yes | 100 |
-| ExecutorZipcode | id_String | Yes | 10 |
-| CourtCity | id_String | Yes | 50 |
-| CourtDistrict | id_String | Yes | 200 |
-| CourtDivision | id_String | Yes | 100 |
-| CourtPhone | id_String | Yes | 50 |
-| CourtStreet1 | id_String | Yes | 128 |
-| CourtStreet2 | id_String | Yes | 128 |
-| CourtState | id_String | Yes | 3 |
-| CourtZipcode | id_String | Yes | 15 |
-| ctl | id_String | Yes | 3 |
-| ExecutorCounty | id_String | Yes | 128 |
-| ExecutorCountry | id_String | Yes | 128 |
-| CourtCounty | id_String | Yes | 128 |
-| CourtCountry | id_String | Yes | 128 |
-| Country | id_String | Yes | 128 |
-| County | id_String | Yes | 128 |
-| ID | id_BigDecimal | Yes | -1 |
-| AccountID | id_BigDecimal | Yes | -1 |
-| DebtorID | id_BigDecimal | Yes | -1 |
-| SSN | id_String | Yes | 255 |
-| FirstName | id_String | Yes | 30 |
-| LastName | id_String | Yes | 30 |
-| State | id_String | Yes | 3 |
-| PostalCode | id_String | Yes | 10 |
-| DOB | id_String | Yes | 30 |
-| DOD | id_String | Yes | 30 |
-| MatchCode | id_String | Yes | 5 |
-| TransmittedDate | id_String | Yes | 30 |
-| ClaimDeadline | id_String | Yes | 30 |
-| DateFiled | id_String | Yes | 30 |
-| CaseNumber | id_String | Yes | 20 |
-| Executor | id_String | Yes | 50 |
-| ExecutorPhone | id_String | Yes | 50 |
-| ExecutorFax | id_String | Yes | 50 |
-| ExecutorStreet1 | id_String | Yes | 128 |
-| ExecutorStreet2 | id_String | Yes | 128 |
-| ExecutorState | id_String | Yes | 3 |
-| ExecutorCity | id_String | Yes | 100 |
-| ExecutorZipcode | id_String | Yes | 10 |
-| CourtCity | id_String | Yes | 50 |
-| CourtDistrict | id_String | Yes | 200 |
-| CourtDivision | id_String | Yes | 100 |
-| CourtPhone | id_String | Yes | 50 |
-| CourtStreet1 | id_String | Yes | 128 |
-| CourtStreet2 | id_String | Yes | 128 |
-| CourtState | id_String | Yes | 3 |
-| CourtZipcode | id_String | Yes | 15 |
-| ctl | id_String | Yes | 3 |
-| ExecutorCounty | id_String | Yes | 128 |
-| ExecutorCountry | id_String | Yes | 128 |
-| CourtCounty | id_String | Yes | 128 |
-| CourtCountry | id_String | Yes | 128 |
-| Country | id_String | Yes | 128 |
-| County | id_String | Yes | 128 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tDataEncrypt_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| ID | id_BigDecimal | Yes | -1 |
-| AccountID | id_BigDecimal | Yes | -1 |
-| DebtorID | id_BigDecimal | Yes | -1 |
-| SSN | id_String | Yes | 255 |
-| FirstName | id_String | Yes | 30 |
-| LastName | id_String | Yes | 30 |
-| State | id_String | Yes | 3 |
-| PostalCode | id_String | Yes | 10 |
-| DOB | id_String | Yes | 30 |
-| DOD | id_String | Yes | 30 |
-| MatchCode | id_String | Yes | 5 |
-| TransmittedDate | id_String | Yes | 30 |
-| ClaimDeadline | id_String | Yes | 30 |
-| DateFiled | id_String | Yes | 30 |
-| CaseNumber | id_String | Yes | 20 |
-| Executor | id_String | Yes | 50 |
-| ExecutorPhone | id_String | Yes | 50 |
-| ExecutorFax | id_String | Yes | 50 |
-| ExecutorStreet1 | id_String | Yes | 128 |
-| ExecutorStreet2 | id_String | Yes | 128 |
-| ExecutorState | id_String | Yes | 3 |
-| ExecutorCity | id_String | Yes | 100 |
-| ExecutorZipcode | id_String | Yes | 10 |
-| CourtCity | id_String | Yes | 50 |
-| CourtDistrict | id_String | Yes | 200 |
-| CourtDivision | id_String | Yes | 100 |
-| CourtPhone | id_String | Yes | 50 |
-| CourtStreet1 | id_String | Yes | 128 |
-| CourtStreet2 | id_String | Yes | 128 |
-| CourtState | id_String | Yes | 3 |
-| CourtZipcode | id_String | Yes | 15 |
-| ctl | id_String | Yes | 3 |
-| ExecutorCounty | id_String | Yes | 128 |
-| ExecutorCountry | id_String | Yes | 128 |
-| CourtCounty | id_String | Yes | 128 |
-| CourtCountry | id_String | Yes | 128 |
-| Country | id_String | Yes | 128 |
-| County | id_String | Yes | 128 |
-
-### tMap_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| ID | id_BigDecimal | No | 38 |
-| ACCOUNTID | id_BigDecimal | No | 38 |
-| DEBTORID | id_BigDecimal | No | 38 |
-| SSN | id_String | Yes | 255 |
-| FIRSTNAME | id_String | Yes | 30 |
-| LASTNAME | id_String | Yes | 30 |
-| STATE | id_String | Yes | 3 |
-| POSTALCODE | id_String | Yes | 10 |
-| DOB | id_String | Yes | 30 |
-| DOD | id_String | Yes | 30 |
-| MATCHCODE | id_String | Yes | 5 |
-| TRANSMITTEDDATE | id_String | Yes | 30 |
-| CLAIMDEADLINE | id_String | Yes | 30 |
-| DATEFILED | id_String | Yes | 30 |
-| CASENUMBER | id_String | Yes | 20 |
-| EXECUTOR | id_String | Yes | 50 |
-| EXECUTORPHONE | id_String | Yes | 50 |
-| EXECUTORFAX | id_String | Yes | 50 |
-| EXECUTORSTREET1 | id_String | Yes | 128 |
-| EXECUTORSTREET2 | id_String | Yes | 128 |
-| EXECUTORSTATE | id_String | Yes | 3 |
-| EXECUTORCITY | id_String | Yes | 100 |
-| EXECUTORZIPCODE | id_String | Yes | 10 |
-| EXECUTORCOUNTY | id_String | Yes | 128 |
-| EXECUTORCOUNTRY | id_String | Yes | 128 |
-| COURTCITY | id_String | Yes | 50 |
-| COURTDISTRICT | id_String | Yes | 200 |
-| COURTDIVISION | id_String | Yes | 100 |
-| COURTPHONE | id_String | Yes | 50 |
-| COURTSTREET1 | id_String | Yes | 128 |
-| COURTSTREET2 | id_String | Yes | 128 |
-| COURTSTATE | id_String | Yes | 3 |
-| COURTZIPCODE | id_String | Yes | 15 |
-| COURTCOUNTY | id_String | Yes | 128 |
-| COURTCOUNTRY | id_String | Yes | 128 |
-| CTL | id_String | Yes | 3 |
-| COUNTRY | id_String | Yes | 128 |
-| COUNTY | id_String | Yes | 128 |
-
-### tFlowMeter_4
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| ID | id_BigDecimal | No | 38 |
-| ACCOUNTID | id_BigDecimal | No | 38 |
-| DEBTORID | id_BigDecimal | No | 38 |
-| SSN | id_String | Yes | 255 |
-| FIRSTNAME | id_String | Yes | 30 |
-| LASTNAME | id_String | Yes | 30 |
-| STATE | id_String | Yes | 3 |
-| POSTALCODE | id_String | Yes | 10 |
-| DOB | id_String | Yes | 30 |
-| DOD | id_String | Yes | 30 |
-| MATCHCODE | id_String | Yes | 5 |
-| TRANSMITTEDDATE | id_String | Yes | 30 |
-| CLAIMDEADLINE | id_String | Yes | 30 |
-| DATEFILED | id_String | Yes | 30 |
-| CASENUMBER | id_String | Yes | 20 |
-| EXECUTOR | id_String | Yes | 50 |
-| EXECUTORPHONE | id_String | Yes | 50 |
-| EXECUTORFAX | id_String | Yes | 50 |
-| EXECUTORSTREET1 | id_String | Yes | 128 |
-| EXECUTORSTREET2 | id_String | Yes | 128 |
-| EXECUTORSTATE | id_String | Yes | 3 |
-| EXECUTORCITY | id_String | Yes | 100 |
-| EXECUTORZIPCODE | id_String | Yes | 10 |
-| EXECUTORCOUNTY | id_String | Yes | 128 |
-| EXECUTORCOUNTRY | id_String | Yes | 128 |
-| COURTCITY | id_String | Yes | 50 |
-| COURTDISTRICT | id_String | Yes | 200 |
-| COURTDIVISION | id_String | Yes | 100 |
-| COURTPHONE | id_String | Yes | 50 |
-| COURTSTREET1 | id_String | Yes | 128 |
-| COURTSTREET2 | id_String | Yes | 128 |
-| COURTSTATE | id_String | Yes | 3 |
-| COURTZIPCODE | id_String | Yes | 15 |
-| COURTCOUNTY | id_String | Yes | 128 |
-| COURTCOUNTRY | id_String | Yes | 128 |
-| CTL | id_String | Yes | 3 |
-| COUNTRY | id_String | Yes | 128 |
-| COUNTY | id_String | Yes | 128 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| ID | id_BigDecimal | No | 38 |
-| ACCOUNTID | id_BigDecimal | No | 38 |
-| DEBTORID | id_BigDecimal | No | 38 |
-| SSN | id_String | Yes | 255 |
-| FIRSTNAME | id_String | Yes | 30 |
-| LASTNAME | id_String | Yes | 30 |
-| STATE | id_String | Yes | 3 |
-| POSTALCODE | id_String | Yes | 10 |
-| DOB | id_String | Yes | 30 |
-| DOD | id_String | Yes | 30 |
-| MATCHCODE | id_String | Yes | 5 |
-| TRANSMITTEDDATE | id_String | Yes | 30 |
-| CLAIMDEADLINE | id_String | Yes | 30 |
-| DATEFILED | id_String | Yes | 30 |
-| CASENUMBER | id_String | Yes | 20 |
-| EXECUTOR | id_String | Yes | 50 |
-| EXECUTORPHONE | id_String | Yes | 50 |
-| EXECUTORFAX | id_String | Yes | 50 |
-| EXECUTORSTREET1 | id_String | Yes | 128 |
-| EXECUTORSTREET2 | id_String | Yes | 128 |
-| EXECUTORSTATE | id_String | Yes | 3 |
-| EXECUTORCITY | id_String | Yes | 100 |
-| EXECUTORZIPCODE | id_String | Yes | 10 |
-| EXECUTORCOUNTY | id_String | Yes | 128 |
-| EXECUTORCOUNTRY | id_String | Yes | 128 |
-| COURTCITY | id_String | Yes | 50 |
-| COURTDISTRICT | id_String | Yes | 200 |
-| COURTDIVISION | id_String | Yes | 100 |
-| COURTPHONE | id_String | Yes | 50 |
-| COURTSTREET1 | id_String | Yes | 128 |
-| COURTSTREET2 | id_String | Yes | 128 |
-| COURTSTATE | id_String | Yes | 3 |
-| COURTZIPCODE | id_String | Yes | 15 |
-| COURTCOUNTY | id_String | Yes | 128 |
-| COURTCOUNTRY | id_String | Yes | 128 |
-| CTL | id_String | Yes | 3 |
-| COUNTRY | id_String | Yes | 128 |
-| COUNTY | id_String | Yes | 128 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tDBRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-## Data Flow
+1. **Set up.** `tJava_1` appends today's date to `context.archiveDir` and starts a log file; `tSetKeystore_1` configures the SSL keystore; `tDBConnection_1` opens the Snowflake connection.
+2. **Empty the staging table.** `tDBRow_1` runs `TRUNCATE TABLE LIQUID_STAGING.DECEASED;`.
+3. **Find and read the file.** `tFileList_1` finds the newest matching file in `context.sourceDir` (skipping `.txt` files); `tFileInputDelimited_1` reads it as a pipe-delimited (`|~|`/`|$|`), US-ASCII-encoded file with a header row. Unlike some peers, `DIE_ON_ERROR` is set to `true` here — a malformed row fails the job immediately rather than being routed to a reject flow.
+4. **Encrypt.** `tDataEncrypt_1` runs the row set through an AES encryption step (`CRYPTO_METHOD=AES`, `ALGO_VERSION=2`) using a key file at `context.cryptoPath`. Its own secret-key and password settings are redacted in this metadata, and the extractor did not capture which specific column(s) it targets — see Issues observed.
+5. **Transform.** `tMap_2` maps the (now partly encrypted) columns — SSN, name, DOB/DOD, executor and court/probate details — onto the target schema, adding `LOAD_DT`.
+6. **Load staging.** Mapped rows pass through a row counter (`tFlowMeter_4`) into `tDBOutput_1`, which inserts them into `DECEASED` in Snowflake (`INSERT`, no table-structure changes).
+7. **Merge and clean up — in parallel.** `tParallelize_1` splits into two branches:
+   - **Merge branch:** `tDBRow_2` runs `CALL LIQUID_STAGING.MERGE_TXT_INTO_DECEASED();` (schema-qualified, unlike some peer jobs' unqualified merge calls). No `tDie`/`tWarn` reacts to the result.
+   - **Cleanup branch:** the source file is listed again, archived (`tFileArchive_1`, zipped into `context.archiveDir`), and — via a separate file-list/capture — deleted (`tFileDelete_1`).
 
 ```mermaid
-graph LR
-    tPrejob_1 -->|COMPONENT_OK| tJava_1
-    tJava_1 -->|SUBJOB_OK| tSetKeystore_1
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
-    tFileList_1 -->|ITERATE| tJava_2
-    tFileList_1 -->|SUBJOB_OK| tParallelize_1
-    tJava_2 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tDataEncrypt_1
-    tDataEncrypt_1 -->|FLOW| tMap_2
-    tMap_2 -->|FLOW| tFlowMeter_4
-    tFlowMeter_4 -->|FLOW| tDBOutput_1
-    tDBRow_1 -->|SUBJOB_OK| tFileList_1
-    tFileList_2 -->|ITERATE| tJava_3
-    tFileList_2 -->|SUBJOB_OK| tFileList_3
-    tJava_3 -->|ITERATE| tFileArchive_1
-    tFileList_3 -->|ITERATE| tJava_4
-    tJava_4 -->|ITERATE| tFileDelete_1
-    tParallelize_1 -->|PARALLELIZE| tFileList_2
-    tParallelize_1 -->|PARALLELIZE| tDBRow_2
+flowchart TD
+    Prejob["tPrejob_1"] --> SetLog["tJava_1<br/>Set archive path + start log"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"]
+    Truncate["tDBRow_1<br/>TRUNCATE LIQUID_STAGING.DECEASED"] --> ListFiles1["tFileList_1<br/>Find newest source file"]
+    ListFiles1 -->|iterate| SetPath["tJava_2<br/>Capture file path"] --> ReadFile["tFileInputDelimited_1<br/>Read pipe-delimited file"]
+    ReadFile -->|flow| Encrypt["tDataEncrypt_1<br/>AES-encrypt sensitive column(s)"] --> Map["tMap_2<br/>Map columns to DECEASED schema"]
+    Map --> FlowMeter["tFlowMeter_4<br/>Count rows"] --> Insert["tDBOutput_1<br/>INSERT into staging"]
+    ListFiles1 --> Parallel["tParallelize_1"]
+    Parallel --> ListFiles2["tFileList_2"] & Merge["tDBRow_2<br/>CALL LIQUID_STAGING.MERGE_TXT_INTO_DECEASED()"]
+    ListFiles2 -->|iterate| SetPath2["tJava_3"] --> Archive["tFileArchive_1<br/>Zip into archive dir"]
+    ListFiles2 --> ListFiles3["tFileList_3"]
+    ListFiles3 -->|iterate| SetPath3["tJava_4"] --> Delete["tFileDelete_1<br/>Delete source file"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| FIELDSEPARATOR / ROWSEPARATOR | `\|~\|` / `\|$\|` | Standard custom-delimited format used across the project. |
+| HEADER | 1 | First line is a header row. |
+| ENCODING | US-ASCII | Same as several peer jobs; not ISO-8859-15. |
+| DIE_ON_ERROR | true | A malformed row fails the whole job rather than routing to a reject output. |
+
+### Encryption: `tDataEncrypt_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| CRYPTO_METHOD | AES | Data is encrypted using AES. |
+| ALGO_VERSION | 2 | Talend's internal encryption-algorithm version tag. |
+| CRYPTO_FILE_PATH | `context.cryptoPath` | Path to the key/config file used for the encryption; this context variable does not appear in the `Directories_0.1` group listed in `_shared_context.json` — see Issues observed. |
+| SECRET_TYPE / SECRET_KEY / PASSWORD_M1 | `***REDACTED***` | The actual key material and password are redacted in this metadata extract and not available for documentation. |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | DECEASED | Staging copy of the deceased-debtor table (schema `LIQUID_STAGING`, per the preceding `TRUNCATE`). |
+| Output action | INSERT | Adds rows only. |
+| Table action | NONE | No table-structure changes; truncation handled separately. |
+
+### Merge step: `tDBRow_2`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query | `CALL LIQUID_STAGING.MERGE_TXT_INTO_DECEASED();` | Snowflake stored procedure that folds staged rows into the permanent table; its own logic is outside Talend. |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none — no `tRunJob` links found.
+- **Context variables used:** `context.sourceDir`, `context.archiveDir`, `context.filePath`, `context.fileName`, `context.logDir`, `context.keystorePath` (all `Directories_0.1`), plus `context.cryptoPath` — this last one is referenced by `tDataEncrypt_1` but is **not** part of the `Directories_0.1` group provided in `_shared_context.json`; its actual value/location could not be confirmed from the metadata given.
+- It uses the shared Snowflake connection object (`tDBConnection_1`), not `LEGACY_DW_0.1` variables directly — `context_vars_referenced` contains no `LEGACY_DW_` entries.
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tPrejob` / `tParallelize` | Job-flow control (see `job_Address_Text_Load.md`). |
+| `tFileList` | Lists files in a folder to loop over (see `job_Address_Text_Load.md`). |
+| `tFileInputDelimited` | Reads a delimited text file row by row (see `job_Address_Text_Load.md`). |
+| `tMap` | Maps/transforms input columns to output columns (see `job_Address_Text_Load.md`). |
+| `tFlowMeter` | Counts rows passing through, for logging (see `job_Address_Text_Load.md`). |
+| `tDBOutput` / `tSnowflakeOutput` | Writes rows into a Snowflake table (see `job_Address_Text_Load.md`). |
+| `tDBRow` / `tSnowflakeRow` | Runs a single SQL statement against Snowflake (see `job_Address_Text_Load.md`). |
+| `tJava` / `tJavaRow` | Custom Java code snippets (see `job_Address_Text_Load.md`). |
+| `tFileArchive` | Zips a file into an archive location (see `job_Address_Text_Load.md`). |
+| `tFileDelete` | Deletes a file from disk (see `job_Address_Text_Load.md`). |
+| `tSetKeystore` | Configures the SSL keystore for the Snowflake connection (see `job_Address_Text_Load.md`). |
+| `tDataEncrypt` | Encrypts one or more fields in the row flow using a configured algorithm and key file, before the data reaches its destination — the counterpart to Talend's `tDataDecrypt`. Not used in any of the 3 reference docs; this is the first job in this set to include it. |
+
+## Issues observed
+
+- **Author field is blank.** Unlike every other job documented in this batch, `Deceased_Text_Load`'s metadata has no author recorded — worth checking whether this reflects a different creation process (e.g., copied from a template) or simply a missed field.
+- **`context.cryptoPath` is used but undocumented.** `tDataEncrypt_1` depends on `context.cryptoPath` for its key file, but this variable is not part of the `Directories_0.1` context group provided in `_shared_context.json` (which only lists `sourceDir`, `filePath`, `archiveDir`, `fileName`, `logDir`, `keystorePath`). Its actual dev/prod values are unknown from this metadata — verify with the team.
+- **Which column(s) get encrypted isn't captured in this metadata.** `tDataEncrypt_1`'s schema carries the full row (SSN, names, dates, court/executor fields), but the component's own field-level encryption targeting isn't visible in the extracted parameters — most likely `SSN` given the sensitivity of the data, but this should be confirmed directly in Talend Studio before relying on it.
+- **Same standard hardcoded paths** as most peer jobs (`tFileInputDelimited_1.TEMP_DIR`, `tFileArchive_1.SOURCE_FILE`, `tFileDelete_1.DIRECTORY`/`PATH`, `tSetKeystore_1.SSL_TRUSTSERVER_TRUSTSTORE`).
+- **No `tDie`/`tWarn` on the merge step** — a failed merge surfaces only as a generic Talend error.

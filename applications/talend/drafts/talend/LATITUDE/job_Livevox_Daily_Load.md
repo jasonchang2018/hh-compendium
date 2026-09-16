@@ -1,241 +1,106 @@
 # Talend Job: Livevox_Daily_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Author**: jmach@harriscollect.com
-- **Created**: 2025-02-10T09:57:45.302-0800
-- **Last Modified**: 2025-10-01T10:00:50.577-0700
+This job loads daily call-detail records from LiveVox (the project's outbound dialer platform) into Snowflake. It shares the project's general shape — truncate staging, load, merge, clear the source file — but deviates from the standard "text load" pattern in several ways: the source file is tab-delimited (not the project's usual `|~|`/`|$|` pipe format), it reads from a different context variable (`context.sourceRoot` instead of `context.sourceDir`), it has no archive-then-delete two-step (a single `tFileCopy` does both), and its merge-result check only ever logs a warning — there's no failure path.
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tDBConnection_1 | `tSnowflakeConnection` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":2,"@type":"org.talend.components.snowflake. |
-| 2 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 3 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 4 | tJava_3 | `tJava` | `CODE`=java.io.File logFile = new java.io.File(context.lo, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 5 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceRoot, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 6 | tJava_1 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 7 | tFileInputDelimited_1 | `tFileInputDelimited` | `USE_EXISTING_DYNAMIC`=false, `FILENAMETEXT`="When the input source is a stream or a zip file,f, `FILENAME`=context.filePath, `CSV_OPTION`=false, `ROWSEPARATOR`="\n" |
-| 8 | tFlowMeter_3 | `tFlowMeter` | `USEROWLABEL`=true, `METTERLABEL`="MyLabel", `ABSOLUTE`=Absolute, `CONNECTION_FORMAT`=row |
-| 9 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 10 | tDBRow_3 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 11 | tMap_1 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 12 | tWarn_1 | `tWarn` | `MESSAGE`="Return Code from merge by refnum: " + out1.RETVAL, `CODE`=42, `PRIORITY`=4, `CONNECTION_FORMAT`=row |
-| 13 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceRoot, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 14 | tFileCopy_1 | `tFileCopy` | `FILENAME`=((String)globalMap.get("tFileList_2_CURRENT_FILEPA, `ENABLE_COPY_DIRECTORY`=false, `SOURCE_DERECTORY`=((String)globalMap.get("tFileList_2_CURRENT_FILEPA, `DESTINATION`=context.archiveDir, `RENAME`=false |
-| 15 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
+| Field | Value |
+|---|---|
+| Job name | Livevox_Daily_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | jmach@harriscollect.com |
+| Created | 2025-02-10T09:57:45.302-0800 |
+| Last Modified | 2025-10-01T10:00:50.577-0700 |
 
-## Schemas
+## Step-by-step data flow
 
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| Entry_Type | id_String | Yes | 2 |
-| Call_Direction | id_String | Yes | 1 |
-| Reference_Number | id_String | Yes | 255 |
-| Phone_Number_Dialed | id_String | Yes | 100 |
-| Result_Date | id_Date | Yes | -1 |
-| Result_Time | id_String | Yes | 10 |
-| Code_Name | id_String | Yes | 255 |
-| TFH_ID | id_String | Yes | 10 |
-| TFH_Result | id_String | Yes | 255 |
-| TFH_Result_Category | id_String | Yes | 10 |
-| TFH_Custom_Result_1 | id_String | Yes | 50 |
-| TFH_Custom_Result_2 | id_String | Yes | 50 |
-| TFH_Custom_Result_3 | id_String | Yes | 50 |
-| Phone_Cell_Flag | id_String | Yes | 1 |
-| Agent_ID | id_String | Yes | 10 |
-| Agent_Login | id_String | Yes | 20 |
-| Agent_Last_Name | id_String | Yes | 20 |
-| Agent_Name | id_String | Yes | 20 |
-| Treatment_Event_ID | id_String | Yes | 10 |
-| Call_Center_ID | id_String | Yes | 10 |
-| Call_Center_Name | id_String | Yes | 50 |
-| Service_ID | id_String | Yes | 10 |
-| Service_Name | id_String | Yes | 50 |
-| Campaign_ID | id_String | Yes | 10 |
-| Campaign_Name | id_String | Yes | 100 |
-| Talk_Time | id_String | Yes | 10 |
-| Hold_Time | id_String | Yes | 10 |
-| Wrapup_Time | id_String | Yes | 10 |
-| Call_Duration | id_String | Yes | 10 |
-| Session_ID | id_String | No | 100 |
-| Transfer_Call_Result | id_String | Yes | 50 |
-| IVR_Time | id_String | Yes | -1 |
-| Queue_Time | id_String | Yes | -1 |
-| From_Number1 | id_String | Yes | 100 |
-| Entry_Type | id_String | Yes | 2 |
-| Call_Direction | id_String | Yes | 1 |
-| Reference_Number | id_String | Yes | 255 |
-| Phone_Number_Dialed | id_String | Yes | 100 |
-| Result_Date | id_Date | Yes | -1 |
-| Result_Time | id_String | Yes | 10 |
-| Code_Name | id_String | Yes | 255 |
-| TFH_ID | id_String | Yes | 10 |
-| TFH_Result | id_String | Yes | 255 |
-| TFH_Result_Category | id_String | Yes | 10 |
-| TFH_Custom_Result_1 | id_String | Yes | 50 |
-| TFH_Custom_Result_2 | id_String | Yes | 50 |
-| TFH_Custom_Result_3 | id_String | Yes | 50 |
-| Phone_Cell_Flag | id_String | Yes | 1 |
-| Agent_ID | id_String | Yes | 10 |
-| Agent_Login | id_String | Yes | 20 |
-| Agent_Last_Name | id_String | Yes | 20 |
-| Agent_Name | id_String | Yes | 20 |
-| Treatment_Event_ID | id_String | Yes | 10 |
-| Call_Center_ID | id_String | Yes | 10 |
-| Call_Center_Name | id_String | Yes | 50 |
-| Service_ID | id_String | Yes | 10 |
-| Service_Name | id_String | Yes | 50 |
-| Campaign_ID | id_String | Yes | 10 |
-| Campaign_Name | id_String | Yes | 100 |
-| Talk_Time | id_String | Yes | 10 |
-| Hold_Time | id_String | Yes | 10 |
-| Wrapup_Time | id_String | Yes | 10 |
-| Call_Duration | id_String | Yes | 10 |
-| Session_ID | id_String | No | 100 |
-| Transfer_Call_Result | id_String | Yes | 50 |
-| IVR_Time | id_String | Yes | -1 |
-| Queue_Time | id_String | Yes | -1 |
-| From_Number1 | id_String | Yes | 100 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tFlowMeter_3
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| Entry_Type | id_String | Yes | 2 |
-| Call_Direction | id_String | Yes | 1 |
-| Reference_Number | id_String | Yes | 255 |
-| Phone_Number_Dialed | id_String | Yes | 100 |
-| Result_Date | id_Date | Yes | -1 |
-| Result_Time | id_String | Yes | 10 |
-| Code_Name | id_String | Yes | 255 |
-| TFH_ID | id_String | Yes | 10 |
-| TFH_Result | id_String | Yes | 255 |
-| TFH_Result_Category | id_String | Yes | 10 |
-| TFH_Custom_Result_1 | id_String | Yes | 50 |
-| TFH_Custom_Result_2 | id_String | Yes | 50 |
-| TFH_Custom_Result_3 | id_String | Yes | 50 |
-| Phone_Cell_Flag | id_String | Yes | 1 |
-| Agent_ID | id_String | Yes | 10 |
-| Agent_Login | id_String | Yes | 20 |
-| Agent_Last_Name | id_String | Yes | 20 |
-| Agent_Name | id_String | Yes | 20 |
-| Treatment_Event_ID | id_String | Yes | 10 |
-| Call_Center_ID | id_String | Yes | 10 |
-| Call_Center_Name | id_String | Yes | 50 |
-| Service_ID | id_String | Yes | 10 |
-| Service_Name | id_String | Yes | 50 |
-| Campaign_ID | id_String | Yes | 10 |
-| Campaign_Name | id_String | Yes | 100 |
-| Talk_Time | id_String | Yes | 10 |
-| Hold_Time | id_String | Yes | 10 |
-| Wrapup_Time | id_String | Yes | 10 |
-| Call_Duration | id_String | Yes | 10 |
-| Session_ID | id_String | No | 100 |
-| Transfer_Call_Result | id_String | Yes | 50 |
-| IVR_Time | id_String | Yes | -1 |
-| Queue_Time | id_String | Yes | -1 |
-| From_Number1 | id_String | Yes | 100 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| Entry_Type | id_String | Yes | 2 |
-| Call_Direction | id_String | Yes | 1 |
-| Reference_Number | id_String | Yes | 255 |
-| Phone_Number_Dialed | id_String | Yes | 100 |
-| Result_Date | id_Date | Yes | -1 |
-| Result_Time | id_String | Yes | 10 |
-| Code_Name | id_String | Yes | 255 |
-| TFH_ID | id_String | Yes | 10 |
-| TFH_Result | id_String | Yes | 255 |
-| TFH_Result_Category | id_String | Yes | 10 |
-| TFH_Custom_Result_1 | id_String | Yes | 50 |
-| TFH_Custom_Result_2 | id_String | Yes | 50 |
-| TFH_Custom_Result_3 | id_String | Yes | 50 |
-| Phone_Cell_Flag | id_String | Yes | 1 |
-| Agent_ID | id_String | Yes | 10 |
-| Agent_Login | id_String | Yes | 20 |
-| Agent_Last_Name | id_String | Yes | 20 |
-| Agent_Name | id_String | Yes | 20 |
-| Treatment_Event_ID | id_String | Yes | 10 |
-| Call_Center_ID | id_String | Yes | 10 |
-| Call_Center_Name | id_String | Yes | 50 |
-| Service_ID | id_String | Yes | 10 |
-| Service_Name | id_String | Yes | 50 |
-| Campaign_ID | id_String | Yes | 10 |
-| Campaign_Name | id_String | Yes | 100 |
-| Talk_Time | id_String | Yes | 10 |
-| Hold_Time | id_String | Yes | 10 |
-| Wrapup_Time | id_String | Yes | 10 |
-| Call_Duration | id_String | Yes | 10 |
-| Session_ID | id_String | No | 100 |
-| Transfer_Call_Result | id_String | Yes | 50 |
-| IVR_Time | id_String | Yes | -1 |
-| Queue_Time | id_String | Yes | -1 |
-| From_Number1 | id_String | Yes | 100 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tDBRow_3
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| RETVALUE | id_BigDecimal | No | -1 |
-| RETVALUE | id_BigDecimal | No | -1 |
-| RETVALUE | id_BigDecimal | No | -1 |
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tMap_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| RETVALUE | id_String | No | -1 |
-
-### tWarn_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| RETVALUE | id_String | No | -1 |
-
-## Data Flow
+1. **Set up.** `tPrejob_1` → `tJava_3` (opens a log file only — unlike most peers, this job does **not** append a date to `context.archiveDir` here) → `tSetKeystore_1` → `tDBConnection_1`.
+2. **Empty the staging table.** `tDBRow_2` runs `TRUNCATE TABLE LIQUID_STAGING.LIVEVOX_CALLS;`.
+3. **Find and read the file.** `tFileList_1` lists files in `context.sourceRoot` (excluding `*.txt`); `tJava_1` captures the path into `context.filePath`; `tFileInputDelimited_1` reads it — **tab-delimited** (`\t` fields, `\n` rows), header row, US-ASCII encoding, `DIE_ON_ERROR`=false.
+4. **Load staging.** Rows pass through `tFlowMeter_3` into `tDBOutput_1`, which inserts them into `LIVEVOX_CALLS` (no `tMap` step in this branch — the file's columns appear to map straight onto the staging schema without an explicit transform component).
+5. **Merge and log the result.** Once `tFileList_1` completes, `tDBRow_3` runs `CALL LIQUID_STAGING.MERGE_INTO_LIVEVOX();` — note the procedure name doesn't follow the project's usual `MERGE_TXT_INTO_<TABLE>` convention. Its single-column result (`RETVALUE`) flows through `tMap_1` to `tWarn_1`, which logs `"Return Code from merge by refnum: " + <RETVALUE>` (severity code 42) — **there is no `tDie` component reacting to a failed merge**, unlike `cmi_Hermes_Recommendations_Load`'s equivalent pattern.
+6. **Clear the source file.** `tDBRow_3`'s success also triggers `tFileList_2` (again on `context.sourceRoot`), which for each file found runs `tFileCopy_1` — copying it into `context.archiveDir` and removing the original (`REMOVE_FILE`=true, `REPLACE_FILE`=true) in a single step. There is no separate zip/archive component and no separate delete component in this job.
 
 ```mermaid
-graph LR
-    tDBRow_2 -->|SUBJOB_OK| tFileList_1
-    tPrejob_1 -->|COMPONENT_OK| tJava_3
-    tJava_3 -->|SUBJOB_OK| tSetKeystore_1
-    tFileList_1 -->|ITERATE| tJava_1
-    tFileList_1 -->|SUBJOB_OK| tDBRow_3
-    tJava_1 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tFlowMeter_3
-    tFlowMeter_3 -->|FLOW| tDBOutput_1
-    tDBRow_3 -->|MAIN| tMap_1
-    tDBRow_3 -->|SUBJOB_OK| tFileList_2
-    tMap_1 -->|FLOW| tWarn_1
-    tFileList_2 -->|ITERATE| tFileCopy_1
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
+flowchart TD
+    Prejob["tPrejob_1"] --> SetLog["tJava_3<br/>Start log file only"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"]
+    Truncate["tDBRow_2<br/>TRUNCATE staging.LIVEVOX_CALLS"] --> ListFiles1["tFileList_1<br/>Find file in sourceRoot"]
+    ListFiles1 -->|iterate| SetPath["tJava_1"] --> ReadFile["tFileInputDelimited_1<br/>Tab-delimited"]
+    ReadFile -->|flow| FlowMeter["tFlowMeter_3"] --> Insert["tDBOutput_1<br/>INSERT into LIVEVOX_CALLS"]
+    ListFiles1 --> Merge["tDBRow_3<br/>CALL LIQUID_STAGING.MERGE_INTO_LIVEVOX()"]
+    Merge -->|main| ResultMap["tMap_1<br/>RETVALUE"] --> Warn["tWarn_1<br/>Log return code"]
+    Merge --> ListFiles2["tFileList_2<br/>List sourceRoot again"]
+    ListFiles2 -->|iterate| CopyMove["tFileCopy_1<br/>Copy to archiveDir + remove original"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| DIRECTORY (on `tFileList_1`) | `context.sourceRoot` | **Not** `context.sourceDir` like every other job in this batch — a different, job-specific source folder. |
+| FIELDSEPARATOR / ROWSEPARATOR | `\t` / `\n` | Tab-delimited with plain newline rows — the project's only job among these 9 that doesn't use the `\|~\|`/`\|$\|` custom format, consistent with this being a raw LiveVox export rather than an internally-generated extract. |
+| ENCODING | US-ASCII | Plain ASCII. |
+| DIE_ON_ERROR | false | A malformed row is skipped/logged rather than failing the job. |
+| TEMP_DIR | `"C:/Talend-Studio-.../workspace"` | Hardcoded Windows path. |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | LIVEVOX_CALLS | Loads into the staging copy of the call-log table. |
+| Output action | INSERT | Adds rows only. |
+| Table action | NONE | Table structure untouched. |
+
+### Merge & result log: `tDBRow_3` → `tMap_1` → `tWarn_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query (`tDBRow_3`) | `CALL LIQUID_STAGING.MERGE_INTO_LIVEVOX();` | Runs the Snowflake merge procedure — note the name (`MERGE_INTO_LIVEVOX`) breaks the project's usual `MERGE_TXT_INTO_<TABLE>` naming convention (no `TXT`, and the table itself is `LIVEVOX_CALLS`, not `LIVEVOX`). |
+| `tWarn_1` message | `"Return Code from merge by refnum: " + RETVALUE` (severity 42) | Logs whatever value the procedure returns — this happens regardless of whether the merge actually succeeded or failed, since there's no `tDie` branch. |
+
+### Cleanup: `tFileCopy_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| DESTINATION | `context.archiveDir` | Copies the raw (unzipped) source file straight into the archive folder. |
+| REMOVE_FILE / REPLACE_FILE | true / true | The original is deleted from `sourceRoot` once copied — functioning as a combined archive+delete step. |
+| SOURCE_DERECTORY | *(same value as `FILENAME`, a full file path)* | This parameter is meant to hold a directory, but is set to the same expression as `FILENAME` (a full path); it has no effect here because `ENABLE_COPY_DIRECTORY` is `false`, but it looks like a copy/paste leftover. |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none found — no `tRunJob` links.
+- **Context variables used:** `context.sourceRoot`, `context.filePath`, `context.archiveDir`, `context.logDir`, `context.keystorePath`. Notably, `context.sourceRoot` is **not** one of the `Directories_0.1` variables captured in `_shared_context.json` (which only lists `sourceDir`, `filePath`, `archiveDir`, `fileName`, `logDir`, `keystorePath`) — its actual dev/prod values are unknown from the provided metadata. This job also never references `context.fileName` at all.
+- **`LEGACY_DW_*` usage:** the project-wide background notes for this documentation effort flag `Livevox_Daily_Load` as one of only three jobs that reference `LEGACY_DW_0.1` context variables directly (bypassing the shared connection object). However, this job's own extracted metadata does **not** show that: `tDBConnection_1`'s parameters are empty, and no `LEGACY_DW_` prefixed variable appears anywhere in this job's JSON (checked directly, not just in `context_vars_referenced`). This may simply mean the connection details aren't captured in this extract format — worth confirming directly in Talend Studio rather than relying on this write-up for that specific question.
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tPrejob` | Job-flow control marking setup steps (see job_Address_Text_Load.md). |
+| `tSnowflakeConnection` (`tDBConnection`) | Opens the shared Snowflake connection (see job_Bankruptcy_Text_Load.md). |
+| `tFileList` | Lists files for iteration (see job_Address_Text_Load.md). |
+| `tFileInputDelimited` | Reads a delimited text file (see job_Address_Text_Load.md). |
+| `tFlowMeter` | Counts rows passing through (see job_Address_Text_Load.md). |
+| `tDBOutput` / `tSnowflakeOutput` | Writes rows to Snowflake (see job_Address_Text_Load.md). |
+| `tDBRow` / `tSnowflakeRow` | Runs a single SQL statement (see job_Address_Text_Load.md). |
+| `tMap` | Maps/transforms columns (see job_Address_Text_Load.md) — here used just to carry the procedure's single `RETVALUE` result column through to the warning log. |
+| `tWarn` | Logs a warning without failing the job (see job_cmi_Hermes_Recommendations_Load.md). |
+| `tJava` | Custom Java code block (see job_Address_Text_Load.md). |
+| `tFileCopy` | Copies (and here, also removes the original of) a file (see job_Export_File_Check.md). |
+| `tSetKeystore` | Configures the SSL keystore (see job_Address_Text_Load.md). |
+
+## Issues observed
+
+- **No failure path on a failed merge.** Unlike `cmi_Hermes_Recommendations_Load`'s `tDie`/`tWarn` pair, this job only ever logs the procedure's return value via `tWarn_1` — there's no component that fails the job if `MERGE_INTO_LIVEVOX()` reports an error. A failed merge here could go unnoticed unless someone reads the log.
+- **Merge procedure name (`MERGE_INTO_LIVEVOX`) breaks the project's naming convention** used elsewhere (`MERGE_TXT_INTO_<TABLE>`), and doesn't match the actual table name (`LIVEVOX_CALLS`).
+- **Uses `context.sourceRoot` instead of `context.sourceDir`**, and that variable isn't part of the `Directories_0.1` context group captured in `_shared_context.json` — its dev/prod values can't be confirmed here.
+- **No archive/zip step** — the source file is moved to `context.archiveDir` unzipped via `tFileCopy_1`, unlike every other Text_Load job reviewed, which zip the file via `tFileArchive` before deleting it.
+- **`tFileCopy_1.SOURCE_DERECTORY` is set to a file path expression, not a directory** — likely a copy/paste artifact, though it has no effect since directory-copy mode is disabled.
+- **Does not append a date subfolder to `context.archiveDir`** the way most peer jobs do (`context.archiveDir = context.archiveDir + <date> + "/"`) — files of different days may land in the same archive folder without date-based separation.
+- **File format itself (tab-delimited, not the project's `\|~\|`/`\|$\|` convention) and the `LEGACY_DW_*` connection question noted above** are both worth a quick confirmation with the team, since they diverge from what's assumed elsewhere in this documentation effort.

@@ -1,318 +1,101 @@
 # Talend Job: ScheduledPayment_Text_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Author**: jmach@harriscollect.com
-- **Created**: 2025-07-01T10:41:45.613-0700
-- **Last Modified**: 2025-10-02T10:50:11.984-0700
+This job loads scheduled-payment records (payment arrangements, transaction status, amounts, surcharges, execution/bounce details, and payment method) into Snowflake. It follows the standard truncate → load → merge → archive/delete pattern, with two small deviations: it deliberately processes the oldest file first, and it pauses for five seconds before deleting the source file.
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tDBConnection_1 | `tSnowflakeConnection` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":2,"@type":"org.talend.components.snowflake. |
-| 2 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 3 | tJava_1 | `tJava` | `CODE`=context.archiveDir = context.archiveDir + TalendDa, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 4 | tDBRow_1 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 5 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 6 | tJava_2 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 7 | tFileInputDelimited_1 | `tFileInputDelimited` | `USE_EXISTING_DYNAMIC`=false, `FILENAMETEXT`="When the input source is a stream or a zip file,f, `FILENAME`=context.filePath, `CSV_OPTION`=false, `ROWSEPARATOR`="|$|" |
-| 8 | tMap_1 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 9 | tFlowMeter_2 | `tFlowMeter` | `USEROWLABEL`=true, `METTERLABEL`="MyLabel", `ABSOLUTE`=Absolute, `CONNECTION_FORMAT`=row |
-| 10 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 11 | tParallelize_1 | `tParallelize` | `WAIT_FOR`=All, `SLEEPTIME`=100, `DIE_ON_ERROR`=false, `CONNECTION_FORMAT`=row |
-| 12 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 13 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 14 | tJava_3 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 15 | tFileArchive_1 | `tFileArchive` | `SOURCE`=context.sourceDir, `SOURCE_FILE`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s, `SUB_DIRECTROY`=false, `TARGET`=context.archiveDir + context.fileName+".zip", `MKDIR`=true |
-| 16 | tFileList_3 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 17 | tJava_4 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 18 | tSleep_1 | `tSleep` | `PAUSE`=5, `CONNECTION_FORMAT`=row |
-| 19 | tFileDelete_1 | `tFileDelete` | `FILENAME`=context.filePath, `DIRECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `PATH`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `FAILON`=false, `FOLDER`=false |
-| 20 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
+| Field | Value |
+|---|---|
+| Job name | ScheduledPayment_Text_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | jmach@harriscollect.com |
+| Created | 2025-07-01T10:41:45.613-0700 |
+| Last Modified | 2025-10-02T10:50:11.984-0700 |
 
-## Schemas
+## Step-by-step data flow
 
-### tDBRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| ID | id_Integer | No | 38 |
-| ACCOUNTID | id_Integer | No | 38 |
-| DEBTORID | id_Integer | No | 38 |
-| TYPE | id_String | No | 14 |
-| PAYMENTVENDORTOKENID | id_Integer | Yes | 38 |
-| WALLETID | id_Integer | Yes | 38 |
-| ARRANGEMENTID | id_Integer | Yes | 38 |
-| ISEXTERNALLYMANAGED | id_Integer | No | 38 |
-| PAYMENTLINKUID | id_Integer | Yes | 38 |
-| STATUS | id_String | No | 14 |
-| TRANSACTIONSTATUS | id_String | Yes | 14 |
-| TRANSACTIONLOCK | id_String | Yes | 72 |
-| TRANSACTIONSTART | id_String | Yes | 30 |
-| AMOUNT | id_String | No | 30 |
-| SURCHARGE | id_String | No | 30 |
-| WHEN | id_String | No | 30 |
-| COLLECTORFEE | id_String | Yes | 30 |
-| PROJECTEDFEE | id_String | Yes | 30 |
-| USEPROJECTEDFEE | id_Integer | No | 38 |
-| DEPOSITTOGENERALTRUST | id_Integer | No | 38 |
-| DEPOSITSURCHARGETOOPERATINGTRUST | id_Integer | No | 38 |
-| ENTEREDWHEN | id_String | No | 30 |
-| ENTEREDBY | id_String | No | 20 |
-| UPDATEDWHEN | id_String | No | 30 |
-| UPDATEDBY | id_String | No | 20 |
-| EXECUTEDWHEN | id_String | Yes | 30 |
-| EXECUTEDBY | id_String | Yes | 20 |
-| ONHOLDWHEN | id_String | Yes | 30 |
-| ONHOLDBY | id_String | Yes | 20 |
-| APPROVEDWHEN | id_String | Yes | 30 |
-| APPROVEDBY | id_String | Yes | 20 |
-| BATCHED | id_String | Yes | 30 |
-| BOUNCED | id_String | Yes | 30 |
-| BOUNCECOUNT | id_Integer | No | 38 |
-| EXECUTERESULTDETAIL | id_String | Yes | 250 |
-| BOUNCERESULTDETAIL | id_String | Yes | 250 |
-| PAYMENTMETHODID | id_Integer | No | 38 |
-| NITDSENDDATE | id_String | Yes | 30 |
-| SENDRM | id_Integer | No | 38 |
-| LETTERCODE | id_String | Yes | 5 |
-| RMSENTDATE | id_String | Yes | 30 |
-| CUSTOMER | id_String | No | 7 |
-| ID | id_Integer | No | 38 |
-| ACCOUNTID | id_Integer | No | 38 |
-| DEBTORID | id_Integer | No | 38 |
-| TYPE | id_String | No | 14 |
-| PAYMENTVENDORTOKENID | id_Integer | Yes | 38 |
-| WALLETID | id_Integer | Yes | 38 |
-| ARRANGEMENTID | id_Integer | Yes | 38 |
-| ISEXTERNALLYMANAGED | id_Integer | No | 38 |
-| PAYMENTLINKUID | id_Integer | Yes | 38 |
-| STATUS | id_String | No | 14 |
-| TRANSACTIONSTATUS | id_String | Yes | 14 |
-| TRANSACTIONLOCK | id_String | Yes | 72 |
-| TRANSACTIONSTART | id_String | Yes | 30 |
-| AMOUNT | id_String | No | 30 |
-| SURCHARGE | id_String | No | 30 |
-| WHEN | id_String | No | 30 |
-| COLLECTORFEE | id_String | Yes | 30 |
-| PROJECTEDFEE | id_String | Yes | 30 |
-| USEPROJECTEDFEE | id_Integer | No | 38 |
-| DEPOSITTOGENERALTRUST | id_Integer | No | 38 |
-| DEPOSITSURCHARGETOOPERATINGTRUST | id_Integer | No | 38 |
-| ENTEREDWHEN | id_String | No | 30 |
-| ENTEREDBY | id_String | No | 20 |
-| UPDATEDWHEN | id_String | No | 30 |
-| UPDATEDBY | id_String | No | 20 |
-| EXECUTEDWHEN | id_String | Yes | 30 |
-| EXECUTEDBY | id_String | Yes | 20 |
-| ONHOLDWHEN | id_String | Yes | 30 |
-| ONHOLDBY | id_String | Yes | 20 |
-| APPROVEDWHEN | id_String | Yes | 30 |
-| APPROVEDBY | id_String | Yes | 20 |
-| BATCHED | id_String | Yes | 30 |
-| BOUNCED | id_String | Yes | 30 |
-| BOUNCECOUNT | id_Integer | No | 38 |
-| EXECUTERESULTDETAIL | id_String | Yes | 250 |
-| BOUNCERESULTDETAIL | id_String | Yes | 250 |
-| PAYMENTMETHODID | id_Integer | No | 38 |
-| NITDSENDDATE | id_String | Yes | 30 |
-| SENDRM | id_Integer | No | 38 |
-| LETTERCODE | id_String | Yes | 5 |
-| RMSENTDATE | id_String | Yes | 30 |
-| CUSTOMER | id_String | No | 7 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tMap_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| ID | id_Integer | No | 38 |
-| ACCOUNTID | id_Integer | No | 38 |
-| DEBTORID | id_Integer | No | 38 |
-| TYPE | id_String | No | 14 |
-| PAYMENTVENDORTOKENID | id_Integer | Yes | 38 |
-| WALLETID | id_Integer | Yes | 38 |
-| ARRANGEMENTID | id_Integer | Yes | 38 |
-| ISEXTERNALLYMANAGED | id_Integer | No | 38 |
-| PAYMENTLINKUID | id_Integer | Yes | 38 |
-| STATUS | id_String | No | 14 |
-| TRANSACTIONSTATUS | id_String | Yes | 14 |
-| TRANSACTIONLOCK | id_String | Yes | 72 |
-| TRANSACTIONSTART | id_String | Yes | 30 |
-| AMOUNT | id_String | No | 30 |
-| SURCHARGE | id_String | No | 30 |
-| WHEN | id_String | No | 30 |
-| COLLECTORFEE | id_String | Yes | 30 |
-| PROJECTEDFEE | id_String | Yes | 30 |
-| USEPROJECTEDFEE | id_Integer | No | 38 |
-| DEPOSITTOGENERALTRUST | id_Integer | No | 38 |
-| DEPOSITSURCHARGETOOPERATINGTRUST | id_Integer | No | 38 |
-| ENTEREDWHEN | id_String | No | 30 |
-| ENTEREDBY | id_String | No | 20 |
-| UPDATEDWHEN | id_String | No | 30 |
-| UPDATEDBY | id_String | No | 20 |
-| EXECUTEDWHEN | id_String | Yes | 30 |
-| EXECUTEDBY | id_String | Yes | 20 |
-| ONHOLDWHEN | id_String | Yes | 30 |
-| ONHOLDBY | id_String | Yes | 20 |
-| APPROVEDWHEN | id_String | Yes | 30 |
-| APPROVEDBY | id_String | Yes | 20 |
-| BATCHED | id_String | Yes | 30 |
-| BOUNCED | id_String | Yes | 30 |
-| BOUNCECOUNT | id_Integer | No | 38 |
-| EXECUTERESULTDETAIL | id_String | Yes | 250 |
-| BOUNCERESULTDETAIL | id_String | Yes | 250 |
-| PAYMENTMETHODID | id_Integer | No | 38 |
-| NITDSENDDATE | id_String | Yes | 30 |
-| SENDRM | id_Integer | No | 38 |
-| LETTERCODE | id_String | Yes | 5 |
-| RMSENTDATE | id_String | Yes | 30 |
-| CUSTOMER | id_String | No | 7 |
-
-### tFlowMeter_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| ID | id_Integer | No | 38 |
-| ACCOUNTID | id_Integer | No | 38 |
-| DEBTORID | id_Integer | No | 38 |
-| TYPE | id_String | No | 14 |
-| PAYMENTVENDORTOKENID | id_Integer | Yes | 38 |
-| WALLETID | id_Integer | Yes | 38 |
-| ARRANGEMENTID | id_Integer | Yes | 38 |
-| ISEXTERNALLYMANAGED | id_Integer | No | 38 |
-| PAYMENTLINKUID | id_Integer | Yes | 38 |
-| STATUS | id_String | No | 14 |
-| TRANSACTIONSTATUS | id_String | Yes | 14 |
-| TRANSACTIONLOCK | id_String | Yes | 72 |
-| TRANSACTIONSTART | id_String | Yes | 30 |
-| AMOUNT | id_String | No | 30 |
-| SURCHARGE | id_String | No | 30 |
-| WHEN | id_String | No | 30 |
-| COLLECTORFEE | id_String | Yes | 30 |
-| PROJECTEDFEE | id_String | Yes | 30 |
-| USEPROJECTEDFEE | id_Integer | No | 38 |
-| DEPOSITTOGENERALTRUST | id_Integer | No | 38 |
-| DEPOSITSURCHARGETOOPERATINGTRUST | id_Integer | No | 38 |
-| ENTEREDWHEN | id_String | No | 30 |
-| ENTEREDBY | id_String | No | 20 |
-| UPDATEDWHEN | id_String | No | 30 |
-| UPDATEDBY | id_String | No | 20 |
-| EXECUTEDWHEN | id_String | Yes | 30 |
-| EXECUTEDBY | id_String | Yes | 20 |
-| ONHOLDWHEN | id_String | Yes | 30 |
-| ONHOLDBY | id_String | Yes | 20 |
-| APPROVEDWHEN | id_String | Yes | 30 |
-| APPROVEDBY | id_String | Yes | 20 |
-| BATCHED | id_String | Yes | 30 |
-| BOUNCED | id_String | Yes | 30 |
-| BOUNCECOUNT | id_Integer | No | 38 |
-| EXECUTERESULTDETAIL | id_String | Yes | 250 |
-| BOUNCERESULTDETAIL | id_String | Yes | 250 |
-| PAYMENTMETHODID | id_Integer | No | 38 |
-| NITDSENDDATE | id_String | Yes | 30 |
-| SENDRM | id_Integer | No | 38 |
-| LETTERCODE | id_String | Yes | 5 |
-| RMSENTDATE | id_String | Yes | 30 |
-| CUSTOMER | id_String | No | 7 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| ID | id_Integer | No | 38 |
-| ACCOUNTID | id_Integer | No | 38 |
-| DEBTORID | id_Integer | No | 38 |
-| TYPE | id_String | No | 14 |
-| PAYMENTVENDORTOKENID | id_Integer | Yes | 38 |
-| WALLETID | id_Integer | Yes | 38 |
-| ARRANGEMENTID | id_Integer | Yes | 38 |
-| ISEXTERNALLYMANAGED | id_Integer | No | 38 |
-| PAYMENTLINKUID | id_Integer | Yes | 38 |
-| STATUS | id_String | No | 14 |
-| TRANSACTIONSTATUS | id_String | Yes | 14 |
-| TRANSACTIONLOCK | id_String | Yes | 72 |
-| TRANSACTIONSTART | id_String | Yes | 30 |
-| AMOUNT | id_String | No | 30 |
-| SURCHARGE | id_String | No | 30 |
-| WHEN | id_String | No | 30 |
-| COLLECTORFEE | id_String | Yes | 30 |
-| PROJECTEDFEE | id_String | Yes | 30 |
-| USEPROJECTEDFEE | id_Integer | No | 38 |
-| DEPOSITTOGENERALTRUST | id_Integer | No | 38 |
-| DEPOSITSURCHARGETOOPERATINGTRUST | id_Integer | No | 38 |
-| ENTEREDWHEN | id_String | No | 30 |
-| ENTEREDBY | id_String | No | 20 |
-| UPDATEDWHEN | id_String | No | 30 |
-| UPDATEDBY | id_String | No | 20 |
-| EXECUTEDWHEN | id_String | Yes | 30 |
-| EXECUTEDBY | id_String | Yes | 20 |
-| ONHOLDWHEN | id_String | Yes | 30 |
-| ONHOLDBY | id_String | Yes | 20 |
-| APPROVEDWHEN | id_String | Yes | 30 |
-| APPROVEDBY | id_String | Yes | 20 |
-| BATCHED | id_String | Yes | 30 |
-| BOUNCED | id_String | Yes | 30 |
-| BOUNCECOUNT | id_Integer | No | 38 |
-| EXECUTERESULTDETAIL | id_String | Yes | 250 |
-| BOUNCERESULTDETAIL | id_String | Yes | 250 |
-| PAYMENTMETHODID | id_Integer | No | 38 |
-| NITDSENDDATE | id_String | Yes | 30 |
-| SENDRM | id_Integer | No | 38 |
-| LETTERCODE | id_String | Yes | 5 |
-| RMSENTDATE | id_String | Yes | 30 |
-| CUSTOMER | id_String | No | 7 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-## Data Flow
+1. **Set up.** `tPrejob_1` triggers `tJava_1`, which appends today's date to `context.archiveDir` and opens a log file; this chains into `tSetKeystore_1` and `tDBConnection_1`.
+2. **Empty the staging table.** `tDBRow_1` runs `TRUNCATE TABLE LIQUID_STAGING.SCHEDULEDPAYMENT_TXT;` (this one *does* qualify its schema, unlike several peer jobs in this batch).
+3. **Find the file.** `tFileList_1` lists files in `context.sourceDir` (skipping `*.txt`), explicitly sorted by modified date, ascending — processing the oldest matching file first, the same explicit-ordering pattern seen in `Dialer_CallTracking_Load`.
+4. **Read and reshape the file.** `tFileInputDelimited_1` reads the file as pipe-delimited (`|~|`/`|$|`), **ISO-8859-15** encoded (unlike most peers in this batch, which use US-ASCII), with a header row, covering payment ID, account/debtor ID, transaction type/status, amount, surcharge, execution/bounce timestamps and results, and payment method. `tMap_1` maps these onto the `SCHEDULEDPAYMENT_TXT` schema, adding `LOAD_DT`.
+5. **Load staging.** Mapped rows pass through a row counter (`tFlowMeter_2`) into `tDBOutput_1`, inserting into `SCHEDULEDPAYMENT_TXT`.
+6. **Merge and clean up — in parallel.** Once the file-list subjob completes, `tParallelize_1` splits into: `tDBRow_2` calling `CALL LIQUID_STAGING.MERGE_TXT_INTO_SCHEDULEDPAYMENT();` (note the explicit schema qualifier on the procedure call itself — see Issues observed), and a file-listing chain that archives (`tFileList_2` → `tFileArchive_1`) and, after a brief pause, deletes (`tFileList_3` → `tSleep_1` → `tFileDelete_1`).
 
 ```mermaid
-graph LR
-    tPrejob_1 -->|COMPONENT_OK| tJava_1
-    tJava_1 -->|SUBJOB_OK| tSetKeystore_1
-    tDBRow_1 -->|SUBJOB_OK| tFileList_1
-    tFileList_1 -->|ITERATE| tJava_2
-    tFileList_1 -->|SUBJOB_OK| tParallelize_1
-    tJava_2 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tMap_1
-    tMap_1 -->|FLOW| tFlowMeter_2
-    tFlowMeter_2 -->|FLOW| tDBOutput_1
-    tParallelize_1 -->|PARALLELIZE| tFileList_2
-    tParallelize_1 -->|PARALLELIZE| tDBRow_2
-    tFileList_2 -->|ITERATE| tJava_3
-    tFileList_2 -->|SUBJOB_OK| tFileList_3
-    tJava_3 -->|ITERATE| tFileArchive_1
-    tFileList_3 -->|ITERATE| tJava_4
-    tJava_4 -->|ITERATE| tSleep_1
-    tSleep_1 -->|ITERATE| tFileDelete_1
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
+flowchart TD
+    Prejob["tPrejob_1"] --> SetLog["tJava_1<br/>Set archive path + start log"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"]
+    Truncate["tDBRow_1<br/>TRUNCATE staging.SCHEDULEDPAYMENT_TXT"] --> ListFiles1["tFileList_1<br/>Find oldest-modified file"]
+    ListFiles1 -->|iterate| SetPath["tJava_2"] --> ReadFile["tFileInputDelimited_1"]
+    ListFiles1 --> Parallel["tParallelize_1"]
+    ReadFile -->|flow| Map["tMap_1"] --> FlowMeter["tFlowMeter_2"] --> Insert["tDBOutput_1<br/>INSERT into SCHEDULEDPAYMENT_TXT"]
+    Parallel --> ListFiles2["tFileList_2"] & Merge["tDBRow_2<br/>CALL LIQUID_STAGING.MERGE_TXT_INTO_SCHEDULEDPAYMENT()"]
+    ListFiles2 -->|iterate| SetPath3["tJava_3"] --> Archive["tFileArchive_1"]
+    ListFiles2 --> ListFiles3["tFileList_3"]
+    ListFiles3 -->|iterate| SetPath4["tJava_4"] --> Sleep["tSleep_1<br/>Pause 5 seconds"] --> Delete["tFileDelete_1"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| FIELDSEPARATOR / ROWSEPARATOR | `\|~\|` / `\|$\|` | Standard project pipe-delimited format. |
+| ENCODING | ISO-8859-15 | Western European encoding — differs from the US-ASCII used by most jobs in this batch. |
+| REMOVE_EMPTY_ROW | true | Blank rows in the source file are skipped rather than loaded. |
+| DIRECTORY ordering (`tFileList_1`) | `ORDER_BY_MODIFIEDDATE=true`, ascending | Explicitly processes the oldest untouched file first. |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | SCHEDULEDPAYMENT_TXT | Staging table for scheduled-payment records. |
+| Output action | INSERT | Adds rows only. |
+
+### Merge step: `tDBRow_2`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query | `CALL LIQUID_STAGING.MERGE_TXT_INTO_SCHEDULEDPAYMENT();` | Snowflake procedure that folds staged rows into the permanent `SCHEDULEDPAYMENT` table — explicitly schema-qualified, unlike the unqualified `CALL <procedure>();` form used by most peer jobs. |
+
+### Pre-delete pause: `tSleep_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| PAUSE | 5 (seconds) | Job waits 5 seconds before deleting the source file — possibly to let a concurrent process (e.g. the archive step) finish releasing its file handle. |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none found — no `tRunJob` links.
+- **Context variables used:** `context.sourceDir`, `context.archiveDir`, `context.filePath`, `context.fileName`, `context.logDir`, `context.keystorePath` (all `Directories_0.1`). Uses the shared Snowflake connection object, not `LEGACY_DW_*` variables directly.
+- **Hardcoded values found:** `tFileInputDelimited_1.TEMP_DIR`, `tFileArchive_1.SOURCE_FILE`, `tFileDelete_1.DIRECTORY`/`PATH`, and `tSetKeystore_1.SSL_TRUSTSERVER_TRUSTSTORE` are fixed paths rather than context variables.
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tPrejob` / `tParallelize` | Setup-before-main-start, concurrent branches (see job_Address_Text_Load.md). |
+| `tFileList` | Lists files for the job to loop over (see job_Address_Text_Load.md). |
+| `tFileInputDelimited` | Reads a delimited text file (see job_Address_Text_Load.md). |
+| `tMap` | Maps/transforms columns (see job_Address_Text_Load.md). |
+| `tFlowMeter` | Counts rows passing a point, for logging (see job_Address_Text_Load.md). |
+| `tDBOutput` / `tSnowflakeOutput` | Writes rows into Snowflake (see job_Address_Text_Load.md). |
+| `tDBRow` / `tSnowflakeRow` | Runs a single SQL statement (see job_Address_Text_Load.md). |
+| `tJava` | Custom Java code block (see job_Address_Text_Load.md). |
+| `tFileArchive` | Zips a file into an archive location (see job_Address_Text_Load.md). |
+| `tFileDelete` | Deletes a file from disk (see job_Address_Text_Load.md). |
+| `tSetKeystore` | Configures the SSL keystore for the Snowflake connection (see job_Address_Text_Load.md). |
+| `tSleep` | *(Not covered in the reference docs.)* Pauses job execution for a fixed number of seconds — here, a 5-second delay is inserted between listing the file for deletion and actually deleting it. |
+
+## Issues observed
+
+- **Encoding differs from most peer jobs in this batch.** `tFileInputDelimited_1` uses ISO-8859-15 here, while `Customer_Table_Text_Load`, `Dialer_CallTracking_Load`, `LetterRequest_Table_Text_Load`, `Phones_Consent_Table_Text_Load`, and `cmi_Score_Text_Load` all use US-ASCII. Worth confirming this is intentional (e.g., scheduled-payment files can contain accented characters that others don't).
+- **The merge call is schema-qualified** (`CALL LIQUID_STAGING.MERGE_TXT_INTO_SCHEDULEDPAYMENT();`) while every other job in this batch calls its merge procedure unqualified (`CALL MERGE_TXT_INTO_<TABLE>();`). Functionally likely equivalent if the default schema is already `LIQUID_STAGING`, but it's an inconsistency worth flagging for anyone maintaining these procedures.
+- **A 5-second `tSleep_1` delay before file deletion** is unique to this job among the 9 documented here — its purpose isn't stated in the metadata; confirm with the team whether it's working around a file-lock or timing issue.
+- **File pickup order deviates from the norm** — explicitly oldest-first, like `Dialer_CallTracking_Load`, rather than the default unordered listing most peer jobs use.
+- **`tFileDelete_1.FAILON` is `false`**, meaning a failed delete won't fail the job.
+- **The merge procedure's own logic is outside Talend** and not visible in this metadata.

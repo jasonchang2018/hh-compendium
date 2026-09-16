@@ -1,415 +1,106 @@
 # Talend Job: Bankruptcy_Text_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Created**: 2026-06-24T14:37:08.660-0700
-- **Last Modified**: 2026-06-25T17:10:44.797-0700
+This job follows the project's standard "text load" pattern: it watches the shared LATITUDE source folder for a bankruptcy-data file, loads its rows into a Snowflake staging table, merges that staging data into the permanent `BANKRUPTCY` table via a Snowflake stored procedure, and then archives and deletes the source file. It has no `author` recorded in its metadata, which is unusual compared to most other jobs in this project.
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 2 | tJava_1 | `tJava` | `CODE`=context.archiveDir = context.archiveDir + TalendDa, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 3 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
-| 4 | tDBConnection_1 | `tSnowflakeConnection` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":2,"@type":"org.talend.components.snowflake. |
-| 5 | tDBRow_1 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 6 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 7 | tJava_2 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 8 | tFileInputDelimited_1 | `tFileInputDelimited` | `USE_EXISTING_DYNAMIC`=false, `FILENAMETEXT`="When the input source is a stream or a zip file,f, `FILENAME`=context.filePath, `CSV_OPTION`=false, `ROWSEPARATOR`="|$|" |
-| 9 | tMap_1 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 10 | tFlowMeter_2 | `tFlowMeter` | `USEROWLABEL`=true, `METTERLABEL`="MyLabel", `ABSOLUTE`=Absolute, `CONNECTION_FORMAT`=row |
-| 11 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":4,"@type":"org.talend.components.snowflake. |
-| 12 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 13 | tJava_3 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 14 | tFileArchive_1 | `tFileArchive` | `SOURCE`=context.sourceDir, `SOURCE_FILE`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s, `SUB_DIRECTROY`=false, `TARGET`=context.archiveDir + context.fileName+".zip", `MKDIR`=true |
-| 15 | tParallelize_1 | `tParallelize` | `WAIT_FOR`=All, `SLEEPTIME`=100, `DIE_ON_ERROR`=false, `CONNECTION_FORMAT`=row |
-| 16 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 17 | tFileList_3 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 18 | tJava_4 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 19 | tFileDelete_1 | `tFileDelete` | `FILENAME`=context.filePath, `DIRECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `PATH`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `FAILON`=false, `FOLDER`=false |
+| Field | Value |
+|---|---|
+| Job name | Bankruptcy_Text_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | *(blank in metadata — not recorded)* |
+| Created | 2026-06-24T14:37:08.660-0700 |
+| Last Modified | 2026-06-25T17:10:44.797-0700 |
 
-## Schemas
+## Step-by-step data flow
 
-### tDBRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| BankruptcyID | id_BigDecimal | Yes | -1 |
-| AccountID | id_BigDecimal | Yes | -1 |
-| DebtorID | id_BigDecimal | Yes | -1 |
-| Chapter | id_BigDecimal | Yes | -1 |
-| DateFiled | id_String | Yes | 30 |
-| CaseNumber | id_String | Yes | 20 |
-| CourtCity | id_String | Yes | 50 |
-| CourtDistrict | id_String | Yes | 200 |
-| CourtDivision | id_String | Yes | 100 |
-| CourtPhone | id_String | Yes | 50 |
-| CourtStreet1 | id_String | Yes | 128 |
-| CourtStreet2 | id_String | Yes | 128 |
-| CourtState | id_String | Yes | 3 |
-| CourtZipcode | id_String | Yes | 15 |
-| Trustee | id_String | Yes | 50 |
-| TrusteeStreet1 | id_String | Yes | 128 |
-| TrusteeStreet2 | id_String | Yes | 128 |
-| TrusteeCity | id_String | Yes | 100 |
-| TrusteeState | id_String | Yes | 3 |
-| TrusteeZipcode | id_String | Yes | 10 |
-| TrusteePhone | id_String | Yes | 30 |
-| Has341Info | id_String | Yes | 30 |
-| DateTime341 | id_String | Yes | 30 |
-| Location341 | id_String | Yes | 200 |
-| Comments | id_String | Yes | 500 |
-| Status | id_String | Yes | 100 |
-| TransmittedDate | id_String | Yes | 30 |
-| ConvertedFrom | id_String | Yes | 30 |
-| DateNotice | id_String | Yes | 30 |
-| ProofFiled | id_String | Yes | 30 |
-| DischargeDate | id_String | Yes | 30 |
-| DismissalDate | id_String | Yes | 30 |
-| ConfirmationHearingDate | id_String | Yes | 30 |
-| HasAsset | id_BigDecimal | Yes | -1 |
-| Reaffirm | id_String | Yes | 1 |
-| ReaffirmDateFiled | id_String | Yes | 30 |
-| ReaffirmAmount | id_String | Yes | 20 |
-| ReaffirmTerms | id_String | Yes | 50 |
-| VoluntaryDate | id_String | Yes | 30 |
-| VoluntaryAmount | id_String | Yes | 20 |
-| VoluntaryTerms | id_String | Yes | 50 |
-| SurrenderDate | id_String | Yes | 30 |
-| SurrenderMethod | id_String | Yes | 50 |
-| AuctionHouse | id_String | Yes | 50 |
-| AuctionDate | id_String | Yes | 30 |
-| AuctionAmount | id_String | Yes | 20 |
-| AuctionFee | id_String | Yes | 20 |
-| AuctionAmountApplied | id_String | Yes | 20 |
-| SecuredAmount | id_String | Yes | 20 |
-| SecuredPercentage | id_String | Yes | 20 |
-| UnsecuredAmount | id_String | Yes | 20 |
-| UnsecuredPercentage | id_String | Yes | 20 |
-| ctl | id_String | Yes | 3 |
-| WithdrawnDate | id_String | Yes | 30 |
-| CreatedDate | id_String | Yes | 30 |
-| UpdatedDate | id_String | Yes | 30 |
-| CourtCounty | id_String | Yes | 128 |
-| CourtCountry | id_String | Yes | 128 |
-| TrusteeCounty | id_String | Yes | 128 |
-| TrusteeCountry | id_String | Yes | 128 |
-| Country | id_String | Yes | 128 |
-| County | id_String | Yes | 128 |
-| BankruptcyID | id_BigDecimal | Yes | -1 |
-| AccountID | id_BigDecimal | Yes | -1 |
-| DebtorID | id_BigDecimal | Yes | -1 |
-| Chapter | id_BigDecimal | Yes | -1 |
-| DateFiled | id_String | Yes | 30 |
-| CaseNumber | id_String | Yes | 20 |
-| CourtCity | id_String | Yes | 50 |
-| CourtDistrict | id_String | Yes | 200 |
-| CourtDivision | id_String | Yes | 100 |
-| CourtPhone | id_String | Yes | 50 |
-| CourtStreet1 | id_String | Yes | 128 |
-| CourtStreet2 | id_String | Yes | 128 |
-| CourtState | id_String | Yes | 3 |
-| CourtZipcode | id_String | Yes | 15 |
-| Trustee | id_String | Yes | 50 |
-| TrusteeStreet1 | id_String | Yes | 128 |
-| TrusteeStreet2 | id_String | Yes | 128 |
-| TrusteeCity | id_String | Yes | 100 |
-| TrusteeState | id_String | Yes | 3 |
-| TrusteeZipcode | id_String | Yes | 10 |
-| TrusteePhone | id_String | Yes | 30 |
-| Has341Info | id_String | Yes | 30 |
-| DateTime341 | id_String | Yes | 30 |
-| Location341 | id_String | Yes | 200 |
-| Comments | id_String | Yes | 500 |
-| Status | id_String | Yes | 100 |
-| TransmittedDate | id_String | Yes | 30 |
-| ConvertedFrom | id_String | Yes | 30 |
-| DateNotice | id_String | Yes | 30 |
-| ProofFiled | id_String | Yes | 30 |
-| DischargeDate | id_String | Yes | 30 |
-| DismissalDate | id_String | Yes | 30 |
-| ConfirmationHearingDate | id_String | Yes | 30 |
-| HasAsset | id_BigDecimal | Yes | -1 |
-| Reaffirm | id_String | Yes | 1 |
-| ReaffirmDateFiled | id_String | Yes | 30 |
-| ReaffirmAmount | id_String | Yes | 20 |
-| ReaffirmTerms | id_String | Yes | 50 |
-| VoluntaryDate | id_String | Yes | 30 |
-| VoluntaryAmount | id_String | Yes | 20 |
-| VoluntaryTerms | id_String | Yes | 50 |
-| SurrenderDate | id_String | Yes | 30 |
-| SurrenderMethod | id_String | Yes | 50 |
-| AuctionHouse | id_String | Yes | 50 |
-| AuctionDate | id_String | Yes | 30 |
-| AuctionAmount | id_String | Yes | 20 |
-| AuctionFee | id_String | Yes | 20 |
-| AuctionAmountApplied | id_String | Yes | 20 |
-| SecuredAmount | id_String | Yes | 20 |
-| SecuredPercentage | id_String | Yes | 20 |
-| UnsecuredAmount | id_String | Yes | 20 |
-| UnsecuredPercentage | id_String | Yes | 20 |
-| ctl | id_String | Yes | 3 |
-| WithdrawnDate | id_String | Yes | 30 |
-| CreatedDate | id_String | Yes | 30 |
-| UpdatedDate | id_String | Yes | 30 |
-| CourtCounty | id_String | Yes | 128 |
-| CourtCountry | id_String | Yes | 128 |
-| TrusteeCounty | id_String | Yes | 128 |
-| TrusteeCountry | id_String | Yes | 128 |
-| Country | id_String | Yes | 128 |
-| County | id_String | Yes | 128 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tMap_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| BANKRUPTCYID | id_BigDecimal | No | 38 |
-| ACCOUNTID | id_BigDecimal | No | 38 |
-| DEBTORID | id_BigDecimal | No | 38 |
-| CHAPTER | id_BigDecimal | Yes | 38 |
-| DATEFILED | id_String | Yes | 30 |
-| CASENUMBER | id_String | No | 20 |
-| COURTCITY | id_String | No | 50 |
-| COURTDISTRICT | id_String | No | 200 |
-| COURTDIVISION | id_String | No | 100 |
-| COURTPHONE | id_String | No | 50 |
-| COURTSTREET1 | id_String | Yes | 128 |
-| COURTSTREET2 | id_String | Yes | 128 |
-| COURTSTATE | id_String | No | 3 |
-| COURTCOUNTY | id_String | Yes | 128 |
-| COURTCOUNTRY | id_String | Yes | 128 |
-| COURTZIPCODE | id_String | No | 15 |
-| TRUSTEE | id_String | No | 50 |
-| TRUSTEESTREET1 | id_String | Yes | 128 |
-| TRUSTEESTREET2 | id_String | Yes | 128 |
-| TRUSTEECITY | id_String | No | 100 |
-| TRUSTEESTATE | id_String | No | 3 |
-| TRUSTEEZIPCODE | id_String | No | 10 |
-| TRUSTEECOUNTY | id_String | Yes | 128 |
-| TRUSTEECOUNTRY | id_String | Yes | 128 |
-| TRUSTEEPHONE | id_String | No | 30 |
-| HAS341INFO | id_String | No | 30 |
-| DATETIME341 | id_String | Yes | 30 |
-| LOCATION341 | id_String | No | 200 |
-| COMMENTS | id_String | No | 500 |
-| STATUS | id_String | No | 100 |
-| TRANSMITTEDDATE | id_String | Yes | 30 |
-| CONVERTEDFROM | id_String | Yes | 30 |
-| DATENOTICE | id_String | Yes | 30 |
-| PROOFFILED | id_String | Yes | 30 |
-| DISCHARGEDATE | id_String | Yes | 30 |
-| DISMISSALDATE | id_String | Yes | 30 |
-| CONFIRMATIONHEARINGDATE | id_String | Yes | 30 |
-| HASASSET | id_BigDecimal | Yes | 38 |
-| REAFFIRM | id_String | Yes | 1 |
-| REAFFIRMDATEFILED | id_String | Yes | 30 |
-| REAFFIRMAMOUNT | id_String | Yes | 20 |
-| REAFFIRMTERMS | id_String | Yes | 50 |
-| VOLUNTARYDATE | id_String | Yes | 30 |
-| VOLUNTARYAMOUNT | id_String | Yes | 20 |
-| VOLUNTARYTERMS | id_String | Yes | 50 |
-| SURRENDERDATE | id_String | Yes | 30 |
-| SURRENDERMETHOD | id_String | Yes | 50 |
-| AUCTIONHOUSE | id_String | Yes | 50 |
-| AUCTIONDATE | id_String | Yes | 30 |
-| AUCTIONAMOUNT | id_String | Yes | 20 |
-| AUCTIONFEE | id_String | Yes | 20 |
-| AUCTIONAMOUNTAPPLIED | id_String | Yes | 20 |
-| SECUREDAMOUNT | id_String | Yes | 20 |
-| SECUREDPERCENTAGE | id_String | Yes | 20 |
-| UNSECUREDAMOUNT | id_String | Yes | 20 |
-| UNSECUREDPERCENTAGE | id_String | Yes | 20 |
-| CTL | id_String | Yes | 3 |
-| COUNTRY | id_String | Yes | 128 |
-| COUNTY | id_String | Yes | 128 |
-| WITHDRAWNDATE | id_String | Yes | 30 |
-| CREATEDDATE | id_String | No | 30 |
-| UPDATEDDATE | id_String | Yes | 30 |
-
-### tFlowMeter_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| BANKRUPTCYID | id_BigDecimal | No | 38 |
-| ACCOUNTID | id_BigDecimal | No | 38 |
-| DEBTORID | id_BigDecimal | No | 38 |
-| CHAPTER | id_BigDecimal | Yes | 38 |
-| DATEFILED | id_String | Yes | 30 |
-| CASENUMBER | id_String | No | 20 |
-| COURTCITY | id_String | No | 50 |
-| COURTDISTRICT | id_String | No | 200 |
-| COURTDIVISION | id_String | No | 100 |
-| COURTPHONE | id_String | No | 50 |
-| COURTSTREET1 | id_String | Yes | 128 |
-| COURTSTREET2 | id_String | Yes | 128 |
-| COURTSTATE | id_String | No | 3 |
-| COURTCOUNTY | id_String | Yes | 128 |
-| COURTCOUNTRY | id_String | Yes | 128 |
-| COURTZIPCODE | id_String | No | 15 |
-| TRUSTEE | id_String | No | 50 |
-| TRUSTEESTREET1 | id_String | Yes | 128 |
-| TRUSTEESTREET2 | id_String | Yes | 128 |
-| TRUSTEECITY | id_String | No | 100 |
-| TRUSTEESTATE | id_String | No | 3 |
-| TRUSTEEZIPCODE | id_String | No | 10 |
-| TRUSTEECOUNTY | id_String | Yes | 128 |
-| TRUSTEECOUNTRY | id_String | Yes | 128 |
-| TRUSTEEPHONE | id_String | No | 30 |
-| HAS341INFO | id_String | No | 30 |
-| DATETIME341 | id_String | Yes | 30 |
-| LOCATION341 | id_String | No | 200 |
-| COMMENTS | id_String | No | 500 |
-| STATUS | id_String | No | 100 |
-| TRANSMITTEDDATE | id_String | Yes | 30 |
-| CONVERTEDFROM | id_String | Yes | 30 |
-| DATENOTICE | id_String | Yes | 30 |
-| PROOFFILED | id_String | Yes | 30 |
-| DISCHARGEDATE | id_String | Yes | 30 |
-| DISMISSALDATE | id_String | Yes | 30 |
-| CONFIRMATIONHEARINGDATE | id_String | Yes | 30 |
-| HASASSET | id_BigDecimal | Yes | 38 |
-| REAFFIRM | id_String | Yes | 1 |
-| REAFFIRMDATEFILED | id_String | Yes | 30 |
-| REAFFIRMAMOUNT | id_String | Yes | 20 |
-| REAFFIRMTERMS | id_String | Yes | 50 |
-| VOLUNTARYDATE | id_String | Yes | 30 |
-| VOLUNTARYAMOUNT | id_String | Yes | 20 |
-| VOLUNTARYTERMS | id_String | Yes | 50 |
-| SURRENDERDATE | id_String | Yes | 30 |
-| SURRENDERMETHOD | id_String | Yes | 50 |
-| AUCTIONHOUSE | id_String | Yes | 50 |
-| AUCTIONDATE | id_String | Yes | 30 |
-| AUCTIONAMOUNT | id_String | Yes | 20 |
-| AUCTIONFEE | id_String | Yes | 20 |
-| AUCTIONAMOUNTAPPLIED | id_String | Yes | 20 |
-| SECUREDAMOUNT | id_String | Yes | 20 |
-| SECUREDPERCENTAGE | id_String | Yes | 20 |
-| UNSECUREDAMOUNT | id_String | Yes | 20 |
-| UNSECUREDPERCENTAGE | id_String | Yes | 20 |
-| CTL | id_String | Yes | 3 |
-| COUNTRY | id_String | Yes | 128 |
-| COUNTY | id_String | Yes | 128 |
-| WITHDRAWNDATE | id_String | Yes | 30 |
-| CREATEDDATE | id_String | No | 30 |
-| UPDATEDDATE | id_String | Yes | 30 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| LOAD_DT | id_Date | Yes | -1 |
-| BANKRUPTCYID | id_BigDecimal | No | 38 |
-| ACCOUNTID | id_BigDecimal | No | 38 |
-| DEBTORID | id_BigDecimal | No | 38 |
-| CHAPTER | id_BigDecimal | Yes | 38 |
-| DATEFILED | id_String | Yes | 30 |
-| CASENUMBER | id_String | No | 20 |
-| COURTCITY | id_String | No | 50 |
-| COURTDISTRICT | id_String | No | 200 |
-| COURTDIVISION | id_String | No | 100 |
-| COURTPHONE | id_String | No | 50 |
-| COURTSTREET1 | id_String | Yes | 128 |
-| COURTSTREET2 | id_String | Yes | 128 |
-| COURTSTATE | id_String | No | 3 |
-| COURTCOUNTY | id_String | Yes | 128 |
-| COURTCOUNTRY | id_String | Yes | 128 |
-| COURTZIPCODE | id_String | No | 15 |
-| TRUSTEE | id_String | No | 50 |
-| TRUSTEESTREET1 | id_String | Yes | 128 |
-| TRUSTEESTREET2 | id_String | Yes | 128 |
-| TRUSTEECITY | id_String | No | 100 |
-| TRUSTEESTATE | id_String | No | 3 |
-| TRUSTEEZIPCODE | id_String | No | 10 |
-| TRUSTEECOUNTY | id_String | Yes | 128 |
-| TRUSTEECOUNTRY | id_String | Yes | 128 |
-| TRUSTEEPHONE | id_String | No | 30 |
-| HAS341INFO | id_String | No | 30 |
-| DATETIME341 | id_String | Yes | 30 |
-| LOCATION341 | id_String | No | 200 |
-| COMMENTS | id_String | No | 500 |
-| STATUS | id_String | No | 100 |
-| TRANSMITTEDDATE | id_String | Yes | 30 |
-| CONVERTEDFROM | id_String | Yes | 30 |
-| DATENOTICE | id_String | Yes | 30 |
-| PROOFFILED | id_String | Yes | 30 |
-| DISCHARGEDATE | id_String | Yes | 30 |
-| DISMISSALDATE | id_String | Yes | 30 |
-| CONFIRMATIONHEARINGDATE | id_String | Yes | 30 |
-| HASASSET | id_BigDecimal | Yes | 38 |
-| REAFFIRM | id_String | Yes | 1 |
-| REAFFIRMDATEFILED | id_String | Yes | 30 |
-| REAFFIRMAMOUNT | id_String | Yes | 20 |
-| REAFFIRMTERMS | id_String | Yes | 50 |
-| VOLUNTARYDATE | id_String | Yes | 30 |
-| VOLUNTARYAMOUNT | id_String | Yes | 20 |
-| VOLUNTARYTERMS | id_String | Yes | 50 |
-| SURRENDERDATE | id_String | Yes | 30 |
-| SURRENDERMETHOD | id_String | Yes | 50 |
-| AUCTIONHOUSE | id_String | Yes | 50 |
-| AUCTIONDATE | id_String | Yes | 30 |
-| AUCTIONAMOUNT | id_String | Yes | 20 |
-| AUCTIONFEE | id_String | Yes | 20 |
-| AUCTIONAMOUNTAPPLIED | id_String | Yes | 20 |
-| SECUREDAMOUNT | id_String | Yes | 20 |
-| SECUREDPERCENTAGE | id_String | Yes | 20 |
-| UNSECUREDAMOUNT | id_String | Yes | 20 |
-| UNSECUREDPERCENTAGE | id_String | Yes | 20 |
-| CTL | id_String | Yes | 3 |
-| COUNTRY | id_String | Yes | 128 |
-| COUNTY | id_String | Yes | 128 |
-| WITHDRAWNDATE | id_String | Yes | 30 |
-| CREATEDDATE | id_String | No | 30 |
-| UPDATEDDATE | id_String | Yes | 30 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-## Data Flow
+1. **Set up.** `tPrejob_1` runs first; `tJava_1` appends today's date to `context.archiveDir` and opens a log file in `context.logDir`; `tSetKeystore_1` configures the SSL client keystore; `tDBConnection_1` opens the Snowflake connection.
+2. **Empty the staging table.** `tDBRow_1` runs `TRUNCATE TABLE LIQUID_STAGING.BANKRUPTCY;`.
+3. **Find and read the file.** `tFileList_1` lists files in `context.sourceDir` (excluding `*.txt`, no explicit sort order); `tJava_2` captures the found file's path into `context.filePath`; `tFileInputDelimited_1` reads it as a pipe-delimited file (`|~|` fields, `|$|` rows, header row present, US-ASCII encoding).
+4. **Transform and load staging.** `tMap_1` maps the file's ~60 bankruptcy-detail columns (case number, court/trustee details, discharge/dismissal dates, secured/unsecured amounts, etc.) onto the `BANKRUPTCY` schema and adds `LOAD_DT`. Rows pass through a row counter (`tFlowMeter_2`) into `tDBOutput_1`, which inserts them into the staging table.
+5. **Merge and clean up — in parallel.** `tFileList_1`'s success also triggers `tParallelize_1`, which splits into two branches:
+   - **Merge branch:** `tDBRow_2` runs `CALL LIQUID_STAGING.MERGE_TXT_INTO_BANKRUPTCY();` — a Snowflake stored procedure that folds the staged rows into the permanent table. No result-code check follows it (no `tDie`/`tWarn`).
+   - **Cleanup branch:** the source folder is listed again (`tFileList_2`), then in parallel: `tJava_3` captures the file path (but **not** the file name) and `tFileArchive_1` zips it into `context.archiveDir`; separately `tFileList_3` → `tJava_4` → `tFileDelete_1` deletes the original file from the source folder.
 
 ```mermaid
-graph LR
-    tPrejob_1 -->|COMPONENT_OK| tJava_1
-    tJava_1 -->|SUBJOB_OK| tSetKeystore_1
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
-    tDBRow_1 -->|SUBJOB_OK| tFileList_1
-    tFileList_1 -->|ITERATE| tJava_2
-    tFileList_1 -->|SUBJOB_OK| tParallelize_1
-    tJava_2 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tMap_1
-    tMap_1 -->|FLOW| tFlowMeter_2
-    tFlowMeter_2 -->|FLOW| tDBOutput_1
-    tFileList_2 -->|ITERATE| tJava_3
-    tFileList_2 -->|SUBJOB_OK| tFileList_3
-    tJava_3 -->|ITERATE| tFileArchive_1
-    tParallelize_1 -->|PARALLELIZE| tFileList_2
-    tParallelize_1 -->|PARALLELIZE| tDBRow_2
-    tFileList_3 -->|ITERATE| tJava_4
-    tJava_4 -->|ITERATE| tFileDelete_1
+flowchart TD
+    Prejob["tPrejob_1"] --> SetLog["tJava_1<br/>Set archive path + start log"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"]
+    Truncate["tDBRow_1<br/>TRUNCATE staging.BANKRUPTCY"] --> ListFiles1["tFileList_1<br/>Find source file"]
+    ListFiles1 -->|iterate| SetPath["tJava_2<br/>Capture file path"] --> ReadFile["tFileInputDelimited_1"]
+    ListFiles1 --> Parallel["tParallelize_1"]
+    ReadFile -->|flow| Map["tMap_1"] --> FlowMeter["tFlowMeter_2"] --> Insert["tDBOutput_1<br/>INSERT into staging.BANKRUPTCY"]
+    Parallel --> ListFiles2["tFileList_2"] & Merge["tDBRow_2<br/>CALL LIQUID_STAGING.MERGE_TXT_INTO_BANKRUPTCY()"]
+    ListFiles2 -->|iterate| SetPath2["tJava_3<br/>Capture file path only"] --> Archive["tFileArchive_1<br/>Zip into archiveDir"]
+    ListFiles2 --> ListFiles3["tFileList_3"]
+    ListFiles3 -->|iterate| SetPath3["tJava_4"] --> Delete["tFileDelete_1"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| FIELDSEPARATOR / ROWSEPARATOR | `\|~\|` / `\|$\|` | The project's standard pipe-delimited format. |
+| HEADER | 1 | First line is a header row. |
+| ENCODING | US-ASCII | Plain ASCII — same as `cmi_Hermes_Recommendations_Load`, but a step down from ISO-8859-15 used by `Address_Text_Load` and most peers; worth confirming this file never carries accented characters. |
+| DIE_ON_ERROR | true | A malformed row fails the job immediately (no bad-file redirect like `HH_Violation_Text_Load`). |
+| TEMP_DIR | `"C:/Talend-Studio-20211109_1610-V8.0.1/workspace"` | Hardcoded Windows path (see Issues observed). |
+| EXCLUDEFILEMASK (on `tFileList_1`) | `*.txt` | `.txt` files are skipped as usual. |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | BANKRUPTCY | Loads into the staging copy (`LIQUID_STAGING.BANKRUPTCY`, per the preceding TRUNCATE). |
+| Output action | INSERT | Adds rows only. |
+| Table action | NONE | Table structure is untouched. |
+
+### Merge step: `tDBRow_2`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query | `CALL LIQUID_STAGING.MERGE_TXT_INTO_BANKRUPTCY();` | Runs the Snowflake procedure that folds staged rows into the permanent table. Notably this call explicitly qualifies the procedure with the `LIQUID_STAGING` schema, whereas most peer jobs (e.g. `Address_Text_Load`, `HH_Violation_Text_Load`) call the equivalent procedure unqualified — a cosmetic naming inconsistency across the project, not necessarily a functional difference. |
+
+### Archive/delete: `tFileArchive_1` / `tFileDelete_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| TARGET (`tFileArchive_1`) | `context.archiveDir + context.fileName + ".zip"` | Intended to name the zip after the source file — but see Issues observed: `context.fileName` is never actually set anywhere in this job. |
+| SOURCE_FILE (`tFileArchive_1`) | `"C:/Talend-Studio-.../workspace/source.csv"` | Hardcoded Windows path (see Issues observed). |
+| DIRECTORY / PATH (`tFileDelete_1`) | `"C:/Talend-Studio-.../workspace/delete_folder"` / `"...delete_folder or delete_file"` | Hardcoded Windows paths; actual deletion target is `FILENAME=context.filePath`. |
+| FAILON (`tFileDelete_1`) | false | If the delete fails, the job doesn't fail. |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none found — no `tRunJob` links to or from any other job.
+- **Context variables used:** `context.sourceDir`, `context.archiveDir`, `context.filePath`, `context.fileName`, `context.logDir`, `context.keystorePath` (all `Directories_0.1`, each with a Windows-style dev value and a Linux-mount-style value in `_shared_context.json`, e.g. `sourceDir` = `C:/Data/Latitude/` or `/mnt/analytics_team/PROD/LATITUDE/Liquid/`). It uses the shared, repository-linked Snowflake connection object rather than referencing `LEGACY_DW_0.1` variables directly.
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tPrejob` / `tParallelize` | Job-flow control (see job_Address_Text_Load.md). |
+| `tSnowflakeConnection` (`tDBConnection`) | Opens the reusable Snowflake connection that the job's other Snowflake components share. Its parameters are empty in this job's metadata because it uses a shared, repository-linked connection object rather than inline settings. |
+| `tFileList` | Lists files in a folder for iteration (see job_Address_Text_Load.md). |
+| `tFileInputDelimited` | Reads a delimited text file row by row (see job_Address_Text_Load.md). |
+| `tMap` | Maps/transforms columns (see job_Address_Text_Load.md). |
+| `tFlowMeter` | Counts rows passing through (see job_Address_Text_Load.md). |
+| `tDBOutput` / `tSnowflakeOutput` | Writes rows to a Snowflake table (see job_Address_Text_Load.md). |
+| `tDBRow` / `tSnowflakeRow` | Runs a single SQL statement (see job_Address_Text_Load.md). |
+| `tJava` | Custom Java code block (see job_Address_Text_Load.md). |
+| `tFileArchive` | Zips a file into an archive location (see job_Address_Text_Load.md). |
+| `tFileDelete` | Deletes a file (see job_Address_Text_Load.md). |
+| `tSetKeystore` | Configures the SSL keystore for the Snowflake connection (see job_Address_Text_Load.md). |
+
+## Issues observed
+
+- **`context.fileName` is never set anywhere in this job, but `tFileArchive_1` depends on it.** Both `tJava_2` (main read branch) and `tJava_3` (archive branch) only assign `context.filePath`; no component in this job assigns `context.fileName`. Since `tFileArchive_1`'s `TARGET` is `context.archiveDir + context.fileName + ".zip"`, and `fileName` defaults to an empty string in the `Directories_0.1` context group, the archived file is very likely being written as just `<archiveDir>/.zip` rather than a properly named file. Every comparable job checked (`Debtor_Table_Text_Load`, `HH_Violation_Text_Load`, `MiscExtra_Text_Load`, etc.) sets both `filePath` and `fileName` in its archive-branch `tJava` step — this job appears to be missing that second assignment. Worth confirming directly with the team / checking the archive folder for oddly-named zip files.
+- **Merge procedure call is schema-qualified (`LIQUID_STAGING.MERGE_TXT_INTO_BANKRUPTCY`)** while most peer jobs call the equivalent procedure unqualified (`MERGE_TXT_INTO_ADDRESS`, `MERGE_TXT_INTO_HH_VIOLATION`, etc.) — a naming/style inconsistency, not necessarily a functional issue.
+- **No `author` recorded** in this job's metadata, unlike every other job reviewed (all show `jmach@harriscollect.com`).
+- **Hardcoded, machine-specific paths** on `tSetKeystore_1.SSL_TRUSTSERVER_TRUSTSTORE`, `tFileInputDelimited_1.TEMP_DIR`, `tFileArchive_1.SOURCE_FILE`, and `tFileDelete_1.DIRECTORY`/`PATH` — the same project-wide pattern flagged in other jobs' documentation.
+- **The merge procedure's own logic is outside Talend** — its column-matching and update logic live in Snowflake, not visible in this metadata.

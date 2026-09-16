@@ -1,164 +1,98 @@
 # Talend Job: Voapps_Response_Load
 
-- **Project**: LATITUDE
-- **Version**: 0.1
-- **Job Type**: Standard
+## Overview
 
-- **Author**: jmach@harriscollect.com
-- **Created**: 2026-02-18T14:28:47.819-0800
-- **Last Modified**: 2026-02-23T08:36:13.831-0800
+This job loads response records from VoApps (a ringless-voicemail/message-drop vendor) — target date, caller number, message ID, delivery result and code, and the linked Hermes recommendation request — into Snowflake. It follows the overall truncate → load → merge → archive/delete pattern, but the source file format is a notable deviation from most other LATITUDE text-load jobs: it's a **comma-delimited** file, not the project's usual `|~|`/`|$|` pipe-delimited format.
 
-## Components
+## Detail table
 
-| # | Component | Type | Key Parameters |
-|---|-----------|------|----------------|
-| 1 | tDBConnection_1 | `tSnowflakeConnection` | `COMPONENT_NAME`=tSnowflakeConnection, `FAMILY`=Cloud/Snowflake, `START`=false, `STARTABLE`=true, `SUBTREE_START`=true |
-| 2 | tPrejob_1 | `tPrejob` | `CONNECTION_FORMAT`=row |
-| 3 | tJava_1 | `tJava` | `CODE`=context.archiveDir = context.archiveDir + TalendDa, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 4 | tSetKeystore_1 | `tSetKeystore` | `SET_TRUSTSTORE`=false, `SET_TRUSTSTORE_KEYSTORE`=false, `TRUSTSTORE_TYPE`=JKS, `SSL_TRUSTSERVER_TRUSTSTORE`="C:/clientTrustStore.trustStore", `KEYSTORE_TYPE`=PKCS12 |
-| 5 | tFileList_1 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 6 | tJava_2 | `tJava` | `CODE`=context.filePath=((String)globalMap.get("tFileList, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 7 | tFileInputDelimited_1 | `tFileInputDelimited` | `COMPONENT_NAME`=tFileInputDelimited, `VERSION`=0.102 (ALPHA), `FAMILY`=File/Input, `START`=false, `STARTABLE`=true |
-| 8 | tMap_1 | `tMap` | `LINK_STYLE`=AUTO, `DIE_ON_ERROR`=true, `LKUP_PARALLELIZE`=false, `LEVENSHTEIN`=0, `JACCARD`=0 |
-| 9 | tFlowMeter_1 | `tFlowMeter` | `USEROWLABEL`=true, `METTERLABEL`="MyLabel", `ABSOLUTE`=Absolute, `CONNECTION_FORMAT`=row |
-| 10 | tDBOutput_1 | `tSnowflakeOutput` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":4,"@type":"org.talend.components.snowflake. |
-| 11 | tDBRow_1 | `tSnowflakeRow` | `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 12 | tParallelize_1 | `tParallelize` | `WAIT_FOR`=All, `SLEEPTIME`=100, `DIE_ON_ERROR`=false, `CONNECTION_FORMAT`=row |
-| 13 | tDBRow_2 | `tSnowflakeRow` | `CONNECTION_FORMAT`=row, `PROPERTIES`={"@id":3,"@type":"org.talend.components.snowflake. |
-| 14 | tFileList_2 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 15 | tJava_3 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 16 | tFileArchive_1 | `tFileArchive` | `SOURCE`=context.sourceDir, `SOURCE_FILE`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/s, `SUB_DIRECTROY`=false, `TARGET`=context.archiveDir + context.fileName+".zip", `MKDIR`=true |
-| 17 | tFileList_3 | `tFileList` | `DIRECTORY`=context.sourceDir, `LIST_MODE`=FILES, `INCLUDSUBDIR`=false, `CASE_SENSITIVE`=YES, `ERROR`=false |
-| 18 | tJava_4 | `tJava` | `CODE`=context.filePath = ((String)globalMap.get("tFileLi, `IMPORT`=//import java.util.List;, `CONNECTION_FORMAT`=row |
-| 19 | tFileDelete_1 | `tFileDelete` | `FILENAME`=context.filePath, `DIRECTORY`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `PATH`="C:/Talend-Studio-20211109_1610-V8.0.1/workspace/d, `FAILON`=false, `FOLDER`=false |
+| Field | Value |
+|---|---|
+| Job name | Voapps_Response_Load |
+| Version | 0.1 |
+| Project | LATITUDE |
+| Author | jmach@harriscollect.com |
+| Created | 2026-02-18T14:28:47.819-0800 |
+| Last Modified | 2026-02-23T08:36:13.831-0800 |
 
-## Schemas
+## Step-by-step data flow
 
-### tFileInputDelimited_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| phone_number | id_String | Yes | -1 |
-| voapps_target_date | id_String | Yes | -1 |
-| voapps_caller_number | id_String | Yes | -1 |
-| voapps_message_id | id_String | Yes | -1 |
-| voapps_zip_code | id_String | Yes | -1 |
-| voapps_voice_append | id_String | Yes | -1 |
-| hermes_request_id | id_String | Yes | -1 |
-| file_number | id_String | Yes | -1 |
-| voapps_result | id_String | Yes | -1 |
-| voapps_code | id_String | Yes | -1 |
-| voapps_timestamp | id_String | Yes | -1 |
-| phone_number | id_String | Yes | -1 |
-| voapps_target_date | id_String | Yes | -1 |
-| voapps_caller_number | id_String | Yes | -1 |
-| voapps_message_id | id_String | Yes | -1 |
-| voapps_zip_code | id_String | Yes | -1 |
-| voapps_voice_append | id_String | Yes | -1 |
-| hermes_request_id | id_String | Yes | -1 |
-| file_number | id_String | Yes | -1 |
-| voapps_result | id_String | Yes | -1 |
-| voapps_code | id_String | Yes | -1 |
-| voapps_timestamp | id_String | Yes | -1 |
-| errorCode | id_String | Yes | 255 |
-| errorMessage | id_String | Yes | 255 |
-
-### tMap_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| FILE_NAME | id_String | Yes | 16777216 |
-| LOAD_DTTM | id_Date | Yes | -1 |
-| PHONE_NUMBER | id_String | Yes | 16777216 |
-| VOAPPS_TARGET_DATE | id_String | Yes | 16777216 |
-| VOAPPS_CALLER_NUMBER | id_String | Yes | 16777216 |
-| VOAPPS_MESSAGE_ID | id_String | Yes | 16777216 |
-| VOAPPS_ZIP_CODE | id_String | Yes | 16777216 |
-| VOAPPS_VOICE_APPEND | id_String | Yes | 16777216 |
-| HERMES_REQUEST_ID | id_String | Yes | 16777216 |
-| FILE_NUMBER | id_String | Yes | 16777216 |
-| VOAPPS_RESULT | id_String | Yes | 16777216 |
-| VOAPPS_CODE | id_String | Yes | 16777216 |
-| VOAPPS_TIMESTAMP | id_String | Yes | 16777216 |
-
-### tFlowMeter_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| FILE_NAME | id_String | Yes | 16777216 |
-| LOAD_DTTM | id_Date | Yes | -1 |
-| PHONE_NUMBER | id_String | Yes | 16777216 |
-| VOAPPS_TARGET_DATE | id_String | Yes | 16777216 |
-| VOAPPS_CALLER_NUMBER | id_String | Yes | 16777216 |
-| VOAPPS_MESSAGE_ID | id_String | Yes | 16777216 |
-| VOAPPS_ZIP_CODE | id_String | Yes | 16777216 |
-| VOAPPS_VOICE_APPEND | id_String | Yes | 16777216 |
-| HERMES_REQUEST_ID | id_String | Yes | 16777216 |
-| FILE_NUMBER | id_String | Yes | 16777216 |
-| VOAPPS_RESULT | id_String | Yes | 16777216 |
-| VOAPPS_CODE | id_String | Yes | 16777216 |
-| VOAPPS_TIMESTAMP | id_String | Yes | 16777216 |
-
-### tDBOutput_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| FILE_NAME | id_String | Yes | 16777216 |
-| LOAD_DTTM | id_Date | Yes | -1 |
-| PHONE_NUMBER | id_String | Yes | 16777216 |
-| VOAPPS_TARGET_DATE | id_String | Yes | 16777216 |
-| VOAPPS_CALLER_NUMBER | id_String | Yes | 16777216 |
-| VOAPPS_MESSAGE_ID | id_String | Yes | 16777216 |
-| VOAPPS_ZIP_CODE | id_String | Yes | 16777216 |
-| VOAPPS_VOICE_APPEND | id_String | Yes | 16777216 |
-| HERMES_REQUEST_ID | id_String | Yes | 16777216 |
-| FILE_NUMBER | id_String | Yes | 16777216 |
-| VOAPPS_RESULT | id_String | Yes | 16777216 |
-| VOAPPS_CODE | id_String | Yes | 16777216 |
-| VOAPPS_TIMESTAMP | id_String | Yes | 16777216 |
-| columnName | id_String | No | 255 |
-| rowNumber | id_String | No | 255 |
-| category | id_String | No | 255 |
-| character | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-| byteOffset | id_String | No | 255 |
-| line | id_String | No | 255 |
-| sqlState | id_String | No | 255 |
-| code | id_String | No | 255 |
-
-### tDBRow_1
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-### tDBRow_2
-
-| Column | Type | Nullable | Length |
-|--------|------|----------|--------|
-| errorCode | id_String | No | 255 |
-| errorMessage | id_String | No | 255 |
-
-## Data Flow
+1. **Set up.** `tPrejob_1` triggers `tJava_1`, which appends today's date to `context.archiveDir` and opens a log file; this chains into `tSetKeystore_1` and `tDBConnection_1`.
+2. **Empty the staging table.** `tDBRow_1` runs `TRUNCATE TABLE LIQUID_STAGING.VOAPPS;` (schema-qualified, and note the staging table name is simply `VOAPPS`, not `VOAPPS_TXT` like most peer jobs' `<NAME>_TXT` staging tables — see Issues observed).
+3. **Find the file.** `tFileList_1` lists files in `context.sourceDir` (skipping `*.txt`), explicitly sorted by modified date, ascending — processes the oldest file first, same pattern as `Dialer_CallTracking_Load` and `ScheduledPayment_Text_Load`.
+4. **Read the file.** `tFileInputDelimited_1` reads it with `FIELDSEPARATOR: ","` and `ROWSEPARATOR: "\n"` — a plain comma-separated, newline-delimited file, not the project's usual pipe format — US-ASCII encoded, with `DIE_ON_ERROR: true` (a malformed row stops the job, stricter than most peers). Columns cover phone number, VoApps target date, caller number, message ID, zip code, voice-append flag, the linked Hermes request ID, file number, and the delivery result/code/timestamp.
+5. **Transform.** `tMap_1` maps these onto the `VOAPPS` schema, adding `FILE_NAME` and `LOAD_DTTM` columns (note the column is `LOAD_DTTM`, not the `LOAD_DT` used by most peer jobs — see Issues observed).
+6. **Load staging.** Mapped rows pass through a row counter (`tFlowMeter_1`) into `tDBOutput_1`, inserting into `VOAPPS`.
+7. **Merge and clean up — in parallel.** Once the file-list subjob completes, `tParallelize_1` splits into: `tDBRow_2` calling `CALL MERGE_TXT_INTO_VOAPPS();`, and a file-listing chain (`tFileList_2` → archive via `tFileArchive_1`; then `tFileList_3` → delete via `tFileDelete_1`).
 
 ```mermaid
-graph LR
-    tPrejob_1 -->|COMPONENT_OK| tJava_1
-    tJava_1 -->|SUBJOB_OK| tSetKeystore_1
-    tSetKeystore_1 -->|SUBJOB_OK| tDBConnection_1
-    tFileList_1 -->|ITERATE| tJava_2
-    tFileList_1 -->|SUBJOB_OK| tParallelize_1
-    tJava_2 -->|ITERATE| tFileInputDelimited_1
-    tFileInputDelimited_1 -->|FLOW| tMap_1
-    tMap_1 -->|FLOW| tFlowMeter_1
-    tFlowMeter_1 -->|FLOW| tDBOutput_1
-    tDBRow_1 -->|SUBJOB_OK| tFileList_1
-    tParallelize_1 -->|PARALLELIZE| tDBRow_2
-    tParallelize_1 -->|PARALLELIZE| tFileList_2
-    tFileList_2 -->|SUBJOB_OK| tFileList_3
-    tFileList_2 -->|ITERATE| tJava_3
-    tJava_3 -->|ITERATE| tFileArchive_1
-    tFileList_3 -->|ITERATE| tJava_4
-    tJava_4 -->|ITERATE| tFileDelete_1
+flowchart TD
+    Prejob["tPrejob_1"] --> SetLog["tJava_1<br/>Set archive path + start log"] --> Keystore["tSetKeystore_1"] --> Connect["tDBConnection_1"]
+    Truncate["tDBRow_1<br/>TRUNCATE staging.VOAPPS"] --> ListFiles1["tFileList_1<br/>Find oldest-modified file"]
+    ListFiles1 -->|iterate| SetPath["tJava_2"] --> ReadFile["tFileInputDelimited_1<br/>Read COMMA-delimited file"]
+    ListFiles1 --> Parallel["tParallelize_1"]
+    ReadFile -->|flow| Map["tMap_1<br/>Map + set FILE_NAME/LOAD_DTTM"] --> FlowMeter["tFlowMeter_1"] --> Insert["tDBOutput_1<br/>INSERT into VOAPPS"]
+    Parallel --> Merge["tDBRow_2<br/>CALL MERGE_TXT_INTO_VOAPPS()"] & ListFiles2["tFileList_2"]
+    ListFiles2 -->|iterate| SetPath3["tJava_3"] --> Archive["tFileArchive_1"]
+    ListFiles2 --> ListFiles3["tFileList_3"]
+    ListFiles3 -->|iterate| SetPath4["tJava_4"] --> Delete["tFileDelete_1"]
 ```
+
+## Settings tables
+
+### Source: `tFileInputDelimited_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| FILENAME | `context.filePath` | Reads whichever file `tFileList_1` just found. |
+| FIELDSEPARATOR | `,` | Comma-separated — **not** the project's usual `\|~\|` pipe format. |
+| ROWSEPARATOR | `\n` | Plain newline-delimited rows — not the project's usual `\|$\|`. |
+| HEADER | 1 | First line is a header. |
+| ENCODING | US-ASCII | Plain ASCII text. |
+| DIE_ON_ERROR | true | A malformed row fails the job immediately. |
+| DIRECTORY ordering (`tFileList_1`) | `ORDER_BY_MODIFIEDDATE=true`, ascending | Explicitly processes the oldest untouched file first. |
+
+### Target: `tDBOutput_1`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Table | VOAPPS | Staging table for VoApps response records — note the name has no `_TXT` suffix, unlike most peer staging tables. |
+| Output action | INSERT | Adds rows only. |
+
+### Merge step: `tDBRow_2`
+
+| Setting | Value | What it means |
+|---|---|---|
+| Query | `CALL MERGE_TXT_INTO_VOAPPS();` | Snowflake procedure that folds staged rows into the permanent `VOAPPS` table. |
+
+## Dependencies & configuration
+
+- **Triggers/depends on other jobs:** none found — no `tRunJob` links.
+- **Context variables used:** `context.sourceDir`, `context.archiveDir`, `context.filePath`, `context.fileName`, `context.logDir`, `context.keystorePath` (all `Directories_0.1`). Uses the shared Snowflake connection object, not `LEGACY_DW_*` variables directly.
+- **Related jobs:** the loaded `hermes_request_id` column suggests this job's output is consumed alongside `cmi_Hermes_Recommendations_Load` / `Hermes_Latitude_Recommendations` data, though no direct `tRunJob` link exists between them in this metadata.
+- **Hardcoded values found:** `tSetKeystore_1.SSL_TRUSTSERVER_TRUSTSTORE`, `tFileInputDelimited_1.TEMP_DIR`, `tFileArchive_1.SOURCE_FILE`, and `tFileDelete_1.DIRECTORY`/`PATH` are fixed paths rather than context variables.
+
+## Glossary
+
+| Component type | Plain-English meaning |
+|---|---|
+| `tPrejob` / `tParallelize` | Setup-before-main-start, concurrent branches (see job_Address_Text_Load.md). |
+| `tFileList` | Lists files for the job to loop over (see job_Address_Text_Load.md). |
+| `tFileInputDelimited` | Reads a delimited text file (see job_Address_Text_Load.md). |
+| `tMap` | Maps/transforms columns (see job_Address_Text_Load.md). |
+| `tFlowMeter` | Counts rows passing a point, for logging (see job_Address_Text_Load.md). |
+| `tDBOutput` / `tSnowflakeOutput` | Writes rows into Snowflake (see job_Address_Text_Load.md). |
+| `tDBRow` / `tSnowflakeRow` | Runs a single SQL statement (see job_Address_Text_Load.md). |
+| `tJava` | Custom Java code block (see job_Address_Text_Load.md). |
+| `tFileArchive` | Zips a file into an archive location (see job_Address_Text_Load.md). |
+| `tFileDelete` | Deletes a file from disk (see job_Address_Text_Load.md). |
+| `tSetKeystore` | Configures the SSL keystore for the Snowflake connection (see job_Address_Text_Load.md). |
+
+## Issues observed
+
+- **Source file format deviates from the project standard.** This job reads a comma-separated, newline-delimited file, while nearly every other LATITUDE text-load job uses the custom `\|~\|`/`\|$\|` pipe format. This is presumably because VoApps (an external vendor) delivers its response file in its own native CSV export format rather than the internal Latitude export format — worth confirming with the team, since it means this job's input file cannot be treated interchangeably with other "Text_Load" source files.
+- **Staging table name lacks the usual `_TXT` suffix** (`VOAPPS` rather than `VOAPPS_TXT`) — a minor naming inconsistency versus peer jobs.
+- **Timestamp column is named `LOAD_DTTM`, not `LOAD_DT`** like every other job in this batch — worth confirming this isn't simply a typo/inconsistency in the target schema design, since downstream reporting that expects a consistent `LOAD_DT` column name across staging tables would need to special-case this table.
+- **`DIE_ON_ERROR` is `true`** on the file reader, stricter than most peer jobs.
+- **File pickup order deviates from the norm** — explicitly oldest-first rather than default unordered listing.
+- **The merge procedure's own logic is outside Talend** and not visible in this metadata.
