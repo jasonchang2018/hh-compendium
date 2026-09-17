@@ -13,4 +13,6 @@ Reverse-engineered documentation for the LATITUDE Talend + Snowflake data platfo
 
 ## Job-by-job documentation
 
-All 56 Talend jobs in the `LATITUDE` project are documented individually under [`talend/LATITUDE/`](talend/LATITUDE/README.md) — start at that folder's [index](talend/LATITUDE/README.md) to jump straight to any job.
+| Doc              | Covers |
+|------------------|--------|
+| [`All_JOb_Index`](talend/LATITUDE/README.md)|All 56 Talend jobs in the `LATITUDE` project are documented individually |

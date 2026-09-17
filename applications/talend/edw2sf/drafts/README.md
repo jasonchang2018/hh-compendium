@@ -15,4 +15,6 @@ EDW2SF is a large, heterogeneous project: 289 jobs spanning per-site (CHI/CO/DC/
 
 ## Job-by-job documentation
 
-All 289 Talend jobs in the `EDW2SF` project are documented individually under [`talend/EDW2SF/`](talend/EDW2SF/README.md) — start at that folder's [index](talend/EDW2SF/README.md) to jump straight to any job, grouped by family (orchestrators, per-site `CUBS_Raw_*` loads, `i3_*` telephony, ADP, HOPE/HUB, reporting/scorecards, extracts, dimensional-model loads, and more).
+| Doc              | Covers |
+|------------------|--------|
+| [`All_JOb_Index`](talend/EDW2SF/README.md) | All 289 Talend jobs in the `EDW2SF` project are documented individually , grouped by family (orchestrators, per-site `CUBS_Raw_*` loads, `i3_*` telephony, ADP, HOPE/HUB, reporting/scorecards, extracts, dimensional-model loads, and more). |
