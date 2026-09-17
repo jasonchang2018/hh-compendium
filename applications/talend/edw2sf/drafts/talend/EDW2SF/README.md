@@ -1,6 +1,6 @@
 # Talend Jobs Index — EDW2SF Project
 
-289 jobs. Click any job name to open its full documentation. See [`../../01_system_architecture.md`](../../01_system_architecture.md), [`../../04_data_lineage_map.md`](../../04_data_lineage_map.md), [`../../05_operational_runbook.md`](../../05_operational_runbook.md), and [`../../06_dependency_matrix.md`](../../06_dependency_matrix.md) for the platform-wide picture, and [`../../06_dependency_matrix.md`](../../06_dependency_matrix.md) specifically for the full `tRunJob` orchestration graph.
+289 jobs. Click any job name to open its full documentation. See [`system_architecture`](../../01_system_architecture.md), [`data_lineage_map`](../../04_data_lineage_map.md), [`operational_runbook`](../../05_operational_runbook.md), and [`dependency_matrix`](../../06_dependency_matrix.md) for the platform-wide picture, specifically for the full `tRunJob` orchestration graph.
 
 ## Orchestrator jobs (`tRunJob` chains — no direct data load of their own beyond a merge/dispatch step)
 
