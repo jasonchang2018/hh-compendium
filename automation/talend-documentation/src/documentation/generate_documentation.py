@@ -477,7 +477,7 @@ the attached JSON (never invent a name, date, or setting).
      Modified (use the extracted values; omit a row if the metadata has none
      — never invent a name or date).
    - **Step-by-step data flow** — each stage in plain English (what it reads,
-     what it changes, what it writes), not just a component list.
+     what it changes, what it writes), not just a component list. Also, add it as a Mermaid diagram.
    - **Settings tables** — for each source/target component, show its
      configuration alongside a "what it means" column in plain English.
    - **Dependencies & configuration** — which other jobs it triggers or
@@ -529,6 +529,14 @@ the attached JSON (never invent a name, date, or setting).
    - **Notes** — plain-English callouts for anything in the matrix that
      looks risky (e.g. many jobs sharing one connection, a job with no
      visible dependencies that seems like it should have some).
+
+7. **Job Index** — **File:** `talend/<ProjectName>/README.md`
+   - **Overview** — one short paragraph stating how many jobs exist in the project and how to use this index.
+   - **Grouped quick-links** — group jobs by kind (e.g. gatekeeper/alert-only jobs, reverse-direction exports that read Snowflake and write a file, jobs with explicit success/failure handling on a merge or load step, any other pattern that sets a job apart) with a one-line plain-English description and a relative markdown link to each job's file (e.g. `[JobName](job_JobName.md)`). Omit a group that has no members.
+   - **Full alphabetical table** — every job in the project, one row each, linking to its file, alongside its target table (or "reads Snowflake, writes file" / "—" where there is no table).
+   - Link back to the system-level documents (`01_system_architecture.md`, `04_data_lineage_map.md`, `05_operational_runbook.md`, `06_dependency_matrix.md`) at the top for the platform-wide picture.
+   - Use only relative markdown links (`job_JobName.md`, not absolute paths) so the index renders as clickable navigation once pushed to Git.
+   - If the workspace has more than one project, also generate a top-level **File:** `README.md` (at the documentation root) linking out to each project's job index and to the system-level documents.
 
 IMPORTANT:
 - Do NOT invent information. If something cannot be determined from the
