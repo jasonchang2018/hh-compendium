@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Talend – Job Schedules</title>
+<style>
+:root{color-scheme:light;
+  --bg:#f5f6f8;--surface-1:#ffffff;--surface-2:#f9fafb;--border:#e3e6ea;--grid:#eef0f3;
+  --text-primary:#111827;--text-secondary:#4b5563;--text-muted:#8a919c;--accent:#2a78d6;--accent-soft:#e8f1fc;--brand:#0f1b2d;
+  --series-1:#2a78d6;--series-2:#eb6834;--series-3:#1baf7a;--series-x:#8a8984;
+  --ok:#0ca30c;--fail:#d03b3b;--run:#2a78d6;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06)}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;
+  --bg:#0e1116;--surface-1:#161a21;--surface-2:#1b2028;--border:#2a313c;--grid:#232933;
+  --text-primary:#eef1f5;--text-secondary:#b6bdc8;--text-muted:#7f8896;--accent:#3987e5;--accent-soft:#1a2b42;--brand:#0a0f17;
+  --series-1:#3987e5;--series-2:#d95926;--series-3:#199e70;--series-x:#a3a29b;
+  --ok:#2fb52f;--fail:#e66767;--run:#3987e5}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text-primary);font:13px/1.45 "Segoe UI",system-ui,-apple-system,sans-serif}
+header{background:var(--brand);color:#fff;padding:14px 24px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+header h1{font-size:18px;margin:0;font-weight:600}
+header .meta{color:#aeb7c4;font-size:12px}
+main{padding:16px 24px 40px;max-width:1700px;margin:0 auto}
+.card{background:var(--surface-1);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:16px}
+.card h2{font-size:14px;margin:0 0 2px;font-weight:600}
+.card .sub{color:var(--text-secondary);font-size:12px;margin-bottom:10px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:12px 14px;box-shadow:var(--shadow)}
+.kpi .l{color:var(--text-secondary);font-size:12px;display:flex;align-items:center;gap:6px}
+.kpi .v{font-size:24px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .s{color:var(--text-muted);font-size:12px}
+.filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.filters label{color:var(--text-secondary);font-size:12px}
+select,input[type=search]{background:var(--surface-1);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:inherit}
+input[type=search]{width:240px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface-1);color:var(--text-primary);border-radius:999px;padding:4px 10px;cursor:pointer;font:inherit}
+.chip[aria-pressed=false]{opacity:.45}
+.dot{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+svg text{fill:var(--text-secondary);font-size:11px}
+.axis line,.grid line{stroke:var(--grid)}
+.tip{position:fixed;pointer-events:none;background:var(--surface-1);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding:8px 10px;font-size:12px;max-width:360px;z-index:10;display:none}
+.tip b{font-weight:600}.tip .m{color:var(--text-secondary)}
+.tip .row{display:flex;gap:6px;align-items:center}
+.gantt-wrap{max-height:760px;overflow:auto;border-top:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--grid);text-align:left;white-space:nowrap}
+th{color:var(--text-secondary);font-weight:600;cursor:pointer;position:sticky;top:0;background:var(--surface-1)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tbl-wrap{max-height:620px;overflow:auto}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--border);color:var(--text-secondary)}
+.st-ok{color:var(--ok)}.st-fail{color:var(--fail)}.st-run{color:var(--run)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--text-secondary);font-size:12px;margin-bottom:6px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.note{color:var(--text-muted);font-size:12px}
+.eng-row{display:flex;gap:6px;flex-wrap:wrap}
+header .sp{display:none}
+header .meta{flex:1 1 320px}
+header{align-items:center}
+.hbtn{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:5px 10px;font:inherit;font-size:12px;cursor:pointer;text-decoration:none;white-space:nowrap}
+.hbtn:hover{background:rgba(255,255,255,.2)}
+.hbtn[hidden]{display:none}
+#loading{padding:60px 0;text-align:center;color:var(--text-secondary)}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;vertical-align:-2px;margin-right:8px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media print{
+  header .hbtn,.filters input,.tip{display:none!important}
+  body{background:#fff}
+  .gantt-wrap,.tbl-wrap{max-height:none!important;overflow:visible!important}
+  .card{box-shadow:none;break-inside:avoid-page}
+  th{position:static}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Talend Cloud · Job Schedules</h1>
+  <span class="meta" id="meta"></span>
+  <span class="sp"></span>
+  <a class="hbtn" id="back" href="/" hidden>← Dashboard</a>
+  <button class="hbtn" id="expHtml" hidden title="Download this page with today's data as one HTML file the team can open offline">⤓ Export snapshot (HTML)</button>
+  <button class="hbtn" id="expMd" hidden title="Download the selected day as a Markdown (.md) document plus its PNG image (same name), e.g. to commit to Git">⤓ Export Markdown</button>
+  <button class="hbtn" id="expCsv" hidden title="Download the schedule table for the selected day (opens in Excel)">⤓ Export CSV</button>
+  <button class="hbtn" id="expPng" hidden title="Download the KPIs, engine load and timeline for the selected day as one PNG image">⤓ Export image (PNG)</button>
+  <button class="hbtn" id="print" hidden title="Print, or choose 'Save as PDF'">🖨 Print / PDF</button>
+</header>
+<div id="loading"><span class="spin"></span>Loading schedules, tasks, plans, Remote Engines and the last 7 days of runs from Talend… (about 30–60 seconds)</div>
+<main id="app" hidden>
+  <div class="filters">
+    <label for="day">Day</label><select id="day"></select>
+    <label>Remote Engine</label><span id="engChips" class="eng-row"></span>
+    <label for="kind">Type</label>
+    <select id="kind"><option value="">Tasks + plans</option><option value="TASK">Tasks</option><option value="PLAN">Plans</option></select>
+    <input type="search" id="q" placeholder="Search name or space…">
+    <span class="note">All times in Pacific Time (America/Los_Angeles)</span>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card">
+    <h2>Expected Remote Engine load</h2>
+    <div class="sub">Jobs expected to be running at the same time, per engine – each scheduled start × its median successful duration (last 7 days)</div>
+    <div id="load"></div>
+  </div>
+
+  <div class="card">
+    <h2>Schedule timeline</h2>
+    <div class="sub">One row per schedule. Bar starts at the scheduled time; bar length = median run duration. Colour = Remote Engine.</div>
+    <div class="legend" id="legend"></div>
+    <div class="gantt-wrap"><div id="gantt"></div></div>
+  </div>
+
+  <div class="card">
+    <h2>All schedules</h2>
+    <div class="sub">Durations and success rate from the last 7 days of executions. Click a column to sort.</div>
+    <div class="tbl-wrap"><table id="tbl"></table></div>
+  </div>
+</main>
+<div class="tip" id="tip"></div>
+
+<script>
+let DATA = {"generated":"2026-10-20T17:10+05:30","env":"HH_DEV","engines":[{"name":"Prod","status":"PAIRED","availability":"AVAILABLE"},{"name":"PROD2","status":"PAIRED","availability":"AVAILABLE"}],"items":[{"id":"62e30d42ecc24d4b64ce8017","name":"CUBS_Activity_Load","kind":"PLAN","space":"Development","engines":["Prod"],"engineTasks":{"Prod":1},"triggers":[{"type":"DAILY","interval":1,"startDate":"2022-07-28","startTime":"04:30","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["04:30"]},"name":"Activity_Load"}],"steps":1,"dur":{"median":2830.7139999866486,"avg":2794.6118333737054,"max":2890.7210001945496,"p90":2879.138000011444,"n":6},"runs7":7,"okPct":86,"last":{"start":1792495823.718,"st":"run","dur":null},"recent":[[1791977428.406,2890.7210001945496,"ok"],[1792063830.616,2840.476000070572,"ok"],[1792150221.245,2754.8740000724792,"ok"],[1792236624.595,2820.951999902725,"ok"],[1792323025.374,2879.138000011444,"ok"],[1792409404.163,2581.5099999904633,"ok"],[1792495823.718,null,"run"]]},{"id":"62fd40cb03ab024d88e81f11","name":"PaymentPlan_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2022-08-17","startTime":"06:25","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["06:25"]},"name":"daily_payplan"}],"steps":null,"dur":{"median":38.70099997520447,"avg":39.08785717827933,"max":48.95700001716614,"p90":40.638999938964844,"n":7},"runs7":7,"okPct":100,"last":{"start":1792416301.616,"st":"ok","dur":39.955000162124634},"recent":[[1791897902.291,36.13900017738342,"ok"],[1791984301.049,38.70099997520447,"ok"],[1792070701.543,48.95700001716614,"ok"],[1792157102.059,40.638999938964844,"ok"],[1792243501.569,35.437000036239624,"ok"],[1792329901.255,33.78699994087219,"ok"],[1792416301.616,39.955000162124634,"ok"]]},{"id":"6317aa3bf541694eec4f06c9","name":"Dialer_Grp_Transform_Inputs_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2023-02-14","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["02:00"]},"name":"Dialer_Grp_Ovrrd_Daily"}],"steps":null,"dur":{"median":13.601999998092651,"avg":14.245285715375628,"max":22.197999954223633,"p90":17.027000188827515,"n":7},"runs7":7,"okPct":100,"last":{"start":1792486823.587,"st":"ok","dur":17.027000188827515},"recent":[[1791968410.502,11.626999855041504,"ok"],[1792054811.912,13.601999998092651,"ok"],[1792141204.747,15.342999935150146,"ok"],[1792227619.257,10.921000003814697,"ok"],[1792314022.162,8.999000072479248,"ok"],[1792400405.384,22.197999954223633,"ok"],[1792486823.587,17.027000188827515,"ok"]]},{"id":"63192584958d9161ffe2eddb","name":"Extract_No_Dialer_Test","kind":"PLAN","space":"Development","engines":["Prod"],"engineTasks":{"Prod":5},"triggers":[{"type":"DAILY","interval":1,"startDate":"2022-09-07","startTime":"07:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["07:00"]},"name":"Daily_No_Dialer_Test"}],"steps":5,"dur":{"median":540.367999792099,"avg":553.4691428456988,"max":655.1449999809265,"p90":600.2850000858307,"n":7},"runs7":7,"okPct":100,"last":{"start":1792418445.587,"st":"ok","dur":530.3849999904633},"recent":[[1791900037.754,444.1340000629425,"ok"],[1791986443.039,599.1180000305176,"ok"],[1792072847.342,504.8489999771118,"ok"],[1792159229.609,600.2850000858307,"ok"],[1792245633.584,540.367999792099,"ok"],[1792332040.904,655.1449999809265,"ok"],[1792418445.587,530.3849999904633,"ok"]]},{"id":"63216068685b7f1bd8d3f90d","name":"Transaction Load","kind":"PLAN","space":"Development","engines":["Prod"],"engineTasks":{"Prod":5},"triggers":[{"type":"DAILY","interval":1,"startDate":"2022-09-13","startTime":"03:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["03:00"]},"name":"Transaction_Daily"}],"steps":5,"dur":{"median":322.0145000219345,"avg":1219.3468749821186,"max":4074.396999835968,"p90":3734.417999982834,"n":8},"runs7":8,"okPct":100,"last":{"start":1792490450.74,"st":"ok","dur":3734.417999982834},"recent":[[1791892017.776,449.4379999637604,"ok"],[1791972026.921,328.52099990844727,"ok"],[1792058449.413,4074.396999835968,"ok"],[1792144840.938,315.50800013542175,"ok"],[1792231308.979,314.78600001335144,"ok"],[1792317646.635,296.36500000953674,"ok"],[1792404034.775,241.3420000076294,"ok"],[1792490450.74,3734.417999982834,"ok"]]},{"id":"6328de381b7d3a7a6c4bb93e","name":"HOPE_Transactions_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2022-09-19","startTime":"18:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["18:00"]},"name":"daily"}],"steps":null,"dur":null,"runs7":0,"okPct":null,"last":null,"recent":[]},{"id":"632b4eeed1f7190f27fb9b8e","name":"INPUT_DIALER_LIST_HC_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2022-09-21","startTime":"08:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["08:00"]},"name":"daily"}],"steps":null,"dur":{"median":5.914999961853027,"avg":6.2879999705723355,"max":8.090999841690063,"p90":7.914000034332275,"n":7},"runs7":7,"okPct":100,"last":{"start":1792422012.424,"st":"ok","dur":6.374000072479248},"recent":[[1791903624.694,4.1519999504089355,"ok"],[1791990012.223,8.090999841690063,"ok"],[1792076404.623,7.914000034332275,"ok"],[1792162812.963,5.914999961853027,"ok"],[1792249203.682,5.894999980926514,"ok"],[1792335607.81,5.674999952316284,"ok"],[1792422012.424,6.374000072479248,"ok"]]},{"id":"632b5333ad9b2f18e014bba5","name":"INPUT_DIALER_LIST_GOV_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2022-09-21","startTime":"08:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["08:00"]},"name":"daily"}],"steps":null,"dur":{"median":5.668999910354614,"avg":6.01599999836513,"max":8.036999940872192,"p90":6.8460001945495605,"n":7},"runs7":7,"okPct":100,"last":{"start":1792422011.932,"st":"ok","dur":6.8460001945495605},"recent":[[1791903622.432,4.265000104904175,"ok"],[1791990008.851,6.802999973297119,"ok"],[1792076404.096,8.036999940872192,"ok"],[1792162807.331,5.1579999923706055,"ok"],[1792249204.572,5.668999910354614,"ok"],[1792335603.868,5.333999872207642,"ok"],[1792422011.932,6.8460001945495605,"ok"]]},{"id":"63603fc28a24fd74c17de9dd","name":"Raw_PCI_Letter_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"CRON","startDate":"2023-05-05","startTime":"00:00","timeZone":"America/Los_Angeles","cronExpression":"0 4,6,11,13 * * ? *","name":"PCI_Trigger"}],"steps":null,"dur":{"median":10.32700002193451,"avg":26.97896429470607,"max":105.91300010681152,"p90":73.4670000076294,"n":28},"runs7":28,"okPct":100,"last":{"start":1792494040.003,"st":"ok","dur":70.33699989318848},"recent":[[1791896430.873,7.96399998664856,"ok"],[1791914408.682,6.7799999713897705,"ok"],[1791921611.872,23.865999937057495,"ok"],[1791975611.991,105.91300010681152,"ok"],[1791982825.95,8.67199993133545,"ok"],[1792000803.854,9.67199993133545,"ok"],[1792008004.815,19.503999948501587,"ok"],[1792062007.841,91.48499989509583,"ok"],[1792069207.296,16.816999912261963,"ok"],[1792087206.296,10.98200011253357,"ok"],[1792094406.551,50.04699993133545,"ok"],[1792148409.29,100.6489999294281,"ok"],[1792155616.429,8.205000162124634,"ok"],[1792173612.905,7.240000009536743,"ok"],[1792180816.648,18.7260000705719,"ok"],[1792234817.296,73.4670000076294,"ok"],[1792242038.217,6.453000068664551,"ok"],[1792260004.307,8.213000059127808,"ok"],[1792267211.471,7.246999979019165,"ok"],[1792321212.758,8.74400019645691,"ok"],[1792328417.558,6.767999887466431,"ok"],[1792346409.856,9.205000162124634,"ok"],[1792353605.178,12.216000080108643,"ok"],[1792407616.816,14.621999979019165,"ok"],[1792414808.382,8.229000091552734,"ok"],[1792432814.966,7.223999977111816,"ok"],[1792440003.806,36.164000034332275,"ok"],[1792494040.003,70.33699989318848,"ok"]]},{"id":"636417cafcae8816afc86a82","name":"AgentKPI_Daily_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2022-11-03","startTime":"03:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["03:00"]},"name":"daily"}],"steps":null,"dur":null,"runs7":0,"okPct":null,"last":null,"recent":[]},{"id":"63699dc25e3b667fc9a18d57","name":"ADP_Employee_Raw_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2022-11-07","startTime":"15:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["15:00"]},"name":"daily"}],"steps":null,"dur":{"median":3.555000066757202,"avg":3.573714324406215,"max":4.132999897003174,"p90":3.819000005722046,"n":7},"runs7":7,"okPct":100,"last":{"start":1792447211.879,"st":"ok","dur":3.0350000858306885},"recent":[[1791928807.365,4.132999897003174,"ok"],[1792015215.623,3.5300002098083496,"ok"],[1792101607.295,3.819000005722046,"ok"],[1792188008.023,3.815000057220459,"ok"],[1792274408.073,3.128999948501587,"ok"],[1792360808.684,3.555000066757202,"ok"],[1792447211.879,3.0350000858306885,"ok"]]},{"id":"6377c415d111582b926e47a6","name":"Load_Evergreen_Hours","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"WEEKLY","interval":1,"startDate":"2022-11-18","startTime":"07:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["07:00"]},"atDays":{"type":"DAY_OF_WEEK","days":["WEDNESDAY"]},"name":"weekly"}],"steps":null,"dur":{"median":6.003999948501587,"avg":6.003999948501587,"max":6.003999948501587,"p90":6.003999948501587,"n":1},"runs7":1,"okPct":100,"last":{"start":1791986409.048,"st":"ok","dur":6.003999948501587},"recent":[[1791986409.048,6.003999948501587,"ok"]]},{"id":"638a9e5aa4396f7aae75c286","name":"Debtor_Load","kind":"PLAN","space":"Development","engines":["Prod"],"engineTasks":{"Prod":13},"triggers":[{"type":"DAILY","interval":1,"startDate":"2024-07-18","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["03:00"]},"name":"daily"}],"steps":13,"dur":{"median":2804.415999889374,"avg":3378.8721428939275,"max":6972.936000108719,"p90":3341.9649999141693,"n":7},"runs7":8,"okPct":88,"last":{"start":1792490442.961,"st":"run","dur":null},"recent":[[1791892066.944,3341.9649999141693,"ok"],[1791972049.148,2804.415999889374,"ok"],[1792058448.829,6972.936000108719,"ok"],[1792144814.392,3172.709000110626,"ok"],[1792231216.445,2588.292000055313,"ok"],[1792317626.518,2794.9390001296997,"ok"],[1792404103.803,1976.848000049591,"ok"],[1792490442.961,null,"run"]]},{"id":"63b0472d43b48847d8d14038","name":"HOPE_Credit_Request","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"CRON","startDate":"2023-02-21","startTime":"00:00","timeZone":"America/Los_Angeles","cronExpression":"12 07-22 ? * SUN-FRI *","name":"Cron_trigger"}],"steps":null,"dur":null,"runs7":0,"okPct":null,"last":null,"recent":[]},{"id":"63b0475d4660db5264659dd3","name":"HOPE_Goals_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2022-12-31","startTime":"07:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["07:00"]},"name":"Daily_trigger"}],"steps":null,"dur":null,"runs7":0,"okPct":null,"last":null,"recent":[]},{"id":"63ea798b3e1ce46493780268","name":"HUB_TempTransaction_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"CRON","startDate":"2023-02-21","startTime":"00:00","timeZone":"America/Los_Angeles","cronExpression":"37 * ? * SUN-FRI *","name":"Cron_trigger"}],"steps":null,"dur":{"median":4.196500062942505,"avg":5.302999999788073,"max":12.23199987411499,"p90":9.505000114440918,"n":144},"runs7":144,"okPct":100,"last":{"start":1792496221.668,"st":"ok","dur":4.121999979019165},"recent":[[1792197420.625,4.625,"ok"],[1792201020.669,3.817000150680542,"ok"],[1792204620.606,4.371999979019165,"ok"],[1792208220.437,5.35699987411499,"ok"],[1792211820.617,4.4009997844696045,"ok"],[1792215420.502,3.883999824523926,"ok"],[1792219020.257,7.5329999923706055,"ok"],[1792309020.314,4.646000146865845,"ok"],[1792312620.505,4.640999794006348,"ok"],[1792316220.524,3.933000087738037,"ok"],[1792319820.567,3.9030001163482666,"ok"],[1792323420.434,3.6399998664855957,"ok"],[1792327020.648,3.6419999599456787,"ok"],[1792330620.559,3.8949999809265137,"ok"],[1792334220.687,3.678999900817871,"ok"],[1792337820.355,3.861999988555908,"ok"],[1792341420.541,4.613000154495239,"ok"],[1792345020.587,3.88700008392334,"ok"],[1792348620.752,3.8980000019073486,"ok"],[1792352220.835,4.723999977111816,"ok"],[1792355820.41,4.139999866485596,"ok"],[1792359420.267,3.819000005722046,"ok"],[1792363020.491,3.8350000381469727,"ok"],[1792366620.929,4.16100001335144,"ok"],[1792370220.254,3.6720001697540283,"ok"],[1792373820.373,3.9170000553131104,"ok"],[1792377420.42,3.669999837875366,"ok"],[1792381020.422,3.936000108718872,"ok"],[1792384620.508,3.8460001945495605,"ok"],[1792388220.539,3.878999948501587,"ok"],[1792391820.527,8.508000135421753,"ok"],[1792395420.284,3.638000011444092,"ok"],[1792399020.749,4.141000032424927,"ok"],[1792402620.643,4.380000114440918,"ok"],[1792406220.565,3.8969998359680176,"ok"],[1792409820.57,4.367000102996826,"ok"],[1792413420.673,4.668999910354614,"ok"],[1792417020.593,4.205000162124634,"ok"],[1792420620.675,4.299000024795532,"ok"],[1792424220.349,8.29699993133545,"ok"],[1792427820.47,4.328000068664551,"ok"],[1792431420.711,3.8989999294281006,"ok"],[1792435020.638,3.879999876022339,"ok"],[1792438620.471,3.8989999294281006,"ok"],[1792442220.675,4.117000102996826,"ok"],[1792445820.475,9.81000018119812,"ok"],[1792449420.642,4.391999959945679,"ok"],[1792453020.552,3.8899998664855957,"ok"],[1792456620.538,3.8919999599456787,"ok"],[1792460220.865,4.086999893188477,"ok"],[1792463820.627,3.8909997940063477,"ok"],[1792467420.834,4.123999834060669,"ok"],[1792471020.779,3.8949999809265137,"ok"],[1792474620.484,3.890000104904175,"ok"],[1792478220.557,7.065000057220459,"ok"],[1792481820.234,4.138999938964844,"ok"],[1792485420.924,4.175999879837036,"ok"],[1792489020.575,3.882999897003174,"ok"],[1792492620.941,4.141000032424927,"ok"],[1792496221.668,4.121999979019165,"ok"]]},{"id":"640779c11919e04d90e724f7","name":"ADP_Roster_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"WEEKLY","interval":1,"startDate":"2023-03-07","startTime":"06:10","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["06:10"]},"atDays":{"type":"DAY_OF_WEEK","days":["MONDAY"]},"name":"Roster_Weekly"}],"steps":null,"dur":{"median":16.118000030517578,"avg":16.118000030517578,"max":16.118000030517578,"p90":16.118000030517578,"n":1},"runs7":1,"okPct":100,"last":{"start":1792415402.156,"st":"ok","dur":16.118000030517578},"recent":[[1792415402.156,16.118000030517578,"ok"]]},{"id":"640a1e340189f70e35cc7b70","name":"FactPostDates_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2023-03-10","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["11:57"]},"name":"postdate_daily"}],"steps":null,"dur":null,"runs7":0,"okPct":null,"last":null,"recent":[]},{"id":"640f60890189f70e35cc9441","name":"CUBS_PostDates_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2023-03-13","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["10:41"]},"name":"cubs_postdate_daily"}],"steps":null,"dur":{"median":19.77999997138977,"avg":19.33985720361982,"max":21.03500008583069,"p90":20.48800015449524,"n":7},"runs7":7,"okPct":100,"last":{"start":1792431661.422,"st":"ok","dur":19.77999997138977},"recent":[[1791913261.225,20.48800015449524,"ok"],[1791999661.435,21.03500008583069,"ok"],[1792086060.766,20.371999979019165,"ok"],[1792172460.746,19.53600001335144,"ok"],[1792258861.225,17.0770001411438,"ok"],[1792345260.967,17.091000080108643,"ok"],[1792431661.422,19.77999997138977,"ok"]]},{"id":"641b4ca2e4173455746231c4","name":"ADP_Payroll_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2023-03-22","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["06:07"]},"name":"daily_adp_payroll"}],"steps":null,"dur":{"median":12.472000122070312,"avg":12.329999991825648,"max":24.402999877929688,"p90":15.118000030517578,"n":7},"runs7":7,"okPct":100,"last":{"start":1792415221.723,"st":"ok","dur":24.402999877929688},"recent":[[1791896821.458,12.472000122070312,"ok"],[1791983221.687,15.118000030517578,"ok"],[1792069621.319,13.779000043869019,"ok"],[1792156021,11.926000118255615,"ok"],[1792242421.144,4.761999845504761,"ok"],[1792328821.348,3.8499999046325684,"ok"],[1792415221.723,24.402999877929688,"ok"]]},{"id":"646543f2b0dcf1405e52e9d1","name":"Extract_Hermes_Master_Prediction","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"WEEKLY","interval":1,"startDate":"2024-11-03","startTime":"03:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["03:00"]},"atDays":{"type":"DAY_OF_WEEK","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"]},"name":"hermes_daily"}],"steps":null,"dur":{"median":59.152000069618225,"avg":56.38666673501333,"max":61.83500003814697,"p90":60.50600004196167,"n":6},"runs7":6,"okPct":100,"last":{"start":1792490407.147,"st":"ok","dur":58.930999994277954},"recent":[[1791972006.824,60.50600004196167,"ok"],[1792058420.287,54.206000089645386,"ok"],[1792144809.909,59.373000144958496,"ok"],[1792231203.935,61.83500003814697,"ok"],[1792404020.949,43.46900010108948,"ok"],[1792490407.147,58.930999994277954,"ok"]]},{"id":"647df5f91d2ad750daf182a7","name":"HUB_Transactions_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"CRON","startDate":"2023-06-05","startTime":"00:00","timeZone":"America/Los_Angeles","cronExpression":"07 05-21 * * ? *","name":"hub-hourly"}],"steps":null,"dur":{"median":10.401999950408936,"avg":10.693554629798697,"max":14.875999927520752,"p90":12.21399998664856,"n":119},"runs7":119,"okPct":100,"last":{"start":1792469220.612,"st":"ok","dur":10.250999927520752},"recent":[[1792181220.374,10.549000024795532,"ok"],[1792184820.56,9.509999990463257,"ok"],[1792188420.522,12.204999923706055,"ok"],[1792192020.546,10.401999950408936,"ok"],[1792195620.394,10.03600001335144,"ok"],[1792199220.777,9.756999969482422,"ok"],[1792202820.549,10.256999969482422,"ok"],[1792206420.813,10.489000082015991,"ok"],[1792210020.416,9.254000186920166,"ok"],[1792238820.538,11.944000005722046,"ok"],[1792242420.407,9.526000022888184,"ok"],[1792246020.543,11.678999900817871,"ok"],[1792249620.966,10.01199984550476,"ok"],[1792253220.815,9.510999917984009,"ok"],[1792256820.582,9.26799988746643,"ok"],[1792260420.582,9.043999910354614,"ok"],[1792264020.895,9.651000022888184,"ok"],[1792267620.289,8.822999954223633,"ok"],[1792271220.281,10.812000036239624,"ok"],[1792274820.435,9.726999998092651,"ok"],[1792278420.434,9.51200008392334,"ok"],[1792282020.417,10.769000053405762,"ok"],[1792285620.355,9.819000005722046,"ok"],[1792289220.398,10.016000032424927,"ok"],[1792292820.538,9.786999940872192,"ok"],[1792296420.609,9.025000095367432,"ok"],[1792325220.304,13.858000040054321,"ok"],[1792328820.503,9.70300006866455,"ok"],[1792332420.591,11.539000034332275,"ok"],[1792336020.979,10.060999870300293,"ok"],[1792339620.567,11.011000156402588,"ok"],[1792343220.714,9.76200008392334,"ok"],[1792346821.055,8.779000043869019,"ok"],[1792350420.919,9.467000007629395,"ok"],[1792354020.975,8.803000211715698,"ok"],[1792357620.407,9.97599983215332,"ok"],[1792361220.75,10.98799991607666,"ok"],[1792364820.56,9.525000095367432,"ok"],[1792368420.474,11.693000078201294,"ok"],[1792372021.279,9.79200005531311,"ok"],[1792375620.859,9.562999963760376,"ok"],[1792379220.542,10.359999895095825,"ok"],[1792382820.508,10.342000007629395,"ok"],[1792411620.651,10.759000062942505,"ok"],[1792415220.358,10.631999969482422,"ok"],[1792418821.507,10.516999959945679,"ok"],[1792422421.027,11.578999996185303,"ok"],[1792426020.902,10.76800012588501,"ok"],[1792429620.875,10.006999969482422,"ok"],[1792433220.828,10.98199987411499,"ok"],[1792436820.697,9.77999997138977,"ok"],[1792440420.564,9.79800009727478,"ok"],[1792444020.684,10.206000089645386,"ok"],[1792447620.859,9.759000062942505,"ok"],[1792451220.692,9.766000032424927,"ok"],[1792454820.653,9.960999965667725,"ok"],[1792458420.473,9.332000017166138,"ok"],[1792462020.631,9.246999979019165,"ok"],[1792465620.593,9.432000160217285,"ok"],[1792469220.612,10.250999927520752,"ok"]]},{"id":"6495e5e798252c2d46e5c52d","name":"Voapp_File_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2023-06-23","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["05:00"]},"name":"daily"}],"steps":null,"dur":{"median":225.99300003051758,"avg":182.4747142791748,"max":558.4749999046326,"p90":247.72900009155273,"n":7},"runs7":7,"okPct":100,"last":{"start":1792411216.62,"st":"ok","dur":225.99300003051758},"recent":[[1791892809.389,3.5850000381469727,"ok"],[1791979209.949,247.72900009155273,"ok"],[1792065628.626,3.815999984741211,"ok"],[1792152012.848,558.4749999046326,"ok"],[1792238416.586,234.3789999485016,"ok"],[1792324819.464,3.3459999561309814,"ok"],[1792411216.62,225.99300003051758,"ok"]]},{"id":"64b96b53ad9a396f95bd0d08","name":"Top_N_Accounts_Extract","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"MONTHLY","interval":1,"startDate":"2023-07-20","startTime":"06:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_TIME","time":"06:00"},"atDays":{"type":"DAY_OF_MONTH","day":1},"name":"BOM"}],"steps":null,"dur":null,"runs7":0,"okPct":null,"last":null,"recent":[]},{"id":"64c0487c2820b51089b76bc0","name":"Top_N_Accounts_All_Extract","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"MONTHLY","interval":1,"startDate":"2023-07-25","startTime":"06:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_TIME","time":"06:00"},"atDays":{"type":"DAY_OF_MONTH","day":1},"name":"monthly"}],"steps":null,"dur":null,"runs7":0,"okPct":null,"last":null,"recent":[]},{"id":"64d9ac977ea823143610a3ff","name":"HERMES_Scoring_Extracts","kind":"PLAN","space":"Development","engines":["Prod"],"engineTasks":{"Prod":7},"triggers":[{"type":"WEEKLY","interval":1,"startDate":"2024-04-01","startTime":"04:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["04:00"]},"atDays":{"type":"DAY_OF_WEEK","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"name":"Weekly"}],"steps":7,"dur":{"median":185.53900003433228,"avg":208.66000003814696,"max":281.1630001068115,"p90":281.1630001068115,"n":5},"runs7":5,"okPct":100,"last":{"start":1792494040.731,"st":"ok","dur":281.1630001068115},"recent":[[1791975632.514,179.08700013160706,"ok"],[1792062034.696,243.9009997844696,"ok"],[1792148432.836,153.6100001335144,"ok"],[1792407621.121,185.53900003433228,"ok"],[1792494040.731,281.1630001068115,"ok"]]},{"id":"64e4fe9a675db61d7dffd340","name":"Employee_Collector_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2023-08-22","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["06:00"]},"name":"daily"}],"steps":null,"dur":{"median":3.7200000286102295,"avg":3.7444286005837575,"max":4.5959999561309814,"p90":4.098999977111816,"n":7},"runs7":7,"okPct":100,"last":{"start":1792414815.243,"st":"ok","dur":3.374000072479248},"recent":[[1791896440.574,3.568000078201294,"ok"],[1791982814.562,3.7200000286102295,"ok"],[1792069207.53,4.5959999561309814,"ok"],[1792155615.251,4.098999977111816,"ok"],[1792242031.899,2.7950000762939453,"ok"],[1792328419.739,4.059000015258789,"ok"],[1792414815.243,3.374000072479248,"ok"]]},{"id":"64e672cb675db61d7dffdc52","name":"Call_Campaign_Results_Extract","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2023-08-23","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["04:00"]},"name":"daily"}],"steps":null,"dur":{"median":13.585999965667725,"avg":14.066285712378365,"max":23.700999975204468,"p90":22.71500015258789,"n":7},"runs7":7,"okPct":100,"last":{"start":1792494018.262,"st":"ok","dur":7.013000011444092},"recent":[[1791975611.137,23.700999975204468,"ok"],[1792062006.866,22.71500015258789,"ok"],[1792148419.228,13.585999965667725,"ok"],[1792234814.562,6.003999948501587,"ok"],[1792321208.306,11.227999925613403,"ok"],[1792407610.013,14.217000007629395,"ok"],[1792494018.262,7.013000011444092,"ok"]]},{"id":"64ef9742bfee771a0cf12865","name":"ProInsight_Analytics_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2023-09-08","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["07:10","08:10","09:10","10:10","11:10","12:10"]},"name":"daily"}],"steps":null,"dur":{"median":2.138000011444092,"avg":4.1005476259049916,"max":17.73199987411499,"p90":14.844000101089478,"n":42},"runs7":42,"okPct":100,"last":{"start":1792437003.439,"st":"ok","dur":1.7950000762939453},"recent":[[1791900603.554,14.844000101089478,"ok"],[1791904203.047,2.0850000381469727,"ok"],[1791907803.9,2.303999900817871,"ok"],[1791911403.534,2.4030001163482666,"ok"],[1791915003.606,2.364000082015991,"ok"],[1791918603.07,2.365000009536743,"ok"],[1791987003.278,17.73199987411499,"ok"],[1791990604.37,2.0990002155303955,"ok"],[1791994203.584,3.1059999465942383,"ok"],[1791997802.679,2.30400013923645,"ok"],[1792001405.342,1.8289999961853027,"ok"],[1792005003.87,2.1440000534057617,"ok"],[1792073402.002,16.447999954223633,"ok"],[1792077002.796,1.8599998950958252,"ok"],[1792080604.697,3.0969998836517334,"ok"],[1792084202.147,2.8429999351501465,"ok"],[1792087802.386,2.6040000915527344,"ok"],[1792091403.001,2.3400001525878906,"ok"],[1792159802.45,16.063999891281128,"ok"],[1792163403.011,2.115000009536743,"ok"],[1792167003.989,2.5490000247955322,"ok"],[1792170601.941,2.561000108718872,"ok"],[1792174202.427,2.121000051498413,"ok"],[1792177804.664,2.069999933242798,"ok"],[1792246203.557,14.85700011253357,"ok"],[1792249802.409,2.3600001335144043,"ok"],[1792253402.874,2.131999969482422,"ok"],[1792257002.3,1.8849999904632568,"ok"],[1792260603.96,1.6180000305175781,"ok"],[1792264202.822,1.8959999084472656,"ok"],[1792332603.89,13.15999984741211,"ok"],[1792336202.474,2.128000020980835,"ok"],[1792339803.133,2.0970001220703125,"ok"],[1792343402.1,2.062000036239624,"ok"],[1792347001.305,1.6080000400543213,"ok"],[1792350603.391,1.8859999179840088,"ok"],[1792419002.377,2.380999803543091,"ok"],[1792422602.607,2.110999822616577,"ok"],[1792426202.965,2.0490000247955322,"ok"],[1792429803.954,2.0980000495910645,"ok"],[1792433403.496,1.8489999771118164,"ok"],[1792437003.439,1.7950000762939453,"ok"]]},{"id":"651e15cd1564415af27ccc3b","name":"Legal Asset Scrub","kind":"PLAN","space":"Development","engines":["Prod"],"engineTasks":{"Prod":12},"triggers":[{"type":"MONTHLY","interval":1,"startDate":"2024-04-15","startTime":"06:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_TIME","time":"06:00"},"atDays":{"type":"DAY_OF_MONTH","day":1},"name":"month_5"}],"steps":12,"dur":null,"runs7":0,"okPct":null,"last":null,"recent":[]},{"id":"6532effc4550283d249d1b8a","name":"Insurance_Discovery_Scrub_Extract","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2024-02-13","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["06:00"]},"name":"daily"}],"steps":null,"dur":{"median":14.575999975204468,"avg":14.489428554262433,"max":16.835000038146973,"p90":15.861999988555908,"n":7},"runs7":7,"okPct":100,"last":{"start":1792414816.698,"st":"ok","dur":14.296000003814697},"recent":[[1791896424.296,15.573999881744385,"ok"],[1791982810.612,14.575999975204468,"ok"],[1792069210.168,15.861999988555908,"ok"],[1792155602.734,16.835000038146973,"ok"],[1792242025.289,11.401000022888184,"ok"],[1792328404.404,12.881999969482422,"ok"],[1792414816.698,14.296000003814697,"ok"]]},{"id":"65384f3c924af6792a350c87","name":"Insurance_Discovery_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2023-10-26","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["06:05"]},"name":"daily"}],"steps":null,"dur":{"median":3.8429999351501465,"avg":3.782714298793248,"max":4.075999975204468,"p90":4.033999919891357,"n":7},"runs7":7,"okPct":100,"last":{"start":1792415102.098,"st":"ok","dur":4.075999975204468},"recent":[[1791896702.1,3.820000171661377,"ok"],[1791983101.479,3.8429999351501465,"ok"],[1792069501.38,4.033999919891357,"ok"],[1792155902.152,3.8500001430511475,"ok"],[1792242301.664,3.501999855041504,"ok"],[1792328702.628,3.3540000915527344,"ok"],[1792415102.098,4.075999975204468,"ok"]]},{"id":"657748d29118882a5294e531","name":"DC Exception Reports","kind":"PLAN","space":"Development","engines":["Prod"],"engineTasks":{"Prod":2},"triggers":[{"type":"WEEKLY","interval":1,"startDate":"2023-12-12","startTime":"05:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["05:00"]},"atDays":{"type":"DAY_OF_WEEK","days":["TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"]},"name":"DC_Exception_Reports"}],"steps":2,"dur":{"median":369.80250012874603,"avg":374.0590000152588,"max":413.48099994659424,"p90":411.9690001010895,"n":6},"runs7":6,"okPct":100,"last":{"start":1792324844.599,"st":"ok","dur":413.48099994659424},"recent":[[1791892844.932,366.9480001926422,"ok"],[1791979243.958,411.9690001010895,"ok"],[1792065649.423,324.3239998817444,"ok"],[1792152042.763,354.97499990463257,"ok"],[1792238436.743,372.65700006484985,"ok"],[1792324844.599,413.48099994659424,"ok"]]},{"id":"658362da88cb842f36cdf63c","name":"LW Reports","kind":"PLAN","space":"Development","engines":["Prod"],"engineTasks":{"Prod":3},"triggers":[{"type":"DAILY","interval":1,"startDate":"2023-12-20","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["04:00"]},"name":"daily"}],"steps":3,"dur":{"median":172.79100012779236,"avg":171.1314285482679,"max":190.11800003051758,"p90":184.9119999408722,"n":7},"runs7":7,"okPct":100,"last":{"start":1792494113.143,"st":"ok","dur":172.79100012779236},"recent":[[1791975626.242,184.9119999408722,"ok"],[1792062202.751,181.90700006484985,"ok"],[1792148506.341,162.29199981689453,"ok"],[1792234834.394,164.76799988746643,"ok"],[1792321233.066,141.13199996948242,"ok"],[1792407612.172,190.11800003051758,"ok"],[1792494113.143,172.79100012779236,"ok"]]},{"id":"65a0723f6dfd503394fe9e86","name":"Columbia_Doctors_Legal_Rpt","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"MONTHLY","interval":1,"startDate":"2024-01-11","startTime":"07:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_TIME","time":"07:00"},"atDays":{"type":"DAY_OF_MONTH","day":2},"name":"cdmonthly"}],"steps":null,"dur":null,"runs7":0,"okPct":null,"last":null,"recent":[]},{"id":"65d8dc8c09c80258bd53557c","name":"CUBS_Raw_EMail_Address_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2026-01-28","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["16:00"]},"name":"daily"}],"steps":null,"dur":{"median":1501.9590001106262,"avg":1497.1034286362785,"max":1583.8040001392365,"p90":1507.5429999828339,"n":7},"runs7":7,"okPct":100,"last":{"start":1792450817.215,"st":"ok","dur":1504.2780001163483},"recent":[[1791932409.498,1501.9590001106262,"ok"],[1792018807.586,1462.965000152588,"ok"],[1792105205.752,1457.2919998168945,"ok"],[1792191606.655,1583.8040001392365,"ok"],[1792278004.606,1461.8830001354218,"ok"],[1792364414.043,1507.5429999828339,"ok"],[1792450817.215,1504.2780001163483,"ok"]]},{"id":"65ef610e8ac4242b46fd93a4","name":"HOPE_SPTransactions_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2024-03-11","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["06:05"]},"name":"daily"}],"steps":null,"dur":null,"runs7":0,"okPct":null,"last":null,"recent":[]},{"id":"6634174cd1fbfa67d00fa368","name":"LW_Insurance_Pmt_Tracking","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2024-05-02","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["04:00"]},"name":"daily"}],"steps":null,"dur":{"median":55.294999837875366,"avg":50.871142864227295,"max":63.85600018501282,"p90":56.770999908447266,"n":7},"runs7":7,"okPct":100,"last":{"start":1792494015.006,"st":"ok","dur":38.40400004386902},"recent":[[1791975613.647,55.294999837875366,"ok"],[1792062009.127,56.770999908447266,"ok"],[1792148408.745,63.85600018501282,"ok"],[1792234807.852,40.39800000190735,"ok"],[1792321205.729,45.192999839782715,"ok"],[1792407610.245,56.18100023269653,"ok"],[1792494015.006,38.40400004386902,"ok"]]},{"id":"665e295496d722511c4a91e8","name":"ProInsight_CCU_Scorecard_V2_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2024-06-03","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["07:00","08:00","09:00","10:00","11:00","12:00"]},"name":"daily"}],"steps":null,"dur":{"median":9.220999956130981,"avg":9.274880931490944,"max":14.600000143051147,"p90":13.199000120162964,"n":42},"runs7":42,"okPct":100,"last":{"start":1792436412.939,"st":"ok","dur":7.491000175476074},"recent":[[1791900011.597,10.94100022315979,"ok"],[1791903631.583,9.88700008392334,"ok"],[1791907222.023,7.243000030517578,"ok"],[1791910806.351,8.720999956130981,"ok"],[1791914407.957,9.200999975204468,"ok"],[1791918032.634,8.691999912261963,"ok"],[1791986420.105,9.468999862670898,"ok"],[1791990024.807,13.199000120162964,"ok"],[1791993631.846,14.600000143051147,"ok"],[1791997211.021,10.14300012588501,"ok"],[1792000804.467,8.233999967575073,"ok"],[1792004410.066,9.483999967575073,"ok"],[1792072819.633,8.916000127792358,"ok"],[1792076406.578,13.787999868392944,"ok"],[1792080008.362,12.691999912261963,"ok"],[1792083608.874,10.435999870300293,"ok"],[1792087208.55,10.404000043869019,"ok"],[1792090816.127,6.949999809265137,"ok"],[1792159209.752,11.436999797821045,"ok"],[1792162811.303,10.717999935150146,"ok"],[1792166405.606,8.4760000705719,"ok"],[1792170005.048,6.501999855041504,"ok"],[1792173614.963,6.271999835968018,"ok"],[1792177210.979,9.438999891281128,"ok"],[1792245605.44,8.45799994468689,"ok"],[1792249207.445,10.037000179290771,"ok"],[1792252805.127,6.046999931335449,"ok"],[1792256406.9,6.19599986076355,"ok"],[1792260003.116,6.962000131607056,"ok"],[1792263614.197,6.253000020980835,"ok"],[1792332023.033,9.460999965667725,"ok"],[1792335605.168,9.240999937057495,"ok"],[1792339213.455,11.375,"ok"],[1792342808.565,6.034999847412109,"ok"],[1792346414.135,5.763000011444092,"ok"],[1792350017.424,13.854000091552734,"ok"],[1792418414.94,9.447999954223633,"ok"],[1792422015.683,13.424999952316284,"ok"],[1792425606.223,8.95799994468689,"ok"],[1792429213.769,8.468999862670898,"ok"],[1792432817.154,6.227999925613403,"ok"],[1792436412.939,7.491000175476074,"ok"]]},{"id":"66631cbebdfb8729f6c35f15","name":"SendGrid_Report_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2025-01-15","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["04:00"]},"name":"daily"}],"steps":null,"dur":{"median":41.0310001373291,"avg":36.07457147325788,"max":56.27500009536743,"p90":46.870999813079834,"n":7},"runs7":7,"okPct":100,"last":{"start":1792494021.331,"st":"ok","dur":22.26099991798401},"recent":[[1791975611.487,42.230000019073486,"ok"],[1792062006.936,46.870999813079834,"ok"],[1792148411.043,56.27500009536743,"ok"],[1792234810.156,21.718000173568726,"ok"],[1792321207.386,22.136000156402588,"ok"],[1792407610.063,41.0310001373291,"ok"],[1792494021.331,22.26099991798401,"ok"]]},{"id":"6675da75660869748173b942","name":"LW Scrub Reports","kind":"PLAN","space":"Development","engines":["Prod"],"engineTasks":{"Prod":1},"triggers":[{"type":"MONTHLY","interval":1,"startDate":"2024-06-21","startTime":"04:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_TIME","time":"04:00"},"atDays":{"type":"DAY_OF_MONTH","day":1},"name":"LW_Scrub_Reports_1"},{"type":"MONTHLY","interval":1,"startDate":"2024-06-21","startTime":"04:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_TIME","time":"04:00"},"atDays":{"type":"DAY_OF_MONTH","day":10},"name":"LW_Scrub_Reports_2"},{"type":"MONTHLY","interval":1,"startDate":"2024-06-21","startTime":"04:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_TIME","time":"04:00"},"atDays":{"type":"DAY_OF_MONTH","day":20},"name":"LW_Scrub_Reports_3"}],"steps":1,"dur":{"median":110.40400004386902,"avg":110.40400004386902,"max":110.40400004386902,"p90":110.40400004386902,"n":1},"runs7":1,"okPct":100,"last":{"start":1792494045.685,"st":"ok","dur":110.40400004386902},"recent":[[1792494045.685,110.40400004386902,"ok"]]},{"id":"667c8c33bdb68871b4b0fb65","name":"LW_TPL_PMT_REPORT","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2024-06-26","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["08:00"]},"name":"daily"}],"steps":null,"dur":{"median":75.03200006484985,"avg":74.797285761152,"max":90.01100015640259,"p90":86.1230001449585,"n":7},"runs7":7,"okPct":100,"last":{"start":1792422011.537,"st":"ok","dur":86.1230001449585},"recent":[[1791903632.307,75.03200006484985,"ok"],[1791990013.527,66.62100005149841,"ok"],[1792076406.674,65.68400001525879,"ok"],[1792162808.856,90.01100015640259,"ok"],[1792249204.962,63.36199998855591,"ok"],[1792335610.051,76.74799990653992,"ok"],[1792422011.537,86.1230001449585,"ok"]]},{"id":"668d8ac03e72c62705b996ae","name":"Lurie Delaware ProInsight Reports","kind":"PLAN","space":"Development","engines":["Prod"],"engineTasks":{"Prod":7},"triggers":[{"type":"MONTHLY","interval":1,"startDate":"2024-07-09","startTime":"06:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_TIME","time":"06:00"},"atDays":{"type":"DAY_OF_MONTH","day":3},"name":"3rd_of_Month"}],"steps":7,"dur":null,"runs7":0,"okPct":null,"last":null,"recent":[]},{"id":"66b4f436aea0c503416609d6","name":"SMS Load","kind":"PLAN","space":"Development","engines":["Prod"],"engineTasks":{"Prod":4},"triggers":[{"type":"DAILY","interval":1,"startDate":"2024-08-08","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["03:00"]},"name":"daily"}],"steps":4,"dur":{"median":61.26400017738342,"avg":74.11342859268188,"max":129.6579999923706,"p90":113.62199997901917,"n":7},"runs7":7,"okPct":100,"last":{"start":1792490406.112,"st":"ok","dur":129.6579999923706},"recent":[[1791972029.433,50.9449999332428,"ok"],[1792058413.887,86.82299995422363,"ok"],[1792144820.151,113.62199997901917,"ok"],[1792231246.544,45.062000036239624,"ok"],[1792317641.628,31.420000076293945,"ok"],[1792404002.998,61.26400017738342,"ok"],[1792490406.112,129.6579999923706,"ok"]]},{"id":"66ba552baea0c50341662059","name":"LW HPS Reports","kind":"PLAN","space":"Development","engines":["Prod"],"engineTasks":{"Prod":3},"triggers":[{"type":"MONTHLY","interval":1,"startDate":"2024-08-12","startTime":"05:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_TIME","time":"05:00"},"atDays":{"type":"DAY_OF_MONTH","day":3},"name":"monthly"}],"steps":3,"dur":null,"runs7":0,"okPct":null,"last":null,"recent":[]},{"id":"66c79384cc38912f6ccb08c2","name":"Extract_ProInsights_Data","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"WEEKLY","interval":1,"startDate":"2024-08-22","startTime":"05:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["05:00"]},"atDays":{"type":"DAY_OF_WEEK","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"name":"daily"}],"steps":null,"dur":{"median":12.38099980354309,"avg":12.192399930953979,"max":12.65499997138977,"p90":12.65499997138977,"n":5},"runs7":5,"okPct":100,"last":{"start":1792411217.884,"st":"ok","dur":12.417999982833862},"recent":[[1791892808.882,12.65499997138977,"ok"],[1791979211.868,12.089999914169312,"ok"],[1792065633.709,12.38099980354309,"ok"],[1792152021.672,11.417999982833862,"ok"],[1792411217.884,12.417999982833862,"ok"]]},{"id":"66d8877b48838b1b91c118d6","name":"ProInsight_HPS_Scorecard_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2024-09-04","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["07:00","08:00","09:00","10:00","11:00","12:00"]},"name":"daily"}],"steps":null,"dur":{"median":8.147500038146973,"avg":8.616166671117147,"max":14.549999952316284,"p90":11.690000057220459,"n":42},"runs7":42,"okPct":100,"last":{"start":1792436404.18,"st":"ok","dur":12.657999992370605},"recent":[[1791900010.01,9.216000080108643,"ok"],[1791903635.759,8.454999923706055,"ok"],[1791907209.661,8.713000059127808,"ok"],[1791910811.011,7.988000154495239,"ok"],[1791914405.465,6.736999988555908,"ok"],[1791918005.538,6.663999795913696,"ok"],[1791986417.151,7.999000072479248,"ok"],[1791990017.418,12.02999997138977,"ok"],[1791993610.309,11.690000057220459,"ok"],[1791997204.435,7.488000154495239,"ok"],[1792000803.683,7.510999917984009,"ok"],[1792004423.393,9.449000120162964,"ok"],[1792072818.233,10.17199993133545,"ok"],[1792076406.863,12.11900019645691,"ok"],[1792080025.195,10.91100001335144,"ok"],[1792083609.197,9.948999881744385,"ok"],[1792087206.408,9.181999921798706,"ok"],[1792090803.249,7.253000020980835,"ok"],[1792159208.431,10.903000116348267,"ok"],[1792162804.691,9.194999933242798,"ok"],[1792166421.033,7.476999998092651,"ok"],[1792170008.485,7.501000165939331,"ok"],[1792173621.513,6.424999952316284,"ok"],[1792177217.937,9.484999895095825,"ok"],[1792245608.68,6.273999929428101,"ok"],[1792249207.719,9.258999824523926,"ok"],[1792252814.933,6.748999834060669,"ok"],[1792256411.894,5.759999990463257,"ok"],[1792260004.854,7.515999794006348,"ok"],[1792263612.725,6.005000114440918,"ok"],[1792332011.577,6.996999979019165,"ok"],[1792335605.526,8.296000003814697,"ok"],[1792339209.497,8.969000101089478,"ok"],[1792342804.76,6.482000112533569,"ok"],[1792346412.465,6.276000022888184,"ok"],[1792350020.183,10.648000001907349,"ok"],[1792418413.251,10.44700002670288,"ok"],[1792422010.444,14.549999952316284,"ok"],[1792425607.939,7.247000217437744,"ok"],[1792429218.958,6.496000051498413,"ok"],[1792432824.091,6.73799991607666,"ok"],[1792436404.18,12.657999992370605,"ok"]]},{"id":"6728630a5e400a2757e7e380","name":"Export_Hermes_APC_Master_Prediction","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"WEEKLY","interval":1,"startDate":"2024-11-03","startTime":"03:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["03:00"]},"atDays":{"type":"DAY_OF_WEEK","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"name":"weekdays"}],"steps":null,"dur":{"median":57.968000173568726,"avg":58.58780002593994,"max":65.99500012397766,"p90":65.99500012397766,"n":5},"runs7":5,"okPct":100,"last":{"start":1792490415.966,"st":"ok","dur":52.77899980545044},"recent":[[1791972005.066,61.91100001335144,"ok"],[1792058410.073,65.99500012397766,"ok"],[1792144812.541,57.968000173568726,"ok"],[1792404010.368,54.28600001335144,"ok"],[1792490415.966,52.77899980545044,"ok"]]},{"id":"6745fee39c84e30c9547bbd1","name":"LW_COC_Water_Scrub","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"MONTHLY","interval":1,"startDate":"2024-11-26","startTime":"06:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_TIME","time":"06:00"},"atDays":{"type":"DAY_OF_MONTH","day":2},"name":"monthly"}],"steps":null,"dur":null,"runs7":0,"okPct":null,"last":null,"recent":[]},{"id":"67630f29e720b306d0a96b28","name":"LW_Property_Scrub","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"WEEKLY","interval":1,"startDate":"2024-12-18","startTime":"04:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["04:00"]},"atDays":{"type":"DAY_OF_WEEK","days":["FRIDAY"]},"name":"weekly_friday"}],"steps":null,"dur":{"median":119.08500003814697,"avg":119.08500003814697,"max":119.08500003814697,"p90":119.08500003814697,"n":1},"runs7":1,"okPct":100,"last":{"start":1792148413.851,"st":"ok","dur":119.08500003814697},"recent":[[1792148413.851,119.08500003814697,"ok"]]},{"id":"67731a49a236bf1ea2633be7","name":"DoNotCall_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2025-01-06","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_INTERVALS","startTime":"04:00","endTime":"23:59","interval":5},"name":"daily"}],"steps":null,"dur":{"median":6.944000005722046,"avg":7.975172025958697,"max":49.587000131607056,"p90":12.096999883651733,"n":1680},"runs7":1680,"okPct":100,"last":{"start":1792496102.067,"st":"ok","dur":6.275000095367432},"recent":[[1792464002.214,5.960000038146973,"ok"],[1792464303.128,6.210000038146973,"ok"],[1792464607.438,6.988000154495239,"ok"],[1792464901.587,5.527000188827515,"ok"],[1792465208.124,12.85099983215332,"ok"],[1792465501.751,7.92300009727478,"ok"],[1792465802.101,5.768999814987183,"ok"],[1792466102.311,5.552999973297119,"ok"],[1792466402.331,7.246999979019165,"ok"],[1792466701.79,5.45799994468689,"ok"],[1792467004.309,11.121000051498413,"ok"],[1792467301.265,7.013000011444092,"ok"],[1792467602.665,6.2179999351501465,"ok"],[1792467903.388,6.242000102996826,"ok"],[1792468207.225,6.733000040054321,"ok"],[1792468502.539,5.490999937057495,"ok"],[1792468813.435,12.86300015449524,"ok"],[1792469101.848,7.240999937057495,"ok"],[1792469403.185,5.486999988555908,"ok"],[1792469701.817,12.824000120162964,"ok"],[1792470002.979,6.473999977111816,"ok"],[1792470301.794,5.272000074386597,"ok"],[1792470603.463,5.990999937057495,"ok"],[1792470901.907,6.687000036239624,"ok"],[1792471202.95,6.74399995803833,"ok"],[1792471501.537,5.769000053405762,"ok"],[1792471805.505,6.432999849319458,"ok"],[1792472101.647,5.559000015258789,"ok"],[1792472405.159,14.583000183105469,"ok"],[1792472701.821,8.004999876022339,"ok"],[1792473002.695,5.764000177383423,"ok"],[1792473303.923,5.723999977111816,"ok"],[1792473604.228,7.962000131607056,"ok"],[1792473900.977,5.278000116348267,"ok"],[1792474206.573,13.121999979019165,"ok"],[1792474501.64,6.21999979019165,"ok"],[1792474802.907,6.207000017166138,"ok"],[1792475102.695,5.271000146865845,"ok"],[1792475401.774,6.509000062942505,"ok"],[1792475701.944,5.29800009727478,"ok"],[1792476011.278,11.58899998664856,"ok"],[1792476302.234,7.730999946594238,"ok"],[1792476602.44,7.4700000286102295,"ok"],[1792476903.179,6.43500018119812,"ok"],[1792477203.699,5.999000072479248,"ok"],[1792477501.096,6.00600004196167,"ok"],[1792477808.203,13.562999963760376,"ok"],[1792478102.159,26.27500009536743,"ok"],[1792478401.144,7.733999967575073,"ok"],[1792478703.284,5.759000062942505,"ok"],[1792479003.786,7.263999938964844,"ok"],[1792479301.472,5.522000074386597,"ok"],[1792494016.868,9.777999877929688,"ok"],[1792494301.266,7.24399995803833,"ok"],[1792494601.942,5.759999990463257,"ok"],[1792494901.746,6.011999845504761,"ok"],[1792495202.017,6.693000078201294,"ok"],[1792495501.835,6.246999979019165,"ok"],[1792495805.525,6.960999965667725,"ok"],[1792496102.067,6.275000095367432,"ok"]]},{"id":"677ede458a6897448b5773a2","name":"DoNotCall_Load_Full","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"WEEKLY","interval":1,"startDate":"2025-01-12","startTime":"01:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["01:00"]},"atDays":{"type":"DAY_OF_WEEK","days":["SUNDAY"]},"name":"weekly"},{"type":"ONCE","startDate":"2025-01-09","startTime":"01:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_TIME","time":"01:00"},"name":"onetime"}],"steps":null,"dur":{"median":7554.220999956131,"avg":7554.220999956131,"max":7554.220999956131,"p90":7554.220999956131,"n":1},"runs7":1,"okPct":100,"last":{"start":1792310421.448,"st":"ok","dur":7554.220999956131},"recent":[[1792310421.448,7554.220999956131,"ok"]]},{"id":"678fdd0789086f560136e30e","name":"City_of_Phi_C1A_PDR_Extract","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"MONTHLY","interval":1,"startDate":"2025-01-21","startTime":"05:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_TIME","time":"05:00"},"atDays":{"type":"DAY_OF_MONTH","day":5},"name":"monthly"}],"steps":null,"dur":null,"runs7":0,"okPct":null,"last":null,"recent":[]},{"id":"67b9645081a7063db6a4cbb5","name":"Latitude Feed","kind":"PLAN","space":"Latitude","engines":["Prod","PROD2"],"engineTasks":{"Prod":44,"PROD2":1},"triggers":[{"type":"DAILY","interval":1,"startDate":"2026-10-17","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["06:00"]},"name":"daily"}],"steps":45,"dur":{"median":9729.046500086784,"avg":11487.17450006803,"max":18239.584000110626,"p90":12884.37800002098,"n":6},"runs7":10,"okPct":60,"last":{"start":1792414847.276,"st":"ok","dur":9377.490000009537},"recent":[[1791896434.996,14411.450000047684,"fail"],[1791944576.281,9225.577000141144,"ok"],[1791982816.776,12884.37800002098,"ok"],[1792069228.6,18239.584000110626,"ok"],[1792153366.491,10080.603000164032,"ok"],[1792242012.038,14404.104999780655,"fail"],[1792287840.671,9198.37700009346,"fail"],[1792328415.177,3.3259999752044678,"fail"],[1792329456.259,9115.414999961853,"ok"],[1792414847.276,9377.490000009537,"ok"]]},{"id":"67d46172df95af2fd46e33bf","name":"i3_Load","kind":"PLAN","space":"Development","engines":["Prod"],"engineTasks":{"Prod":16},"triggers":[{"type":"DAILY","interval":1,"startDate":"2025-12-03","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["03:00"]},"name":"daily"}],"steps":16,"dur":{"median":743.5640001296997,"avg":744.1367142541068,"max":825.8309998512268,"p90":753.6029999256134,"n":7},"runs7":7,"okPct":100,"last":{"start":1792490437.442,"st":"ok","dur":716.4179999828339},"recent":[[1791972098.35,747.3519999980927,"ok"],[1792058435.423,825.8309998512268,"ok"],[1792144849.074,743.5640001296997,"ok"],[1792231242.043,753.6029999256134,"ok"],[1792317643.119,741.6449999809265,"ok"],[1792404040.434,680.5439999103546,"ok"],[1792490437.442,716.4179999828339,"ok"]]},{"id":"67ed66debe6801746ef9de79","name":"Hermes_Latitude_Recommendations","kind":"TASK","space":"Latitude","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2025-04-03","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["03:00"]},"name":"daily"}],"steps":null,"dur":{"median":51.968000173568726,"avg":48.05299997329712,"max":72.38399982452393,"p90":62.29299998283386,"n":7},"runs7":7,"okPct":100,"last":{"start":1792490422.903,"st":"ok","dur":52.81099987030029},"recent":[[1791972032.1,38.4539999961853,"ok"],[1792058425.919,51.968000173568726,"ok"],[1792144810.819,62.29299998283386,"ok"],[1792231207.686,72.38399982452393,"ok"],[1792317615.497,15.621000051498413,"ok"],[1792404032.094,42.83999991416931,"ok"],[1792490422.903,52.81099987030029,"ok"]]},{"id":"680fc6c3430007609c7994f8","name":"Livevox_Daily_Load","kind":"TASK","space":"Latitude","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2025-04-28","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["02:00"]},"name":"daily"}],"steps":null,"dur":{"median":11.627000093460083,"avg":12.412714311054774,"max":19.180999994277954,"p90":16.53700017929077,"n":7},"runs7":7,"okPct":100,"last":{"start":1792486818.541,"st":"ok","dur":19.180999994277954},"recent":[[1791968432.255,7.461999893188477,"ok"],[1792054812.671,11.627000093460083,"ok"],[1792141214.58,7.25,"ok"],[1792227604.824,16.53700017929077,"ok"],[1792314008.792,15.131999969482422,"ok"],[1792400415.902,9.700000047683716,"ok"],[1792486818.541,19.180999994277954,"ok"]]},{"id":"683ddf6a07f3842ab855163b","name":"MaxRTE_Request_Export","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2025-06-02","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["08:00"]},"name":"daily"}],"steps":null,"dur":{"median":196.87800002098083,"avg":196.66371427263533,"max":218.1119999885559,"p90":211.06200003623962,"n":7},"runs7":7,"okPct":100,"last":{"start":1792422032.63,"st":"ok","dur":189.38899993896484},"recent":[[1791903613.357,203.14399981498718,"ok"],[1791990025.828,218.1119999885559,"ok"],[1792076417.405,185.10400009155273,"ok"],[1792162811.797,211.06200003623962,"ok"],[1792249217.539,172.95700001716614,"ok"],[1792335612.533,196.87800002098083,"ok"],[1792422032.63,189.38899993896484,"ok"]]},{"id":"68476eab0c3879709853c0aa","name":"Avita_Monthly_Report_Extract","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"MONTHLY","interval":1,"startDate":"2025-06-09","startTime":"06:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_TIME","time":"06:00"},"atDays":{"type":"DAY_OF_MONTH","day":15},"name":"monthly"}],"steps":null,"dur":{"median":57.90300011634827,"avg":57.90300011634827,"max":57.90300011634827,"p90":57.90300011634827,"n":1},"runs7":1,"okPct":100,"last":{"start":1792069218.271,"st":"ok","dur":57.90300011634827},"recent":[[1792069218.271,57.90300011634827,"ok"]]},{"id":"684881b2bd4b6237f0585670","name":"MaxRTE_Result_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"WEEKLY","interval":1,"startDate":"2025-06-10","startTime":"13:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["13:00"]},"atDays":{"type":"DAY_OF_WEEK","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"name":"daily"}],"steps":null,"dur":{"median":10.700999975204468,"avg":10.977600002288819,"max":19.008999824523926,"p90":19.008999824523926,"n":5},"runs7":5,"okPct":100,"last":{"start":1792440005.653,"st":"ok","dur":19.008999824523926},"recent":[[1791921611.669,9.16100001335144,"ok"],[1792008008.254,10.712000131607056,"ok"],[1792094404.853,5.305000066757202,"ok"],[1792180817.261,10.700999975204468,"ok"],[1792440005.653,19.008999824523926,"ok"]]},{"id":"686c65f075943679d05e6f0d","name":"PaymentVision_Activity_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2025-07-07","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["08:00"]},"name":"daily"}],"steps":null,"dur":{"median":27.020999908447266,"avg":29.400285652705602,"max":40.24900007247925,"p90":35.28999996185303,"n":7},"runs7":7,"okPct":100,"last":{"start":1792422014.374,"st":"ok","dur":26.383999824523926},"recent":[[1791903629.829,27.020999908447266,"ok"],[1791990011.276,29.5939998626709,"ok"],[1792076407.06,35.28999996185303,"ok"],[1792162824.369,40.24900007247925,"ok"],[1792249205.236,26.65400004386902,"ok"],[1792335604.464,20.609999895095825,"ok"],[1792422014.374,26.383999824523926,"ok"]]},{"id":"6875bc3fd83e825d637c78ad","name":"SMS_IC_Outbound_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2025-07-17","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["03:00"]},"name":"daily"}],"steps":null,"dur":{"median":9.503000020980835,"avg":13.796571356909615,"max":30.62999987602234,"p90":21.550999879837036,"n":7},"runs7":7,"okPct":100,"last":{"start":1792490417.789,"st":"ok","dur":5.040999889373779},"recent":[[1791972006.742,30.62999987602234,"ok"],[1792058422.852,16.401999950408936,"ok"],[1792144812.548,21.550999879837036,"ok"],[1792231229.815,9.30299997329712,"ok"],[1792317622.806,9.503000020980835,"ok"],[1792404014.723,4.145999908447266,"ok"],[1792490417.789,5.040999889373779,"ok"]]},{"id":"687feb94a01b7bc4aaa193d7","name":"SMS_IC_Inbound_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2025-07-22","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["03:00"]},"name":"daily"}],"steps":null,"dur":{"median":10.169000148773193,"avg":14.493714264460973,"max":31.118000030517578,"p90":21.281999826431274,"n":7},"runs7":7,"okPct":100,"last":{"start":1792490414.947,"st":"ok","dur":12.158999919891357},"recent":[[1791972009.743,7.869999885559082,"ok"],[1792058491.488,10.169000148773193,"ok"],[1792144817.912,31.118000030517578,"ok"],[1792231229.728,9.29200005531311,"ok"],[1792317627.876,9.565999984741211,"ok"],[1792404017.38,21.281999826431274,"ok"],[1792490414.947,12.158999919891357,"ok"]]},{"id":"68942f8e3e066bc1471874a2","name":"Load_837_Files","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2025-08-06","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["06:00"]},"name":"daily"}],"steps":null,"dur":null,"runs7":0,"okPct":null,"last":null,"recent":[]},{"id":"68d5740d6220f9127b8ea8e6","name":"IDOR_Amnesty_Extract","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"WEEKLY","interval":1,"startDate":"2025-10-01","startTime":"03:00","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["03:00"]},"atDays":{"type":"DAY_OF_WEEK","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"name":"daily"}],"steps":null,"dur":{"median":5.480999946594238,"avg":6.678600025177002,"max":12.108000040054321,"p90":12.108000040054321,"n":5},"runs7":5,"okPct":100,"last":{"start":1792490410.851,"st":"ok","dur":4.266999959945679},"recent":[[1791972003.855,5.384999990463257,"ok"],[1792058420.361,5.480999946594238,"ok"],[1792144813.61,12.108000040054321,"ok"],[1792404010.133,6.152000188827515,"ok"],[1792490410.851,4.266999959945679,"ok"]]},{"id":"68e6db254d32197809ccd061","name":"LW Dashboard Reports","kind":"PLAN","space":"Development","engines":["Prod"],"engineTasks":{"Prod":3},"triggers":[{"type":"DAILY","interval":1,"startDate":"2025-10-08","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["04:00"]},"name":"daily"}],"steps":3,"dur":{"median":90.95700001716614,"avg":93.94157147407532,"max":108.65300011634827,"p90":99.9430000782013,"n":7},"runs7":7,"okPct":100,"last":{"start":1792494041.764,"st":"ok","dur":99.9430000782013},"recent":[[1791975638.417,94.64100003242493,"ok"],[1792062014.977,108.65300011634827,"ok"],[1792148504.402,82.44099998474121,"ok"],[1792234838.819,90.95700001716614,"ok"],[1792321235.133,90.87000012397766,"ok"],[1792407636.989,90.08599996566772,"ok"],[1792494041.764,99.9430000782013,"ok"]]},{"id":"691b64e622be26cefb14cc3d","name":"ProInsight_Scorecard_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2025-11-17","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["07:10","08:10","09:10","10:10","11:10","12:10"]},"name":"daily"}],"steps":null,"dur":{"median":8.496000051498413,"avg":8.915309491611662,"max":13.196000099182129,"p90":11.29699993133545,"n":42},"runs7":42,"okPct":100,"last":{"start":1792437005.638,"st":"ok","dur":6.471999883651733},"recent":[[1791900603.848,9.961999893188477,"ok"],[1791904203.469,7.824999809265137,"ok"],[1791907803.208,8.401999950408936,"ok"],[1791911403.628,8.50600004196167,"ok"],[1791915002.344,9.429999828338623,"ok"],[1791918602.107,11.85099983215332,"ok"],[1791987003.745,10.473000049591064,"ok"],[1791990608.419,8.463000059127808,"ok"],[1791994203.671,12.26799988746643,"ok"],[1791997803.082,9.019999980926514,"ok"],[1792001402.739,8.516000032424927,"ok"],[1792005003.188,7.746000051498413,"ok"],[1792073402.665,11.29699993133545,"ok"],[1792077002.714,10.9760000705719,"ok"],[1792080605.045,9.605000019073486,"ok"],[1792084202.852,13.196000099182129,"ok"],[1792087802.613,8.307000160217285,"ok"],[1792091403.678,8.174999952316284,"ok"],[1792159802.875,9.746999979019165,"ok"],[1792163404.775,8.949999809265137,"ok"],[1792167003.443,11.926999807357788,"ok"],[1792170602.333,7.945000171661377,"ok"],[1792174204.264,8.414000034332275,"ok"],[1792177803.561,7.273999929428101,"ok"],[1792246203.367,10.478999853134155,"ok"],[1792249801.751,7.995000123977661,"ok"],[1792253401.676,8.667999982833862,"ok"],[1792257001.946,7.299999952316284,"ok"],[1792260602.923,6.322999954223633,"ok"],[1792264202.741,6.272000074386597,"ok"],[1792332604.163,11.20199990272522,"ok"],[1792336202.175,7.6549999713897705,"ok"],[1792339802.445,6.976999998092651,"ok"],[1792343402.292,6.721999883651733,"ok"],[1792347003.887,7.4670000076293945,"ok"],[1792350602.857,9.212999820709229,"ok"],[1792419002.459,10.01799988746643,"ok"],[1792422602.934,8.184000015258789,"ok"],[1792426206.28,8.486000061035156,"ok"],[1792429802.866,9.42799997329712,"ok"],[1792433403.571,7.306999921798706,"ok"],[1792437005.638,6.471999883651733,"ok"]]},{"id":"691def0658a521894f720bfe","name":"Semaphore_Check","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2025-11-19","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["05:00"]},"name":"daily"}],"steps":null,"dur":{"median":1.9479999542236328,"avg":2.028428520475115,"max":2.194999933242798,"p90":2.184000015258789,"n":7},"runs7":7,"okPct":100,"last":{"start":1792411206.814,"st":"ok","dur":2.184000015258789},"recent":[[1791892804.922,1.9479999542236328,"ok"],[1791979210.55,2.194999933242798,"ok"],[1792065608.252,1.937999963760376,"ok"],[1792152015.045,2.1009998321533203,"ok"],[1792238406.348,1.9300000667572021,"ok"],[1792324804.917,1.9029998779296875,"ok"],[1792411206.814,2.184000015258789,"ok"]]},{"id":"69612e635a336dcd6d418205","name":"PV_PostDate_Export_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2026-01-09","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["04:00","07:00"]},"name":"daily"}],"steps":null,"dur":{"median":19.575999975204468,"avg":27.225785732269287,"max":63.894999980926514,"p90":61.88499999046326,"n":14},"runs7":14,"okPct":100,"last":{"start":1792494016.021,"st":"ok","dur":37.949000120162964},"recent":[[1791900023.635,7.9670000076293945,"ok"],[1791975614.273,56.48900008201599,"ok"],[1791986419.905,7.733000040054321,"ok"],[1792062012.038,43.639999866485596,"ok"],[1792072806.808,7.23799991607666,"ok"],[1792148414.386,61.88499999046326,"ok"],[1792159210.619,6.735000133514404,"ok"],[1792234812.093,35.46500015258789,"ok"],[1792245630.135,5.778000116348267,"ok"],[1792321206.561,30.384999990463257,"ok"],[1792332025.091,7.234999895095825,"ok"],[1792407609.521,63.894999980926514,"ok"],[1792418414.239,8.766999959945679,"ok"],[1792494016.021,37.949000120162964,"ok"]]},{"id":"6965945b64f89002652de412","name":"Daily_Fee_Projection_Load","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2026-01-12","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["08:00"]},"name":"daily"}],"steps":null,"dur":{"median":9.782000064849854,"avg":11.061285734176636,"max":13.777000188827515,"p90":13.065999984741211,"n":7},"runs7":7,"okPct":100,"last":{"start":1792422009.465,"st":"ok","dur":13.777000188827515},"recent":[[1791903611.76,9.782000064849854,"ok"],[1791990014.048,13.065999984741211,"ok"],[1792076404.346,12.77999997138977,"ok"],[1792162804.358,9.504999876022339,"ok"],[1792249205.481,9.61300015449524,"ok"],[1792335605.792,8.905999898910522,"ok"],[1792422009.465,13.777000188827515,"ok"]]},{"id":"699c84b498163e974f10c6a4","name":"Voapps_Response_Load","kind":"TASK","space":"Latitude","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2026-02-23","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["03:00"]},"name":"daily"}],"steps":null,"dur":{"median":30.213000059127808,"avg":35.28671424729483,"max":60.42899990081787,"p90":50.812000036239624,"n":7},"runs7":7,"okPct":100,"last":{"start":1792490410.785,"st":"ok","dur":46.67999982833862},"recent":[[1791972003.577,50.812000036239624,"ok"],[1792058408.977,19.124000072479248,"ok"],[1792144810.548,60.42899990081787,"ok"],[1792231222.033,30.213000059127808,"ok"],[1792317620.817,21.631999969482422,"ok"],[1792404020.325,18.116999864578247,"ok"],[1792490410.785,46.67999982833862,"ok"]]},{"id":"69ea41f831b04b559c9c2855","name":"Northwestern_Future_Appts","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2026-04-23","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["03:00"]},"name":"daily"}],"steps":null,"dur":{"median":3.490000009536743,"avg":7.262999977384295,"max":27.375,"p90":6.2230000495910645,"n":7},"runs7":7,"okPct":100,"last":{"start":1792490403.24,"st":"ok","dur":3.2899999618530273},"recent":[[1791972012.419,6.2230000495910645,"ok"],[1792058403.635,27.375,"ok"],[1792144805.196,3.3259999752044678,"ok"],[1792231202.383,3.490000009536743,"ok"],[1792317624.211,3.2990000247955322,"ok"],[1792404001.512,3.8379998207092285,"ok"],[1792490403.24,3.2899999618530273,"ok"]]},{"id":"69fdf2bb174b7aceb3d5f728","name":"VA_Tax_Inventory_Report","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"MONTHLY","interval":1,"startDate":"2026-06-03","startTime":"07:25","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_TIME","time":"07:25"},"atDays":{"type":"DAY_OF_MONTH","day":3},"name":"bimonthly_1"},{"type":"MONTHLY","interval":1,"startDate":"2026-05-08","startTime":"07:27","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_TIME","time":"07:27"},"atDays":{"type":"DAY_OF_MONTH","day":20},"name":"bimonthly_2"}],"steps":null,"dur":null,"runs7":0,"okPct":null,"last":null,"recent":[]},{"id":"6a03aa3ad74bb438691b2773","name":"Master_Prediction_Scores_Export","kind":"TASK","space":"Latitude","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2026-05-12","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["03:00"]},"name":"daily"}],"steps":null,"dur":{"median":75.01699995994568,"avg":83.09571433067322,"max":235.4409999847412,"p90":78.16600012779236,"n":7},"runs7":7,"okPct":100,"last":{"start":1792490411.24,"st":"ok","dur":68.20899987220764},"recent":[[1791972008.905,75.01699995994568,"ok"],[1792058405.462,78.16600012779236,"ok"],[1792144884.549,33.6800000667572,"ok"],[1792231204.659,77.71200013160706,"ok"],[1792317617.304,13.445000171661377,"ok"],[1792404027.376,235.4409999847412,"ok"],[1792490411.24,68.20899987220764,"ok"]]},{"id":"6a03ac572026fd86a08d5ec5","name":"Master_Config_Val_Segs_Export","kind":"TASK","space":"Latitude","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2026-05-12","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["03:00"]},"name":"daily"}],"steps":null,"dur":{"median":19.93499994277954,"avg":47.611428601401194,"max":196.32699990272522,"p90":50.03399991989136,"n":7},"runs7":7,"okPct":100,"last":{"start":1792490410.615,"st":"ok","dur":50.03399991989136},"recent":[[1791972017.674,19.93499994277954,"ok"],[1792058488.419,7.731000185012817,"ok"],[1792144811.767,12.239000082015991,"ok"],[1792231204.204,29.854000091552734,"ok"],[1792317613.866,17.16000008583069,"ok"],[1792404028.196,196.32699990272522,"ok"],[1792490410.615,50.03399991989136,"ok"]]},{"id":"6a270d5bed55e3a54c47dd92","name":"ISO_Request_Export","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2026-06-08","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["04:00"]},"name":"daily"}],"steps":null,"dur":{"median":12.984999895095825,"avg":13.462571382522583,"max":21.681999921798706,"p90":21.467999935150146,"n":7},"runs7":7,"okPct":100,"last":{"start":1792494011.816,"st":"ok","dur":5.257999897003174},"recent":[[1791975613.249,21.681999921798706,"ok"],[1792062008.492,21.467999935150146,"ok"],[1792148422.495,10.390000104904175,"ok"],[1792234810.907,8.246999979019165,"ok"],[1792321206.969,12.984999895095825,"ok"],[1792407611.017,14.20799994468689,"ok"],[1792494011.816,5.257999897003174,"ok"]]},{"id":"6a32e560c82c2845eba19e71","name":"Callminer_HH_Metadata_Daily_Extract","kind":"TASK","space":"Development","engines":["Prod"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2026-06-17","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["10:30"]},"name":"daily"}],"steps":null,"dur":{"median":8.46399998664856,"avg":17.54128568513053,"max":61.062999963760376,"p90":25.931999921798706,"n":7},"runs7":7,"okPct":100,"last":{"start":1792431009.598,"st":"ok","dur":61.062999963760376},"recent":[[1791912604.661,5.292999982833862,"ok"],[1791999002.437,6.520999908447266,"ok"],[1792085404.198,8.46399998664856,"ok"],[1792171804.268,9.218000173568726,"ok"],[1792258206.308,6.297999858856201,"ok"],[1792344610.214,25.931999921798706,"ok"],[1792431009.598,61.062999963760376,"ok"]]},{"id":"6ac2335234e29de0ca63280d","name":"RCM Latitude Feed","kind":"PLAN","space":"Latitude","engines":["PROD2"],"engineTasks":{"PROD2":38},"triggers":[{"type":"DAILY","interval":1,"startDate":"2026-10-04","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["00:15"]},"name":"RMC-Daily-Run"}],"steps":38,"dur":{"median":1456.1490000486374,"avg":1453.5306666294734,"max":1509.0889999866486,"p90":1508.7730000019073,"n":6},"runs7":7,"okPct":86,"last":{"start":1792480571.524,"st":"ok","dur":1429.3180000782013},"recent":[[1791962105.073,1508.7730000019073,"ok"],[1792048596.532,1395.3769998550415,"ok"],[1792134943.665,1482.9800000190735,"ok"],[1792221399.907,1395.646999835968,"ok"],[1792307711.767,1509.0889999866486,"ok"],[1792394169.77,1433.018000125885,"fail"],[1792480571.524,1429.3180000782013,"ok"]]},{"id":"6ac7336cb0ac07a659d18d4b","name":"Riverwood_Health_Stage_Put","kind":"TASK","space":"Latitude","engines":["PROD2"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2026-10-08","timeZone":"America/Chicago","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["08:00"]},"name":"Daily"}],"steps":null,"dur":{"median":14.89299988746643,"avg":15.068142822810582,"max":16.662999868392944,"p90":16.424999952316284,"n":7},"runs7":7,"okPct":100,"last":{"start":1792414820.388,"st":"ok","dur":13.878999948501587},"recent":[[1791896406.489,16.662999868392944,"ok"],[1791982817.366,15.404000043869019,"ok"],[1792069214.41,14.89299988746643,"ok"],[1792155619.051,16.424999952316284,"ok"],[1792242003.975,13.719000101089478,"ok"],[1792328404.14,14.49399995803833,"ok"],[1792414820.388,13.878999948501587,"ok"]]},{"id":"6ac733ebd8f6d932e293cd54","name":"Hermes_Latitude_RCM_Proposal_Export","kind":"TASK","space":"Latitude","engines":["PROD2"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2026-10-08","timeZone":"America/Chicago","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["05:00"]},"name":"Daily"}],"steps":null,"dur":{"median":52.02300000190735,"avg":48.97342855589731,"max":58.84000015258789,"p90":56.33699989318848,"n":7},"runs7":7,"okPct":100,"last":{"start":1792490413.531,"st":"ok","dur":58.84000015258789},"recent":[[1791972020.292,52.02300000190735,"ok"],[1792058424.777,50.04100012779236,"ok"],[1792144811.898,56.33699989318848,"ok"],[1792231207.019,53.919999837875366,"ok"],[1792317604.272,27.20199990272522,"ok"],[1792404027.211,44.45099997520447,"ok"],[1792490413.531,58.84000015258789,"ok"]]},{"id":"6ac75a50b0ac07a659d18dc2","name":"ISO_stage_Put","kind":"TASK","space":"Latitude","engines":["PROD2"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2026-10-09","timeZone":"America/North_Dakota/Center","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["11:00"]},"name":"ISO_Response_Files_daily_schedule"}],"steps":null,"dur":{"median":15.416000127792358,"avg":15.410714319774083,"max":19.379000186920166,"p90":16.742000102996826,"n":7},"runs7":7,"okPct":100,"last":{"start":1792425607.345,"st":"ok","dur":13.793999910354614},"recent":[[1791907210.853,19.379000186920166,"ok"],[1791993606.119,15.416000127792358,"ok"],[1792080021.115,16.742000102996826,"ok"],[1792166422.089,16.007999897003174,"ok"],[1792252817.092,14.436000108718872,"ok"],[1792339203.921,12.099999904632568,"ok"],[1792425607.345,13.793999910354614,"ok"]]},{"id":"6acf99349d968444c4311724","name":"Northwestern_Future_Appts_Large_Balance","kind":"TASK","space":"Development","engines":["PROD2"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2026-10-14","timeZone":"America/Los_Angeles","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["05:00"]},"name":"Daily"}],"steps":null,"dur":{"median":13.52400004863739,"avg":15.720333337783813,"max":27.664999961853027,"p90":13.964999914169312,"n":6},"runs7":6,"okPct":100,"last":{"start":1792411219.955,"st":"ok","dur":12.936000108718872},"recent":[[1791990079.609,13.413000106811523,"ok"],[1792065609.918,13.964999914169312,"ok"],[1792152014.746,27.664999961853027,"ok"],[1792238405.996,12.70799994468689,"ok"],[1792324805.743,13.634999990463257,"ok"],[1792411219.955,12.936000108718872,"ok"]]},{"id":"6ad078b37870d42e9e40a138","name":"Genesys_API_Data_Load","kind":"TASK","space":"Development","engines":["PROD2"],"engineTasks":null,"triggers":[{"type":"DAILY","interval":1,"startDate":"2026-10-15","timeZone":"America/North_Dakota/Center","atTimes":{"type":"AT_SPECIFIC_TIMES","times":["05:00"]},"name":"Genesys_API_Load_Daily_Schedule"}],"steps":null,"dur":{"median":51.353999853134155,"avg":51.240714243480134,"max":58.85599994659424,"p90":54.93900012969971,"n":7},"runs7":13,"okPct":54,"last":{"start":1792490410.841,"st":"ok","dur":58.85599994659424},"recent":[[1791915558.956,47.35199999809265,"fail"],[1791915719.774,42.04299998283386,"fail"],[1791916048.58,45.79800009727478,"fail"],[1791957635.758,26.062000036239624,"fail"],[1791981533.892,20.123000144958496,"fail"],[1791981558.995,10.604000091552734,"fail"],[1791983027.665,42.69099998474121,"ok"],[1792058433.529,51.353999853134155,"ok"],[1792144815.22,54.651999950408936,"ok"],[1792231208.116,54.93900012969971,"ok"],[1792317620.907,49.5479998588562,"ok"],[1792404030.811,46.644999980926514,"ok"],[1792490410.841,58.85599994659424,"ok"]]}],"snapshot":true};
+const PT = "America/Los_Angeles";
+const DOW = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function init() {
+$("#loading").hidden = true; $("#app").hidden = false;
+// ---------- engine colours: fixed order, follow the entity ----------
+const ENG_ORDER = [...DATA.engines.map(e => e.name), "Talend Cloud Engine"];
+const allEng = [...new Set([...ENG_ORDER, ...DATA.items.flatMap(i => i.engines)])].filter(e => DATA.items.some(i => i.engines.includes(e)));
+const engVar = e => { const k = ENG_ORDER.indexOf(e); return k >= 0 && k < 3 ? `var(--series-${k + 1})` : "var(--series-x)"; };
+// plans spread over several engines: "Prod (44 tasks)"; the first engine (most tasks) colours the plan
+const engLabel = (r, e) => r.engineTasks && r.engines.length > 1 ? `${e} (${r.engineTasks[e]} task${r.engineTasks[e] === 1 ? "" : "s"})` : e;
+const engInfo = Object.fromEntries(DATA.engines.map(e => [e.name, e]));
+
+// ---------- time zone helpers ----------
+const fmtCache = {};
+function parts(ts, tz) {
+  const f = fmtCache[tz] ||= new Intl.DateTimeFormat("en-US", {timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit"});
+  const o = {}; for (const p of f.formatToParts(new Date(ts))) o[p.type] = isNaN(+p.value) ? p.value : +p.value; return o;
+}
+function tzOffset(ts, tz) { const p = parts(ts, tz); return Date.UTC(p.year, p.month - 1, p.day, p.hour % 24, p.minute, p.second) - Math.floor(ts / 1000) * 1000; }
+function zoned(y, m, d, min, tz) {             // wall-clock time in tz -> epoch ms
+  const g = Date.UTC(y, m - 1, d, 0, min); let t = g - tzOffset(g, tz); const o2 = tzOffset(t, tz);
+  return g - o2 === t ? t : g - o2;
+}
+const ymd = (y, m, d) => { const x = new Date(Date.UTC(y, m - 1, d)); return [x.getUTCFullYear(), x.getUTCMonth() + 1, x.getUTCDate()]; };
+const ymdStr = (y, m, d) => `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+const hm = s => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
+const fmtTime = ts => new Intl.DateTimeFormat("en-US", {timeZone: PT, hour: "2-digit", minute: "2-digit", hourCycle: "h23"}).format(new Date(ts));
+const fmtDT = ts => new Intl.DateTimeFormat("en-US", {timeZone: PT, month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23"}).format(new Date(ts));
+function fmtDur(s) {
+  if (s == null) return "–";
+  if (s < 60) return Math.round(s) + "s";
+  if (s < 3600) return Math.floor(s / 60) + "m " + String(Math.round(s % 60)).padStart(2, "0") + "s";
+  return Math.floor(s / 3600) + "h " + String(Math.round(s % 3600 / 60)).padStart(2, "0") + "m";
+}
+
+// ---------- cron (Talend / AWS style: min hour dom month dow year) ----------
+const MON = {JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12};
+const DW = {SUN:1,MON:2,TUE:3,WED:4,THU:5,FRI:6,SAT:7};
+function cronField(spec, lo, hi, names) {
+  if (spec === "*" || spec === "?") return null;            // null = any
+  const v = x => names && names[x.toUpperCase()] != null ? names[x.toUpperCase()] : +x;
+  const set = new Set();
+  for (const part of spec.split(",")) {
+    let [base, step] = part.split("/"); step = +step || 1;
+    let a = lo, b = hi;
+    if (base !== "*") { const [x, y] = base.split("-"); a = v(x); b = y != null ? v(y) : (part.includes("/") ? hi : a); }
+    for (let i = a; i <= b; i += step) set.add(i);
+  }
+  return set;
+}
+function cronParse(expr) {
+  const f = expr.trim().split(/\s+/);
+  return {min: cronField(f[0], 0, 59), hour: cronField(f[1], 0, 23), dom: cronField(f[2], 1, 31),
+          mon: cronField(f[3], 1, 12, MON), dow: cronField(f[4], 1, 7, DW), year: f[5] ? cronField(f[5], 1970, 2199) : null};
+}
+const any = (set, v) => !set || set.has(v);
+const cronCache = new WeakMap();   // parsed cron per trigger, kept off the data so exports stay clean
+
+// ---------- expand one trigger into local minutes-of-day for a local date ----------
+function triggerMinutes(t, y, m, d) {
+  const date = ymdStr(y, m, d);
+  if (t.startDate && date < t.startDate) return [];
+  if (t.endDate && date > t.endDate) return [];
+  const wd = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  const at = t.atTimes || {};
+  const times = () => at.type === "AT_INTERVALS"
+    ? (() => { const out = []; for (let x = hm(at.startTime); x <= hm(at.endTime || "23:59"); x += at.interval || 60) out.push(x); return out; })()
+    : at.type === "AT_TIME" ? [hm(at.time)] : (at.times || (t.startTime ? [t.startTime] : [])).map(hm);
+  const daysSince = (Date.UTC(y, m - 1, d) - Date.parse(t.startDate + "T00:00:00Z")) / 864e5;
+  switch (t.type) {
+    case "ONCE": return date === t.startDate ? times() : [];
+    case "DAILY": return daysSince % (t.interval || 1) === 0 ? times() : [];
+    case "WEEKLY": {
+      const days = (t.atDays || {}).days || [];
+      const weeks = Math.floor(daysSince / 7);
+      return days.includes(DOW[wd]) && weeks % (t.interval || 1) === 0 ? times() : [];
+    }
+    case "MONTHLY": {
+      const ad = t.atDays || {}; const want = ad.days || (ad.day != null ? [ad.day] : []);
+      const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+      return want.some(x => x === d || ((x === "LAST" || x === -1) && d === last)) ? times() : [];
+    }
+    case "CRON": {
+      let c = cronCache.get(t); if (!c) cronCache.set(t, c = cronParse(t.cronExpression));
+      if (!any(c.mon, m) || !any(c.year, y) || !any(c.dom, d) || !any(c.dow, wd + 1)) return [];
+      const out = [];
+      for (let h = 0; h < 24; h++) if (any(c.hour, h)) for (let mi = 0; mi < 60; mi++) if (any(c.min, mi)) out.push(h * 60 + mi);
+      return out;
+    }
+  }
+  return [];
+}
+function describe(t) {
+  const at = t.atTimes || {};
+  const tm = at.type === "AT_INTERVALS" ? `every ${at.interval} min ${at.startTime}–${at.endTime}`
+    : at.type === "AT_TIME" ? `at ${at.time}` : at.times ? `at ${at.times.join(", ")}` : t.startTime ? `at ${t.startTime}` : "";
+  const tz = t.timeZone && t.timeZone !== PT ? ` (${t.timeZone.split("/").pop().replace(/_/g, " ")})` : "";
+  const every = n => n > 1 ? `Every ${n} ` : "";
+  switch (t.type) {
+    case "ONCE": return `Once on ${t.startDate} ${tm}${tz}`;
+    case "DAILY": return `${every(t.interval) ? every(t.interval) + "days" : "Daily"} ${tm}${tz}`;
+    case "WEEKLY": {
+      const ds = (t.atDays || {}).days || [];
+      const lbl = ds.length === 7 ? "every day" : ds.map(x => x[0] + x.slice(1, 3).toLowerCase()).join(", ");
+      return `Weekly ${lbl} ${tm}${tz}`;
+    }
+    case "MONTHLY": { const ad = t.atDays || {}; return `Monthly on day ${(ad.days || [ad.day]).join(", ")} ${tm}${tz}`; }
+    case "CRON": return `Cron ${t.cronExpression}${tz}`;
+  }
+  return t.type;
+}
+
+// occurrences (epoch ms) of an item inside [a, b)
+function occurrences(item, a, b) {
+  const out = [];
+  for (const t of item.triggers) {
+    const tz = t.timeZone || PT, p = parts(a, tz);
+    for (let k = -1; k <= 1; k++) {
+      const [y, m, d] = ymd(p.year, p.month, p.day + k);
+      for (const mi of triggerMinutes(t, y, m, d)) { const ts = zoned(y, m, d, mi, tz); if (ts >= a && ts < b) out.push(ts); }
+    }
+  }
+  return [...new Set(out)].sort((x, y) => x - y);
+}
+
+// ---------- state ----------
+const state = {day: 0, engines: new Set(allEng), kind: "", q: ""};
+const NOW = DATA.snapshot ? Date.parse(DATA.generated) : Date.now();
+const nowP = parts(NOW, PT);
+const dayOpts = [];
+for (let k = -1; k <= 6; k++) {
+  const [y, m, d] = ymd(nowP.year, nowP.month, nowP.day + k);
+  const a = zoned(y, m, d, 0, PT), [y2, m2, d2] = ymd(y, m, d + 1), b = zoned(y2, m2, d2, 0, PT);
+  const lbl = new Intl.DateTimeFormat("en-US", {weekday: "short", month: "short", day: "numeric", timeZone: "UTC"}).format(new Date(Date.UTC(y, m - 1, d)));
+  dayOpts.push({a, b, label: DATA.snapshot ? lbl + (k === 0 ? " (snapshot day)" : "") : (k === 0 ? "Today · " : k === -1 ? "Yesterday · " : k === 1 ? "Tomorrow · " : "") + lbl});
+}
+$("#day").innerHTML = dayOpts.map((o, i) => `<option value="${i}" ${i === 1 ? "selected" : ""}>${esc(o.label)}</option>`).join("");
+state.day = 1;
+$("#meta").textContent = `Environment ${DATA.env || "–"} · ${DATA.items.length} schedules · ${DATA.snapshot ? "SNAPSHOT – data as of " : "data pulled "}${DATA.generated} · durations from last 7 days`;
+$("#engChips").innerHTML = allEng.map(e => `<button class="chip" data-eng="${esc(e)}" aria-pressed="true"><span class="dot" style="background:${engVar(e)}"></span>${esc(e)}</button>`).join("");
+$("#legend").innerHTML = allEng.map(e => `<span><span class="dot" style="background:${engVar(e)}"></span>${esc(e)}</span>`).join("") +
+  `<span><svg width="22" height="10"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--fail)" stroke-width="2" stroke-dasharray="3 2"/></svg>${DATA.snapshot ? "Snapshot time" : "Now"}</span>`;
+
+document.addEventListener("click", ev => {
+  const c = ev.target.closest(".chip"); if (!c) return;
+  const e = c.dataset.eng; state.engines.has(e) ? state.engines.delete(e) : state.engines.add(e);
+  c.setAttribute("aria-pressed", state.engines.has(e)); render();
+});
+$("#day").onchange = e => { state.day = +e.target.value; render(); };
+$("#kind").onchange = e => { state.kind = e.target.value; render(); };
+$("#q").oninput = e => { state.q = e.target.value.toLowerCase(); render(); };
+
+// ---------- tooltip ----------
+const tip = $("#tip");
+function showTip(html, ev) {
+  tip.innerHTML = html; tip.style.display = "block";
+  const r = tip.getBoundingClientRect();
+  let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = ev.clientY - r.height - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const hideTip = () => tip.style.display = "none";
+
+// ---------- render ----------
+let rows = [], sortKey = "first", sortDir = 1;
+function render() {
+  const {a, b} = dayOpts[state.day];
+  const vis = DATA.items.filter(i => (!state.kind || i.kind === state.kind) &&
+    i.engines.some(e => state.engines.has(e)) &&
+    (!state.q || (i.name + " " + i.space).toLowerCase().includes(state.q)));
+  rows = vis.map(i => {
+    const occ = occurrences(i, a, b);
+    return {...i, occ, med: i.dur ? i.dur.median : 60, first: occ[0] ?? Infinity, eng: i.engines[0]};
+  });
+  renderKpis(a, b); renderLoad(a, b); renderGantt(a, b); renderTable();
+}
+
+function renderKpis(a, b) {
+  const act = rows.filter(r => r.occ.length);
+  const runs = act.reduce((s, r) => s + r.occ.length, 0);
+  const hours = new Array(24).fill(0);
+  for (const r of act) for (const t of r.occ) hours[Math.min(23, Math.floor((t - a) / 36e5))]++;
+  const peak = hours.indexOf(Math.max(...hours));
+  const tiles = [
+    {l: "Schedules (filtered)", v: rows.length, s: `${rows.filter(r => r.kind === "TASK").length} tasks · ${rows.filter(r => r.kind === "PLAN").length} plans`},
+    {l: "Runs scheduled this day", v: runs.toLocaleString(), s: `${act.length} schedules fire`},
+    {l: "Busiest hour", v: runs ? `${String(peak).padStart(2, "0")}:00` : "–", s: runs ? `${hours[peak]} scheduled starts` : ""},
+  ];
+  for (const e of allEng.filter(e => state.engines.has(e))) {
+    const mine = act.filter(r => r.eng === e);
+    const busy = mine.reduce((s, r) => s + r.occ.length * r.med, 0);
+    const info = engInfo[e];
+    tiles.push({l: `<span class="dot" style="background:${engVar(e)}"></span>${esc(e)}`,
+      v: mine.reduce((s, r) => s + r.occ.length, 0).toLocaleString() + " runs",
+      s: `${fmtDur(busy)} total run time · ${mine.length} schedules${info ? ` · ${esc(info.status)} / ${esc(info.availability)}` : ""}`});
+  }
+  $("#kpis").innerHTML = tiles.map(t => `<div class="kpi"><div class="l">${t.l}</div><div class="v">${t.v}</div><div class="s">${t.s}</div></div>`).join("");
+}
+
+function axisTicks(x, h, top) {
+  let s = "";
+  for (let k = 0; k <= 24; k += 2) s += `<line x1="${x(k / 24)}" x2="${x(k / 24)}" y1="${top}" y2="${h}" stroke="var(--grid)"/>` +
+    `<text x="${x(k / 24)}" y="${top - 4}" text-anchor="middle">${String(k % 24).padStart(2, "0")}:00</text>`;
+  return s;
+}
+
+function renderLoad(a, b) {
+  const engs = allEng.filter(e => state.engines.has(e) && rows.some(r => r.eng === e));
+  const W = $("#load").clientWidth || 1200, L = 160, R = 16, H = 70, gap = 18, top = 18;
+  const span = b - a, N = 288, bucket = span / N;               // 5-minute buckets
+  const series = engs.map(e => {
+    const c = new Array(N).fill(0), names = Array.from({length: N}, () => []);
+    for (const r of rows) if (r.eng === e) for (const t of r.occ) {
+      const s = Math.floor((t - a) / bucket), f = Math.min(N - 1, Math.floor((t + r.med * 1000 - a) / bucket));
+      for (let k = s; k <= f; k++) { c[k]++; names[k].push(r.name); }
+    }
+    return {e, c, names};
+  });
+  const ymax = Math.max(1, ...series.flatMap(s => s.c));
+  const x = f => L + f * (W - L - R);
+  let svg = `<svg width="${W}" height="${top + engs.length * (H + gap)}" role="img" aria-label="Expected concurrent jobs per Remote Engine">`;
+  svg += axisTicks(x, top + engs.length * (H + gap) - gap, top);
+  series.forEach((s, i) => {
+    const y0 = top + i * (H + gap) + H, y = v => y0 - v / ymax * (H - 6);
+    let d = `M${x(0)},${y0}`;
+    s.c.forEach((v, k) => d += `L${x(k / N)},${y(v)}L${x((k + 1) / N)},${y(v)}`);
+    d += `L${x(1)},${y0}Z`;
+    const pk = Math.max(...s.c);
+    svg += `<line x1="${L}" x2="${x(1)}" y1="${y0}" y2="${y0}" stroke="var(--border)"/>` +
+      `<path d="${d}" fill="${engVar(s.e)}" fill-opacity=".22" stroke="${engVar(s.e)}" stroke-width="2" stroke-linejoin="round"/>` +
+      `<text x="${L - 10}" y="${y0 - H / 2}" text-anchor="end" style="fill:var(--text-primary);font-weight:600">${esc(s.e)}</text>` +
+      `<text x="${L - 10}" y="${y0 - H / 2 + 14}" text-anchor="end">peak ${pk} concurrent</text>`;
+  });
+  svg += `<line id="xhair" y1="${top}" y2="${top + engs.length * (H + gap) - gap}" stroke="var(--text-muted)" stroke-dasharray="3 3" style="display:none"/>`;
+  svg += nowLine(x, a, b, top, top + engs.length * (H + gap) - gap);
+  svg += `<rect x="${L}" y="${top}" width="${W - L - R}" height="${engs.length * (H + gap)}" fill="transparent" id="loadHit"/></svg>`;
+  $("#load").innerHTML = engs.length ? svg : `<div class="note">No schedules match the filters.</div>`;
+  const hit = $("#loadHit"); if (!hit) return;
+  hit.onmousemove = ev => {
+    const box = hit.getBoundingClientRect(), f = (ev.clientX - box.left) / box.width, k = Math.max(0, Math.min(N - 1, Math.floor(f * N)));
+    const xh = $("#xhair"); xh.setAttribute("x1", x(k / N)); xh.setAttribute("x2", x(k / N)); xh.style.display = "";
+    showTip(`<b>${fmtTime(a + k * bucket)}–${fmtTime(a + (k + 1) * bucket)}</b>` + series.map(s => {
+      const n = [...new Set(s.names[k])];
+      return `<div class="row" style="margin-top:4px"><span class="dot" style="background:${engVar(s.e)}"></span><b>${esc(s.e)}</b>: ${s.c[k]} running</div>` +
+        (n.length ? `<div class="m">${n.slice(0, 6).map(esc).join(", ")}${n.length > 6 ? ` +${n.length - 6} more` : ""}</div>` : "");
+    }).join(""), ev);
+  };
+  hit.onmouseleave = () => { hideTip(); $("#xhair").style.display = "none"; };
+}
+
+function nowLine(x, a, b, y1, y2) {
+  const n = NOW; if (n < a || n >= b) return "";
+  const xx = x((n - a) / (b - a));
+  return `<line x1="${xx}" x2="${xx}" y1="${y1}" y2="${y2}" stroke="var(--fail)" stroke-width="2" stroke-dasharray="3 2"/>`;
+}
+
+function renderGantt(a, b) {
+  const list = rows.filter(r => r.occ.length).sort((p, q) => allEng.indexOf(p.eng) - allEng.indexOf(q.eng) || p.first - q.first);
+  const idle = rows.length - list.length;
+  const W = $("#gantt").clientWidth || 1200, L = 300, R = 16, RH = 20, top = 4;
+  const span = b - a, x = f => L + f * (W - L - R);
+  const H = top + list.length * RH + 8;
+  const head = `<div style="position:sticky;top:0;background:var(--surface-1);z-index:1"><svg width="${W}" height="20">${axisTicks(x, 20, 18).replace(/<line[^>]*>/g, "")}</svg></div>`;
+  let svg = head + `<svg width="${W}" height="${H}" role="img" aria-label="Schedule timeline">` + axisTicks(x, H, top).replace(/<text[^>]*>[^<]*<\/text>/g, "");
+  let lastEng = null;
+  list.forEach((r, i) => {
+    const y = top + i * RH;
+    if (r.eng !== lastEng && i) svg += `<line x1="0" x2="${W}" y1="${y}" y2="${y}" stroke="var(--border)"/>`;
+    lastEng = r.eng;
+    svg += `<text x="${L - 10}" y="${y + 14}" text-anchor="end" style="fill:var(--text-primary)">${esc(r.name.length > 40 ? r.name.slice(0, 39) + "…" : r.name)}${r.kind === "PLAN" ? " ▸" : ""}</text>`;
+    for (const t of r.occ) {
+      const x0 = x((t - a) / span), w = Math.max(3, (r.med * 1000) / span * (W - L - R));
+      svg += `<rect class="bar" data-i="${i}" data-t="${t}" x="${x0}" y="${y + 4}" width="${Math.min(w, x(1) - x0)}" height="${RH - 8}" rx="3" fill="${engVar(r.eng)}"/>`;
+    }
+  });
+  svg += nowLine(x, a, b, top, H) + "</svg>";
+  $("#gantt").innerHTML = (list.length ? svg : "") +
+    `<div class="note" style="padding:6px 0">${list.length} schedules fire on this day${idle ? ` · ${idle} more don't run on this day (weekly / monthly / once)` : ""}. ▸ = plan.</div>`;
+  $("#gantt").onmousemove = ev => {
+    const el = ev.target.closest(".bar"); if (!el) return hideTip();
+    const r = list[+el.dataset.i], t = +el.dataset.t;
+    showTip(`<b>${esc(r.name)}</b> <span class="badge">${r.kind === "PLAN" ? `Plan · ${r.steps ?? "?"} tasks` : "Task"}</span>
+      <div class="m">${esc(r.space)}</div>
+      <div style="margin-top:4px">Starts <b>${fmtTime(t)}</b> · expected ~<b>${fmtDur(r.dur?.median)}</b> → ends ~${fmtTime(t + r.med * 1000)}</div>
+      <div class="row"><span class="dot" style="background:${engVar(r.eng)}"></span>${r.engines.map(e => esc(engLabel(r, e))).join(" + ")}</div>
+      <div class="m">${r.triggers.map(t => esc(describe(t))).join("<br>")}</div>
+      ${r.dur ? `<div class="m">7d: median ${fmtDur(r.dur.median)} · p90 ${fmtDur(r.dur.p90)} · max ${fmtDur(r.dur.max)} · ${r.okPct ?? "–"}% success</div>` : `<div class="m">No runs in the last 7 days – bar uses 1 min placeholder</div>`}`, ev);
+  };
+  $("#gantt").onmouseleave = hideTip;
+}
+
+const COLS = [
+  ["name", "Name"], ["kind", "Type"], ["space", "Space"], ["sched", "Schedule"], ["eng", "Remote Engine"],
+  ["n", "Runs this day", 1], ["first", "First run", 1], ["med", "Median duration", 1], ["p90", "P90", 1], ["max", "Max", 1],
+  ["runs7", "Runs (7d)", 1], ["okPct", "Success %", 1], ["last", "Last run"]];
+function renderTable() {
+  const val = (r, k) => ({sched: r.triggers.map(describe).join("; "), n: r.occ.length, med: r.dur?.median ?? -1,
+    p90: r.dur?.p90 ?? -1, max: r.dur?.max ?? -1, okPct: r.okPct ?? -1, last: r.last?.start ?? 0, eng: r.engines.join(" + ")}[k] ?? r[k]);
+  const list = [...rows].sort((p, q) => { const A = val(p, sortKey), B = val(q, sortKey); return (A > B ? 1 : A < B ? -1 : 0) * sortDir; });
+  const stIcon = s => s === "ok" ? `<span class="st-ok">✔ Success</span>` : s === "fail" ? `<span class="st-fail">✖ Failed</span>` : `<span class="st-run">● Running</span>`;
+  $("#tbl").innerHTML = `<thead><tr>${COLS.map(([k, l, n]) => `<th data-k="${k}" class="${n ? "num" : ""}">${l}${sortKey === k ? (sortDir > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead><tbody>` +
+    list.map(r => `<tr>
+      <td>${esc(r.name)}</td><td>${r.kind === "PLAN" ? `Plan (${r.steps ?? "?"})` : "Task"}</td><td>${esc(r.space)}</td>
+      <td style="white-space:normal;min-width:220px">${r.triggers.map(t => esc(describe(t))).join("<br>")}</td>
+      <td>${r.engines.map(e => `<span class="row" style="display:flex;gap:6px;align-items:center"><span class="dot" style="background:${engVar(e)}"></span>${esc(engLabel(r, e))}</span>`).join("")}</td>
+      <td class="num">${r.occ.length || "–"}</td><td class="num">${r.occ.length ? fmtTime(r.occ[0]) : "–"}</td>
+      <td class="num">${fmtDur(r.dur?.median)}</td><td class="num">${fmtDur(r.dur?.p90)}</td><td class="num">${fmtDur(r.dur?.max)}</td>
+      <td class="num">${r.runs7}</td><td class="num">${r.okPct == null ? "–" : r.okPct + "%"}</td>
+      <td>${r.last ? `${fmtDT(r.last.start * 1000)} · ${stIcon(r.last.st)} · ${fmtDur(r.last.dur)}` : "–"}</td></tr>`).join("") + "</tbody>";
+  $("#tbl thead").onclick = ev => { const k = ev.target.closest("th")?.dataset.k; if (!k) return; sortDir = sortKey === k ? -sortDir : 1; sortKey = k; renderTable(); };
+}
+
+addEventListener("resize", () => { clearTimeout(window._rt); window._rt = setTimeout(render, 150); });
+render();
+
+// ---------- exports (for the team) ----------
+const fileStem = () => `Talend_Job_Schedules_${DATA.env || "Talend"}_${DATA.generated.slice(0, 10)}`;
+function download(name, text, type) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], {type}));
+  a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+$("#expHtml").onclick = async () => {
+  const btn = $("#expHtml"); btn.disabled = true;
+  try {
+    const src = await (await fetch(location.pathname, {cache: "no-store"})).text();
+    const json = JSON.stringify({...DATA, snapshot: true}, (k, v) => k.startsWith("_") ? undefined : v).replace(/<\//g, "<\\/");
+    download(fileStem() + ".html", src.replace("/*" + "DATA*/null", () => json), "text/html");
+  } catch (e) { alert("Export failed: " + e.message); }
+  btn.disabled = false;
+};
+$("#expCsv").onclick = () => {
+  const day = dayOpts[state.day].label.replace(/ \(.*\)|.* · /g, "");
+  const q = v => { v = v == null ? "" : String(v); return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; };
+  const secs = v => v == null ? "" : Math.round(v);
+  const head = ["Name", "Type", "Space", "Schedule", "Time zone", "Remote Engine", `Runs on ${day}`, "Run times (PT)",
+    "Median duration (s)", "P90 duration (s)", "Max duration (s)", "Runs last 7d", "Success % last 7d", "Last run (PT)", "Last status"];
+  const lines = [...rows].sort((p, r) => p.first - r.first || p.name.localeCompare(r.name)).map(r => [
+    r.name, r.kind === "PLAN" ? `Plan (${r.steps ?? "?"} tasks)` : "Task", r.space, r.triggers.map(describe).join("; "),
+    [...new Set(r.triggers.map(t => t.timeZone || PT))].join("; "), r.engines.map(e => engLabel(r, e)).join(" + "), r.occ.length,
+    r.occ.map(fmtTime).join(" "), secs(r.dur?.median), secs(r.dur?.p90), secs(r.dur?.max), r.runs7, r.okPct ?? "",
+    r.last ? fmtDT(r.last.start * 1000) : "", r.last ? {ok: "Success", fail: "Failed", run: "Running"}[r.last.st] : ""].map(q).join(","));
+  download(`${fileStem()}_${day.replace(/[ ,]+/g, "-")}.csv`, "﻿" + [head.map(q).join(","), ...lines].join("\r\n"), "text/csv");
+};
+$("#print").onclick = () => print();
+
+// Markdown (GitHub-flavoured) for the selected day: summary, engines, hourly starts, schedules per engine
+// downloads two files with the same name: <name>.md and <name>.png; the .md shows the image via a relative link,
+// so keep both in the same folder (GitHub doesn't display images embedded inside the .md itself)
+$("#expMd").onclick = async () => {
+  const btn = $("#expMd"); btn.disabled = true;
+  try {
+    const {a, b, label} = dayOpts[state.day], day = label.replace(/ \(.*\)|.* · /g, "");
+    const name = `${fileStem()}_${day.replace(/[ ,]+/g, "-")}`;
+    const png = await pageImage();
+    download(name + ".md", markdown(a, b, day, name + ".png"), "text/markdown");
+    setTimeout(() => download(name + ".png", png, "image/png"), 400);
+  } catch (e) { alert("Markdown export failed: " + e.message); }
+  btn.disabled = false;
+};
+function markdown(a, b, day, image) {
+  const cell = v => String(v ?? "–").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+  const table = (head, body, right = []) => [
+    "| " + head.map(cell).join(" | ") + " |",
+    "| " + head.map((_, i) => right.includes(i) ? "---:" : "---").join(" | ") + " |",
+    ...body.map(r => "| " + r.map(cell).join(" | ") + " |")].join("\n");
+  const times = occ => occ.length <= 8 ? occ.map(fmtTime).join(", ")
+    : `${occ.slice(0, 3).map(fmtTime).join(", ")} … ${fmtTime(occ[occ.length - 1])} (${occ.length}×)`;
+  const act = rows.filter(r => r.occ.length), idle = rows.filter(r => !r.occ.length);
+  const engs = allEng.filter(e => rows.some(r => r.eng === e));
+  const peak = e => {                                // max jobs expected at once, 5-minute buckets
+    const N = 288, c = new Array(N).fill(0), w = (b - a) / N;
+    for (const r of act) if (r.eng === e) for (const t of r.occ) {
+      const s = Math.floor((t - a) / w), f = Math.min(N - 1, Math.floor((t + r.med * 1000 - a) / w));
+      for (let k = s; k <= f; k++) c[k]++;
+    }
+    const m = Math.max(...c); return m ? `${m} at ${fmtTime(a + c.indexOf(m) * w)}` : "0";
+  };
+  const filters = [state.kind && (state.kind === "TASK" ? "tasks only" : "plans only"),
+    state.engines.size < allEng.length && "engines: " + [...state.engines].join(", "), state.q && `search "${state.q}"`].filter(Boolean);
+  const out = [
+    `# Talend Job Schedules – ${DATA.env || "Talend"} – ${day}`, "",
+    `> Generated from Talend Cloud (read-only API). Data as of **${DATA.generated}**. All times are **Pacific Time** (America/Los_Angeles).`,
+    `> Durations, success % and last run come from the last 7 days of executions. Bar length / duration = median successful run time.`,
+    filters.length ? `> Filters applied: ${filters.join("; ")}.` : "", "",
+    ...(image ? [`[![Job Schedules – ${day}: engine load, timeline and all schedules](${encodeURI(image)})](${encodeURI(image)})`, "",
+      `_Image: \`${image}\` – keep it in the same folder as this file. Click it to open full size._`, ""] : []),
+    "## Summary", "",
+    table(["Metric", "Value"], [
+      ["Schedules", `${rows.length} (${rows.filter(r => r.kind === "TASK").length} tasks · ${rows.filter(r => r.kind === "PLAN").length} plans)`],
+      ["Schedules that fire on this day", act.length],
+      ["Runs scheduled on this day", act.reduce((s, r) => s + r.occ.length, 0)]]), "",
+    "## Remote Engines", "",
+    table(["Engine", "Status", "Schedules", "Runs", "Total run time", "Peak concurrent"], engs.map(e => {
+      const mine = act.filter(r => r.eng === e), info = engInfo[e];
+      return [e, info ? `${info.status} / ${info.availability}` : "–", rows.filter(r => r.eng === e).length,
+        mine.reduce((s, r) => s + r.occ.length, 0), fmtDur(mine.reduce((s, r) => s + r.occ.length * r.med, 0)), peak(e)];
+    }), [2, 3, 4]), "",
+    "## Scheduled starts per hour", "",
+    table(["Hour", ...engs, "Total"], Array.from({length: 24}, (_, h) => {
+      const per = engs.map(e => act.filter(r => r.eng === e).reduce((s, r) => s + r.occ.filter(t => Math.floor((t - a) / 36e5) === h).length, 0));
+      return [`${String(h).padStart(2, "0")}:00`, ...per, per.reduce((x, y) => x + y, 0)];
+    }).filter(r => r[r.length - 1]), engs.map((_, i) => i + 1).concat(engs.length + 1)), ""];
+  for (const e of engs) {
+    const list = act.filter(r => r.eng === e).sort((p, q) => p.first - q.first || p.name.localeCompare(q.name));
+    if (!list.length) continue;
+    out.push(`## Schedules on ${e}`, "", table(
+      ["Name", "Type", "Space", "Schedule", "Runs at (PT)", "Median", "P90", "Max", "Success 7d", "Last run"],
+      list.map(r => [
+        r.engines.length > 1 ? `${r.name} (${r.engines.slice(1).map(x => r.engineTasks
+          ? `${r.engineTasks[x]} task${r.engineTasks[x] === 1 ? "" : "s"} on ${x}` : `also ${x}`).join(", ")})` : r.name,
+        r.kind === "PLAN" ? `Plan (${r.steps ?? "?"} task${r.steps === 1 ? "" : "s"})` : "Task", r.space, r.triggers.map(describe).join("; "),
+        times(r.occ), fmtDur(r.dur?.median), fmtDur(r.dur?.p90), fmtDur(r.dur?.max),
+        r.okPct == null ? "–" : r.okPct + "%",
+        r.last ? `${fmtDT(r.last.start * 1000)} ${{ok: "✅", fail: "❌", run: "⏳"}[r.last.st]}` : "–"]),
+      [5, 6, 7, 8]), "");
+  }
+  if (idle.length) out.push("## Not running on this day", "", "Weekly, monthly or one-off schedules that don't fire on this day.", "",
+    table(["Name", "Type", "Remote Engine", "Schedule"], idle.sort((p, q) => p.name.localeCompare(q.name)).map(r =>
+      [r.name, r.kind === "PLAN" ? "Plan" : "Task", r.engines.map(e => engLabel(r, e)).join(" + "), r.triggers.map(describe).join("; ")])), "");
+  out.push("---", "_Internal – Harris & Harris. Contains job names and schedules; keep the repository private._", "");
+  return out.join("\n").replace(/\n{3,}/g, "\n\n");
+}
+
+// PNG: KPI tiles drawn on a canvas, then the engine-load and timeline SVGs with their CSS colours inlined
+$("#expPng").onclick = async () => {
+  const btn = $("#expPng"); btn.disabled = true;
+  try { download(`${fileStem()}_${dayOpts[state.day].label.replace(/ \(.*\)|.* · /g, "").replace(/[ ,]+/g, "-")}.png`, await pageImage(), "image/png"); }
+  catch (e) { alert("Image export failed: " + e.message); }
+  btn.disabled = false;
+};
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const resolve = v => v && v.replace(/var\((--[\w-]+)\)/g, (_, n) => cssVar(n));
+function svgImage(svg) {
+  const clone = svg.cloneNode(true), src = svg.querySelectorAll("*"), dst = clone.querySelectorAll("*");
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  dst.forEach((el, i) => {
+    for (const a of ["fill", "stroke"]) if (el.hasAttribute(a)) el.setAttribute(a, resolve(el.getAttribute(a)));
+    if (el.tagName === "text") {
+      const cs = getComputedStyle(src[i]);
+      el.removeAttribute("style");
+      el.setAttribute("fill", cs.fill); el.setAttribute("font-size", cs.fontSize);
+      el.setAttribute("font-family", cs.fontFamily); el.setAttribute("font-weight", cs.fontWeight);
+    }
+    if (el.id === "xhair" || el.id === "loadHit") el.setAttribute("display", "none");   // hover-only helpers
+  });
+  return new Promise((ok, bad) => {
+    const img = new Image();
+    img.onload = () => ok(img); img.onerror = () => bad(new Error("could not render chart"));
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(clone));
+  });
+}
+async function pageImage() {
+  // lay the page out at a fixed width so the image looks the same whatever the window size
+  const app = $("#app"), keep = app.style.cssText;
+  app.style.cssText = "width:1700px;max-width:none"; render();
+  try { return await drawImage(); } finally { app.style.cssText = keep; render(); }
+}
+async function drawImage() {
+  const S = 2, P = 24, font = getComputedStyle(document.body).fontFamily;
+  const charts = [
+    {title: "Expected Remote Engine load", sub: "Jobs expected to run at the same time per engine (scheduled start × median duration, last 7 days)", svgs: [...$("#load").querySelectorAll("svg")]},
+    {title: "Schedule timeline", sub: "Bar = scheduled start → median run time · colour = Remote Engine (" + allEng.join(", ") + ")", svgs: [...$("#gantt").querySelectorAll("svg")]}];
+  const imgs = await Promise.all(charts.map(c => Promise.all(c.svgs.map(svgImage))));
+  const ganttNote = $("#gantt .note")?.textContent || "";
+
+  // text measuring / wrapping on a scratch canvas, so the layout is known before drawing
+  const m = document.createElement("canvas").getContext("2d");
+  const width = (t, f) => { m.font = f; return m.measureText(t).width; };
+  const wrap = (text, f, max) => String(text).split("\n").flatMap(para => {
+    const out = []; let line = "";
+    for (const w of para.split(/(?<=[ ,;·])/)) {
+      if (line && width(line + w, f) > max) { out.push(line.trimEnd()); line = w.trimStart(); } else line += w;
+    }
+    return [...out, line.trimEnd()];
+  });
+
+  // schedule table, read from the page's own table (same rows, order and values)
+  const F_TH = `600 11.5px ${font}`, F_TD = `11.5px ${font}`, LH = 15;
+  const head = [...$("#tbl").querySelectorAll("thead th")].map(th => th.textContent.replace(/ [▲▼]$/, ""));
+  const body = [...$("#tbl").querySelectorAll("tbody tr")].map(tr => [...tr.cells].map(td => ({
+    text: td.innerText.trim(), st: td.querySelector(".st-ok") ? "--ok" : td.querySelector(".st-fail") ? "--fail" : td.querySelector(".st-run") ? "--run" : null})));
+  const CAP = {0: 280, 3: 250, 4: 190, 12: 240}, NUM = new Set([5, 6, 7, 8, 9, 10, 11]);
+  const colW = head.map((h, i) => Math.min(CAP[i] || 999, Math.max(width(h, F_TH),
+    ...body.map(r => Math.max(...r[i].text.split("\n").map(t => width(t, F_TD) + (i === 4 ? 14 : 0)))))) + 16);
+  const cells = body.map(r => r.map((c, i) => ({...c, lines: wrap(c.text, F_TD, colW[i] - 16 - (i === 4 ? 14 : 0))})));
+  const rowH = cells.map(r => Math.max(...r.map(c => c.lines.length)) * LH + 10);
+  const tableW = colW.reduce((a, b) => a + b, 0), tableH = 28 + rowH.reduce((a, b) => a + b, 0);
+
+  // two columns side by side: left = tiles + charts, right = All schedules table
+  const LW = Math.max(1000, ...imgs.flat().map(i => i.width)) + 2 * P;   // left column width
+  const RX = LW, RW = tableW + 2 * P, W = LW + RW;                        // right column x / width
+  const kpis = [...document.querySelectorAll("#kpis .kpi")].map(k => ({
+    l: k.querySelector(".l").textContent.trim(), dot: k.querySelector(".dot")?.style.background,
+    v: k.querySelector(".v").textContent, s: k.querySelector(".s").textContent}));
+  const perRow = Math.max(1, Math.floor((LW - 2 * P + 12) / 232)), tileW = (LW - 2 * P - 12 * (perRow - 1)) / perRow;
+  const kpiSubs = kpis.map(k => wrap(k.s, `11px ${font}`, tileW - 24));
+  const tileH = 62 + 14 * Math.max(1, ...kpiSubs.map(s => s.length));
+  const kpiH = Math.ceil(kpis.length / perRow) * (tileH + 12);
+  const leftH = 64 + kpiH + imgs.reduce((h, list) => h + 76 + list.reduce((a, i) => a + i.height, 0), 0) + 20;
+  const rightH = 64 + tableH + 64 + 16;
+  const H = Math.max(leftH, rightH) + 30;
+  const cv = document.createElement("canvas"); cv.width = W * S; cv.height = H * S;
+  const g = cv.getContext("2d"); g.scale(S, S);
+  g.fillStyle = cssVar("--bg"); g.fillRect(0, 0, W, H);
+  g.fillStyle = cssVar("--brand"); g.fillRect(0, 0, W, 50);
+  g.fillStyle = "#fff"; g.font = `600 18px ${font}`; g.fillText("Talend Cloud · Job Schedules", P, 31);
+  g.fillStyle = "#aeb7c4"; g.font = `12px ${font}`;
+  g.fillText(`${DATA.env || ""} · ${dayOpts[state.day].label} · data as of ${DATA.generated} · times in Pacific Time`, P + 290, 31);
+  const box = (x, y, w, h) => { g.fillStyle = cssVar("--surface-1"); g.strokeStyle = cssVar("--border"); g.beginPath(); g.roundRect(x, y, w, h, 10); g.fill(); g.stroke(); };
+  let y = 64;
+  kpis.forEach((k, i) => {
+    const x = P + (i % perRow) * (tileW + 12), ty = y + Math.floor(i / perRow) * (tileH + 12);
+    box(x, ty, tileW, tileH);
+    let lx = x + 12;
+    if (k.dot) { g.fillStyle = resolve(k.dot); g.beginPath(); g.roundRect(lx, ty + 12, 10, 10, 3); g.fill(); lx += 16; }
+    g.fillStyle = cssVar("--text-secondary"); g.font = `12px ${font}`; g.fillText(k.l, lx, ty + 21);
+    g.fillStyle = cssVar("--text-primary"); g.font = `600 22px ${font}`; g.fillText(k.v, x + 12, ty + 48);
+    g.fillStyle = cssVar("--text-muted"); g.font = `11px ${font}`;
+    kpiSubs[i].forEach((line, j) => g.fillText(line, x + 12, ty + 66 + j * 14));
+  });
+  y += kpiH;
+  charts.forEach((c, n) => {
+    const ch = imgs[n].reduce((a, i) => a + i.height, 0), note = n === 1 ? ganttNote : "";
+    box(P / 2, y, LW - P, ch + 60 + (note ? 20 : 0));
+    g.fillStyle = cssVar("--text-primary"); g.font = `600 14px ${font}`; g.fillText(c.title, P, y + 22);
+    g.fillStyle = cssVar("--text-secondary"); g.font = `12px ${font}`; g.fillText(c.sub, P, y + 40);
+    let iy = y + 52;
+    for (const img of imgs[n]) { g.drawImage(img, P / 2, iy); iy += img.height; }
+    if (note) { g.fillStyle = cssVar("--text-muted"); g.font = `12px ${font}`; g.fillText(note, P, iy + 14); }
+    y += ch + 76 + (note ? 20 : 0);
+  });
+
+  // All schedules table, right column
+  const TX = RX + P / 2, T0 = RX + P;
+  y = 64;
+  box(TX - P / 2 + 4, y, RW - P / 2, tableH + 64);
+  g.fillStyle = cssVar("--text-primary"); g.font = `600 14px ${font}`; g.fillText("All schedules", T0, y + 22);
+  g.fillStyle = cssVar("--text-secondary"); g.font = `12px ${font}`;
+  g.fillText(`${body.length} schedules · durations and success rate from the last 7 days of executions · sorted by ${head[COLS.findIndex(c => c[0] === sortKey)] || "first run"}`, T0, y + 40);
+  let ty = y + 52;
+  const colX = colW.reduce((xs, w, i) => [...xs, xs[i] + w], [T0]);
+  g.font = F_TH; g.fillStyle = cssVar("--text-secondary");
+  head.forEach((h, i) => { g.textAlign = NUM.has(i) ? "right" : "left"; g.fillText(h, NUM.has(i) ? colX[i + 1] - 8 : colX[i] + 8, ty + 18); });
+  g.textAlign = "left"; ty += 28;
+  g.strokeStyle = cssVar("--border"); g.beginPath(); g.moveTo(T0, ty); g.lineTo(T0 + tableW, ty); g.stroke();
+  cells.forEach((r, ri) => {
+    if (ri % 2) { g.fillStyle = cssVar("--surface-2"); g.fillRect(T0, ty, tableW, rowH[ri]); }
+    r.forEach((c, i) => {
+      g.font = F_TD; g.textAlign = NUM.has(i) ? "right" : "left";
+      c.lines.forEach((line, j) => {
+        const ly = ty + 17 + j * LH;
+        let lx = NUM.has(i) ? colX[i + 1] - 8 : colX[i] + 8;
+        if (i === 4) {                               // Remote Engine: colour dot per engine line
+          g.fillStyle = resolve(engVar(line.replace(/ \(.*$/, "")));
+          g.beginPath(); g.roundRect(lx, ly - 8, 9, 9, 2); g.fill(); lx += 14;
+        }
+        g.fillStyle = c.st ? cssVar(c.st) : cssVar("--text-primary");
+        g.fillText(line, lx, ly);
+      });
+    });
+    g.textAlign = "left";
+    ty += rowH[ri];
+    g.strokeStyle = cssVar("--grid"); g.beginPath(); g.moveTo(T0, ty); g.lineTo(T0 + tableW, ty); g.stroke();
+  });
+  g.fillStyle = cssVar("--text-muted"); g.font = `11px ${font}`;
+  g.fillText("Internal – Harris & Harris. Contains job names and schedules – share internally only.", P, H - 12);
+  return new Promise(ok => cv.toBlob(ok, "image/png"));
+}
+const served = location.protocol.startsWith("http") && !DATA.snapshot;
+$("#back").hidden = !served; $("#expHtml").hidden = !served; $("#expCsv").hidden = false; $("#expMd").hidden = false; $("#expPng").hidden = false; $("#print").hidden = false;
+}
+
+if (DATA) init();
+else fetch("/api/schedules").then(async r => {
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || ("HTTP " + r.status));
+  DATA = d; init();
+}).catch(e => { $("#loading").innerHTML = `⚠ Could not load schedules: ${esc(e.message)} · <a href="">Retry</a>`; });
+</script>
+</body>
+</html>
