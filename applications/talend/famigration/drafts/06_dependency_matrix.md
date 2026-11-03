@@ -2,31 +2,69 @@
 
 ## Overview
 
-This matrix shows what each of the 12 `FAMIGRATION` jobs depends on: the source/target tables it moves data between, the one Talend-defined database connection and the one context (variable) group in the project, and whether it truncates its target table before loading. Read each row as "this job needs these things to run correctly." Because no job in this project calls another (no `tRunJob` components were found anywhere in the extracted metadata), there is no job-to-job dependency column — every job is independent of every other job.
+This matrix shows what each of the 33 `FAMIGRATION` jobs depends on: its source and target tables, the BIDATA control tables it reads or writes, the context variables it relies on, and how it performs a FULL load. Read each row as "this job needs these things to run correctly." No job calls another (there is no `tRunJob` anywhere in the project), so there is still no job-to-job column. The new dependencies are **data** dependencies: every active loader now relies on `dbo.SF_ChangeLog` on SQL Server and on `ETL_BOOKMARK`, the run-log tables and its own pair of staging tables in Snowflake, all of which must exist (via `BIDATA_Schema_Deploy`) before the loader can run.
 
 ## Matrix Table
 
-| Job | Source table (SQL Server) | Target table (Snowflake) | Has transform step? | Table emptied before load? | Uses `Common_0.1` context group (`keystorePath`)? | Uses `Frostlake_0.1` connection (Talend repository object)? |
-|---|---|---|---|---|---|---|
-| Calls_Load | dbo.calls | CALLS | Yes (`tMap_1`) | No (`tableAction=NONE`) | Yes | No — connects with its own hardcoded host/port/login instead |
-| Client_Load | dbo.client | CLIENT | No | No (`tableAction=CREATE_IF_NOT_EXISTS`) | Yes | No |
-| CommTexts_Load | dbo.commtexts | COMMTEXTS | No | Yes | Yes | No |
-| Debtor_Load | dbo.debtor | DEBTOR | No | Yes | Yes | No |
-| Email_Address_Load | dbo.email_address | EMAIL_ADDRESS | No | Yes | Yes | No |
-| Emails_Load | dbo.emails | EMAILS | No | Yes | Yes | No |
-| Letters_Load | dbo.letters | LETTERS | No | Yes | Yes | No |
-| Phone_Numbers_Load | dbo.phone_number | PHONE_NUMBER | No | Yes | Yes | No |
-| Texts_Load | dbo.texts | TEXTS | No | Yes | Yes | No |
-| Transactions_Load | dbo.transactions | TRANSACTIONS | No | Yes | Yes | No |
-| Validation_Load | dbo.validation | VALIDATION | No | Yes | Yes | No |
-| VoApps_Load | dbo.voapps | VOAPPS | No | Yes | Yes | No |
+### Active loaders
 
-All 12 jobs also connect to the same Snowflake account (`xca26579.us-east-1`), warehouse (`COMPUTE_WH`), database/schema (`EDWPRODHH.BIDATA`), and role (`DATALOADER`) — that pattern is omitted from the columns above only because it's identical across every row.
+All 24 active loaders read `dbo.SF_ChangeLog`; read and update `ETL_BOOKMARK`; write `ETL_JOB_RUN_LOG` and `ETL_JOB_RUN_STEP`; write `STG_CHANGED_<TARGET>` and `STG_CHANGED_<TARGET>_KEYS`; and use context variables `keystorePath`, `LAST_CHANGE_ID`, `LAST_RUN_DTTM`, `MAX_CHANGE_ID` and `LOAD_MODE`. The columns below show only what differs.
+
+| Job | Source (SQL Server `dbo`) | Target (Snowflake `BIDATA`) | Merge key | FULL style | Extra context variables |
+|---|---|---|---|---|---|
+| Account_Load | account | ACCOUNT | ACCOUNTID | Batched | `BATCH_SIZE`, `PARALLEL_BATCHES` |
+| Account_Tag_Load | account_tag | ACCOUNT_TAG | ACCOUNT_TAG_ID | Batched | `BATCH_SIZE`, `PARALLEL_BATCHES` |
+| Calls_Load | calls | CALLS | ARLOGID | Batched | `BATCH_SIZE`, `PARALLEL_BATCHES` |
+| Client_Load | client | CLIENT | CLIENT_IDX | Single-pass | — |
+| Consumer_Load | consumer | CONSUMER | CONSUMERID | Batched | `BATCH_SIZE`, `PARALLEL_BATCHES` |
+| Consumer_Tag_Load | consumer_tag | CONSUMER_TAG | CONSUMER_TAG_ID | Batched | `BATCH_SIZE`, `PARALLEL_BATCHES` |
+| Creditor_Transaction_Load | creditor_transaction | CREDITOR_TRANSACTION | CREDITOR_TRANSACTION_ID | Single-pass | — |
+| Email_Address_Load | email_address | EMAIL_ADDRESS | CONSUMERID (delete + re-insert) | Single-pass | — |
+| Notice_Account_Load | notice_account | NOTICE_ACCOUNT | NOTICE_ACCOUNT_ID | Batched | `BATCH_SIZE`, `PARALLEL_BATCHES` |
+| Notice_Email_Load | notice_email | NOTICE_EMAIL | NOTICEID | Single-pass | — |
+| Notice_letter_Load | notice_letter | NOTICE_LETTER | NOTICEID | Batched | `BATCH_SIZE`, `PARALLEL_BATCHES` |
+| Notice_Text_Load | notice_text | NOTICE_TEXT | NOTICEID | Batched | `BATCH_SIZE`, `PARALLEL_BATCHES` |
+| Notice_Validation_Load | notice_validation | NOTICE_VALIDATION | NOTICEID | Batched | `BATCH_SIZE`, `PARALLEL_BATCHES` |
+| Payment_Schecule_Account_Load | payment_schedule_account | PAYMENT_SCHEDULE_ACCOUNT | PAYMENT_SCHEDULE_ACCOUNT_ID | Single-pass | — |
+| Payment_Schedule_Instance_Load | payment_schedule_instance | PAYMENT_SCHEDULE_INSTANCE | PAYMENT_SCHEDULE_INSTANCE_ID | Batched | `BATCH_SIZE`, `PARALLEL_BATCHES` |
+| Payment_Schecule_Summary_Load | payment_schedule_summary | PAYMENT_SCHEDULE_SUMMARY | PAYMENT_SCHEDULE_ID | Single-pass | — |
+| Phone_Numbers_Load | phone_number | PHONE_NUMBER | PHONE_ID | Batched | `BATCH_SIZE`, `PARALLEL_BATCHES` |
+| Tbl_Enotice_Email_Resp_Load | tbl_enotice_email_resp | TBL_ENOTICE_EMAIL_RESP | ID | Single-pass | — |
+| Tbl_Enotice_To_Fand_Load | tbl_enotice_to_fand | TBL_ENOTICE_TO_FAND | RECON_STATUS_ID | Single-pass | — |
+| Tbl_Fa_Consumer_Texting_Ack_3p_Hist_Load | tbl_fa_consumer_texting_ack_3p_hist | TBL_FA_CONSUMER_TEXTING_ACK_3P_HIST | TEXT_ID | Batched | `BATCH_SIZE`, `PARALLEL_BATCHES` |
+| Tbl_Fa_Consumer_Texting_Resp_3p_Hist_Load | tbl_fa_consumer_texting_resp_3p_hist | TBL_FA_CONSUMER_TEXTING_RESP_3P_HIST | RESPONSE_ID | Single-pass | — |
+| Transactions_Load | transactions | TRANSACTIONS | TRANS_ID | Batched | `BATCH_SIZE`, `PARALLEL_BATCHES` |
+| Vmdrops_Load | vmdrops | VMDROPS | ARLOGID | Single-pass | — |
+| VoApps_Load | voapps | VOAPPS | VOAPPS_ID | Single-pass | — |
+
+### BIDATA utility jobs
+
+| Job | Reads | Writes | Context variables |
+|---|---|---|---|
+| [BIDATA_Schema_Deploy](talend/FAMIGRATION/job_BIDATA_Schema_Deploy.md) | `INFORMATION_SCHEMA` (verification) | Alters the 24 target tables; creates/seeds `ETL_BOOKMARK`, 48 `STG_CHANGED_*` tables, `ETL_JOB_RUN_LOG`, `ETL_JOB_RUN_STEP` | `keystorePath` |
+| [BIDATA_Load_Summary_Alert](talend/FAMIGRATION/job_BIDATA_Load_Summary_Alert.md) | `ETL_BOOKMARK`, `ETL_JOB_RUN_LOG` | Email only (SMTP) | `keystorePath`, `emailRecipients`, `emailCC`, `LOOKBACK_HOURS`, `SEND_ONLY_ON_ISSUES` |
+
+### Retired jobs (`Older_Inactive_Jobs`)
+
+| Job | Source | Target | Table emptied before load? | Uses bookmark/run log? |
+|---|---|---|---|---|
+| Account_Load_Copy | dbo.account | ACCOUNT | Yes | No |
+| CommTexts_Load | dbo.commtexts | COMMTEXTS | Yes | No |
+| Debtor_Load | dbo.debtor | DEBTOR | Yes | No |
+| Emails_Load | dbo.emails | EMAILS | Yes | No |
+| Letters_Load | dbo.letters | LETTERS | Yes | No |
+| Texts_Load | dbo.texts | TEXTS | Yes | No |
+| Validation_Load | dbo.validation | VALIDATION | Yes | No |
+
+All jobs connect to the same SQL Server (`10.1.40.7:1433`) and Snowflake account (`xca26579.us-east-1`, `EDWPRODHH.BIDATA`, warehouse `COMPUTE_WH`); that is omitted from the columns because it is identical on every row.
 
 ## Notes
 
-- **Every job shares one SQL Server login and host — hardcoded, not centralized.** All 12 jobs connect to `10.1.40.7:1433` as `svc_talend`, but none of them do it through the project's one defined database connection (`Frostlake_0.1`) or through a context variable — the host, port, and login are typed directly into each job's `tDBInput_1` component. This is the riskiest pattern in the matrix: a single source-side change (server move, port change, password rotation) requires editing all 12 jobs individually, and there's no shared place to see or update it.
-- **The one defined connection object (`Frostlake_0.1`) looks unused.** It's declared at the project level with every detail field (host, port, database, schema) blank in the extracted metadata, and no job's components reference it by name. Worth confirming with the team whether it's a leftover from an earlier design or is used by tooling not captured in this extraction.
-- **The one context group (`Common_0.1` → `keystorePath`) is used by all 12 jobs identically** — every job loads the same SSL keystore file path before opening its Snowflake connection. This is the one thing that is properly centralized in this project; if it needs to change, changing the single context variable value updates all 12 jobs at once (assuming they share the same context environment).
-- **Two jobs (`Calls_Load`, `Client_Load`) don't empty their target table before loading, while the other ten do.** Since none of the 12 jobs use an upsert (all use plain `INSERT`, even though each has an `upsertKeyColumn` configured — see each job's page), these two are the only ones at risk of duplicate rows from a re-run or an overlapping schedule. This inconsistency (10 jobs truncate, 2 don't) looks unintentional rather than deliberate, since nothing else distinguishes those two jobs' purpose from the rest.
-- **No job has a visible dependency on another job, which is expected here** — this project is a flat set of independent one-table loaders, not an orchestrated pipeline. If any of these 12 tables are actually meant to load in a particular order relative to each other (e.g. `Client_Load` before `Debtor_Load` because debtor rows reference a client), that ordering is not enforced anywhere in Talend and would need to be verified with the team and enforced by whatever external scheduler runs these jobs.
+- **Everything now depends on `BIDATA_Schema_Deploy` having run first.** The loaders assume `ROW_HASH`, the bookmark row, both staging tables and the run-log tables exist. This ordering is not enforced anywhere in Talend; it has to be handled at deployment time.
+- **Everything also depends on `dbo.SF_ChangeLog`, which no Talend job maintains.** If that feed stops being written, every loader silently settles into NONE (no changes) and the tables go stale without any error. Because a NONE run is a normal outcome (logged with `LOAD_MODE = 'NONE'`), nothing in the metadata flags "no changes for days" as a problem; consider adding a staleness check to the alert.
+- **The bookmark row is a hidden prerequisite.** Jobs only `UPDATE` `ETL_BOOKMARK`; the deploy script seeds the 24 rows. A table added later without a seeded row will reload FULL on every run and never appear in the alert email.
+- **Connection details are still hardcoded in every job, not centralized.** All jobs type in the SQL Server host and login directly (with `trustServerCertificate=true`) rather than using the project's `Frostlake_0.1` connection (still empty and unused) or a context variable.
+- **The one shared context variable, `keystorePath`, is effectively bypassed.** Every job's `tSetKeystore_1` has the keystore path typed in as `.../ssl/keystore.p12`, while `keystorePath` defaults to `.../.ssl/keystore.p12`. Changing the context variable will not change which file the jobs actually use.
+- **Leftover/inert settings.** Several loaders carry an `upsertKeyColumn` that is not their real merge key (e.g. `Calls_Load` = `CALLIDKEY`, `Phone_Numbers_Load` / `Vmdrops_Load` / `Account_Load` = `DEBTOR_IDX`, `Consumer_Load` = `PACKET_IDX`, `Creditor_Transaction_Load` = `CONSUMERID`). These have no effect while the write mode is `INSERT`, but they will mislead anyone reading the job. Several jobs also carry unused schemas labelled `account`, left over from copying the Account loader.
+- **Retired jobs still point at live tables.** `Account_Load_Copy` writes to `ACCOUNT`, which is now owned by the incremental `Account_Load`. Running it would desynchronise the bookmark. The other six retired jobs own tables (`COMMTEXTS`, `DEBTOR`, `EMAILS`, `LETTERS`, `TEXTS`, `VALIDATION`) that no active job loads any more.
+- **Naming typo.** `Payment_Schecule_Account_Load` and `Payment_Schecule_Summary_Load` ("Schecule") load tables spelled correctly (`PAYMENT_SCHEDULE_*`); worth fixing before these job names get baked into schedules and run-log history.

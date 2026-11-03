@@ -1,13 +1,13 @@
 # System Overview
 
-*Generated: 2026-09-16 05:47 UTC*
+*Generated: 2026-11-03 07:00 UTC*
 
 ## Platform Summary
 
 | Platform | Component | Count |
 |----------|-----------|-------|
 | Talend | Projects | 1 |
-| Talend | ETL Jobs | 12 |
+| Talend | ETL Jobs | 33 |
 | Talend | DB Connections | 1 |
 | Talend | Context Groups | 1 |
 
