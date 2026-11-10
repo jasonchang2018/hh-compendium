@@ -2,7 +2,7 @@
 
 ## Overview
 
-`VoApps_Load` is one of twelve near-identical loader jobs in the FAMIGRATION project. It copies VoApps ringless-voicemail campaign events from the `voapps` table in the source SQL Server database into the `VOAPPS` table in the Snowflake data warehouse. In practice it holds each ringless-voicemail message dropped to a debtor's phone via the VoApps service — target number, delivery timestamps, and the result/status code returned by the vendor. The job reads the full table with a single SQL query (no filtering), and writes it to Snowflake, where it becomes available to downstream reporting tools such as Qlik.
+`VoApps_Load` keeps the Snowflake table `EDWPRODHH.BIDATA.VOAPPS` in step with the SQL Server table `snowflake.dbo.voapps` (server `10.1.40.7`). The table holds VoApps delivery results. Judging by its column names each row records the consumer, the phone number contacted, the VoApps result and code, the event timestamp (as text, UTC and Central time) and the source file name and file date it arrived in. Instead of copying the whole table every time, the job reads a per-table bookmark from `BIDATA.ETL_BOOKMARK` and looks in the SQL Server change log `dbo.SF_ChangeLog` for entries for `voapps` newer than that bookmark. It then picks one of three load modes: **FULL** when the bookmark is still 0 (first run) or any new change-log entry carries the full-reload marker `change_operation = 'F'`; **NONE** when there are no new change-log entries; otherwise **INCR**. FULL empties `VOAPPS` and reloads every source row. INCR stages only the changed keys and their current source rows. Then, in a single Snowflake transaction, it deletes rows that no longer exist at source, inserts new rows, updates only rows whose `ROW_HASH` changed (matching on `VOAPPS_ID`), and advances the bookmark. Every run, in any mode, is recorded in `BIDATA.ETL_JOB_RUN_LOG` (one row per run) and `BIDATA.ETL_JOB_RUN_STEP` (one row per step).
 
 ## Detail Table
 
@@ -13,74 +13,193 @@
 | Project | FAMIGRATION |
 | Author | jmach@harriscollect.com |
 | Created | 2026-08-10T13:13:17.182-0500 |
-| Last Modified | 2026-08-10T13:26:54.644-0500 |
+| Last Modified | 2026-10-26T22:09:58.023+0530 |
 
 ## Step-by-Step Data Flow
 
-1. **Startup** — `tPrejob_1` marks the start of the job, then `tSetKeystore_1` loads the SSL keystore file named in the `keystorePath` context variable, so the job can trust the certificate Snowflake presents. `tDBConnection_1` then opens a connection to Snowflake using that trust configuration (this connection component is defined in the job but, per the extracted metadata, the actual data-writing step below opens its own separate Snowflake connection rather than reusing it — see Issues Observed).
-2. **Read** — `tDBInput_1` connects to SQL Server at `10.1.40.7:1433` and runs a `SELECT` against `dbo.voapps` (23 columns), pulling every row and column with no filtering or joins.
-3. **Write** — `tDBOutput_1` takes the rows read in step 2 directly (no transformation step in this job) and writes them into the `VOAPPS` table in the `EDWPRODHH.BIDATA` schema of the `xca26579.us-east-1` Snowflake account, using the `COMPUTE_WH` warehouse and the `DATALOADER` role. The target table is emptied before the new rows are loaded, so each run fully replaces the previous day's data.
+1. **Startup (pre-job)** — `tPrejob_1` runs first and triggers `tSetKeystore_1`. That component sets up the SSL trust store (path from the `keystorePath` context variable) and key store (a fixed path; see Issues Observed). It then opens two shared connections that every later step reuses: `tDBConnection_1` to Snowflake (account `xca26579.us-east-1`, database `EDWPRODHH`, schema `BIDATA`, warehouse `COMPUTE_WH`, role `DATALOADER`) and `tDBConnection_2` to SQL Server (`10.1.40.7:1433`, database `snowflake`, login `svc_talend`).
+2. **Read the bookmark** — as soon as the Snowflake connection opens, `tDBInput_2` reads `LAST_CHANGE_ID` and `LAST_RUN_DTTM` from `EDWPRODHH.BIDATA.ETL_BOOKMARK` for `TABLE_NAME = 'VOAPPS'`. `tJavaRow_1` copies them into the context variables of the same names (a missing id becomes 0) and prints them to the log. If no bookmark row exists, the context defaults stay in place (`LAST_CHANGE_ID = 0`).
+3. **Measure the new change-log range** — once the SQL Server connection is open, `tDBInput_3` queries `dbo.SF_ChangeLog` for rows with `target_table = 'voapps'` and a `change_id` above the bookmark. It returns the row count, the highest `change_id`, and the highest `change_id` whose `change_operation` is `'F'`.
+4. **Choose the load mode** — `tJavaRow_2` fixes the end of this run's range: `MAX_CHANGE_ID` is the highest change id found, or the old bookmark if none was found. It then sets `LOAD_MODE`: `FULL` if the bookmark is 0 or a full-reload marker was found, `NONE` if there were no change rows, otherwise `INCR`. The change-row count is kept in `globalMap` as `CHANGE_LOG_ROWS`.
+5. **Log the run start** — when that subjob finishes, `tDBRow_3` inserts a `RUNNING` row into `ETL_JOB_RUN_LOG`. The row records the load mode, the steps planned (2 for NONE, 3 for FULL, 4 for INCR), the from/to change id, the change-log row count, and the current row count of `VOAPPS` as `TARGET_ROWS_BEFORE`. It also records step 1 *Check changes* as done in `ETL_JOB_RUN_STEP` and opens step 2 (*Load target*, *Stage changed keys* or *Nothing to load*).
+6. **Branch** — the main subjob starts at `tJava_1`. For `NONE` it prints a message, flags the run as completed, and nothing else runs. Two *Run If* links send the job down the FULL path (`"FULL".equals(context.LOAD_MODE)`) or the INCR path (`"INCR".equals(context.LOAD_MODE)`).
+7. **FULL path** — `tDBInput_1` reads every row of `dbo.voapps` (14 columns; the binary `ROW_HASH` is converted to 64-character hex text). `tDBOutput_1` truncates `VOAPPS` and writes the rows into it. `tDBRow_2` then closes step 2 and opens step 3 *Update bookmark*. In one transaction it moves the bookmark to `MAX_CHANGE_ID` (and `LAST_RUN_DTTM` to now), writes the row counts to the run log, and closes step 3. Rows read are reported as inserted, and the previous target row count as deleted.
+8. **INCR path, part 1: stage changed keys** — `tDBInput_4` lists the distinct non-null `key_value`s in `SF_ChangeLog` for `voapps` with a `change_id` above the bookmark and up to `MAX_CHANGE_ID`. `tDBOutput_3` truncates `STG_CHANGED_VOAPPS_KEYS` and inserts them. `tDBRow_8` closes step 2, opens step 3 *Stage changed rows*, and records the key count as `ROWS_TOTAL`.
+9. **INCR path, part 2: stage changed rows** — `tDBInput_5` reads the current source rows of `dbo.voapps` whose `VOAPPS_ID` appears in the same change-log range. `tDBOutput_2` truncates `STG_CHANGED_VOAPPS` and inserts them. A key whose source row has since been deleted produces no row here.
+10. **INCR path, part 3: apply** — `tDBRow_1` closes step 3 and opens step 4 *Merge into target*. Then, in one Snowflake transaction, it: counts the staged keys and rows and works out how many rows will be inserted, updated or left unchanged; deletes from `VOAPPS` every staged key that has no staged row (deleted at source); runs a `MERGE` on `VOAPPS_ID` that updates all columns only when `ROW_HASH` differs and inserts unmatched rows; moves the bookmark to `MAX_CHANGE_ID`; writes the inserted/updated/unchanged/deleted counts and `TARGET_ROWS_AFTER` to the run log; and closes step 4. Any error rolls the whole transaction back and is re-raised.
+11. **Mark completion** — after `tDBRow_2` (FULL) or `tDBRow_1` (INCR) succeeds, `tJava_3` sets the `RUN_COMPLETED` flag.
+12. **Finish (post-job)** — `tPostjob_1` always runs. `tJava_2` sets `RUN_STATUS` to `SUCCESS` only if `RUN_COMPLETED` is set, and to `FAILED` otherwise. It keeps the first `*_ERROR_MESSAGE` it finds in `globalMap`, cut to 4,000 characters and escaped for SQL. `tDBRow_4` closes any step still `RUNNING` as `DONE` or `FAILED`, and finalises the `ETL_JOB_RUN_LOG` row with the status, error message, end time and duration.
 
 ```mermaid
 graph LR
-    subgraph Startup[Startup / secure connection]
-        tPrejob_1[Pre-job] -->|OK| tSetKeystore_1[Load SSL keystore]
-        tSetKeystore_1 -->|OK| tDBConnection_1[Open Snowflake connection]
+    subgraph Startup["Pre-job: connections and bookmark"]
+        PRE["tPrejob_1 start"] --> KS["tSetKeystore_1 SSL key/trust store"]
+        KS --> SFC["tDBConnection_1 Snowflake BIDATA"]
+        SFC --> BM["tDBInput_2 read ETL_BOOKMARK for VOAPPS"]
+        BM --> BMJ["tJavaRow_1 set LAST_CHANGE_ID"]
+        KS --> MSC["tDBConnection_2 SQL Server"]
+        MSC --> CL["tDBInput_3 SF_ChangeLog range for voapps"]
+        CL --> LM["tJavaRow_2 set LOAD_MODE FULL / INCR / NONE"]
+        CL -->|"subjob ok"| LS["tDBRow_3 log run start"]
     end
-    subgraph DataFlow[Data movement]
-        tDBInput_1["Read dbo.voapps (SQL Server)"] -->|rows| tDBOutput_1["Write VOAPPS (Snowflake)"]
+    subgraph Main["Main: choose load mode"]
+        CH["tJava_1 choose load mode; NONE stops here"]
     end
+    subgraph Full["FULL path"]
+        FI["tDBInput_1 read all of dbo.voapps"] --> FO["tDBOutput_1 TRUNCATE + INSERT VOAPPS"]
+        FI -->|"subjob ok"| FB["tDBRow_2 update bookmark + run log"]
+    end
+    subgraph Incr["INCR path"]
+        KI["tDBInput_4 changed keys from SF_ChangeLog"] --> KO["tDBOutput_3 STG_CHANGED_VOAPPS_KEYS"]
+        KI -->|"subjob ok"| S8["tDBRow_8 log step: stage changed rows"]
+        S8 -->|"subjob ok"| RI["tDBInput_5 changed rows from dbo.voapps"]
+        RI --> RO["tDBOutput_2 STG_CHANGED_VOAPPS"]
+        RI -->|"subjob ok"| MG["tDBRow_1 delete + MERGE into VOAPPS, bookmark, run log"]
+    end
+    subgraph Post["Completion and post-job"]
+        DONE["tJava_3 mark run complete"]
+        PJ["tPostjob_1"] --> ST["tJava_2 collect run status"]
+        ST --> LE["tDBRow_4 log run end"]
+    end
+    CH -->|"if FULL"| FI
+    CH -->|"if INCR"| KI
+    FB -->|"subjob ok"| DONE
+    MG -->|"subjob ok"| DONE
 ```
 
 ## Settings
 
-### Source: SQL Server table `dbo.voapps` (component `tDBInput_1`, type `tMSSqlInput`)
+### Shared connections (`tDBConnection_1` SnowflakeConnection, `tDBConnection_2` tMSSqlConnection)
 
 | Setting | Value | What it means |
 |---|---|---|
-| HOST | 10.1.40.7 | The network address of the SQL Server machine the source data is read from. |
-| PORT | 1433 | The network port SQL Server listens on (1433 is the SQL Server default). |
-| DB_SCHEMA | dbo | The schema inside the source database that owns the table (`dbo` is SQL Server's default schema). |
-| DBNAME | snowflake | The name Talend was told to use for the source database connection. Despite the name, this is the SQL Server source, not Snowflake — see Issues Observed. |
-| USER | svc_talend | The SQL Server login Talend authenticates as to read the source table. |
-| TABLE | voapps | The specific source table this job reads from. |
-| PASS | ***REDACTED*** | The SQL Server password — captured by the extractor as redacted, never in plain text. |
+| Snowflake account | xca26579.us-east-1 | The Snowflake account (region-qualified) every Snowflake step uses. |
+| Snowflake database / schema | EDWPRODHH / BIDATA | Where the target, staging and control tables live. |
+| Snowflake warehouse | COMPUTE_WH | Compute cluster that runs the loads and SQL scripts. |
+| Snowflake role | DATALOADER | Role the service account assumes. |
+| Snowflake authentication settings | ***REDACTED*** | User id, auth type and key alias are redacted by the extractor. |
+| autoCommit | true | Each statement commits on its own unless the SQL script opens its own transaction (the bookmark and merge scripts do). |
+| SQL Server HOST / PORT | 10.1.40.7 / 1433 | The source SQL Server instance. |
+| SQL Server DBNAME / schema | snowflake / dbo | The source database really is named `snowflake`; the schema-change script calls the source "Frost MSSQL snowflake.dbo.*". It is not the Snowflake warehouse. |
+| SQL Server USER / PASS | svc_talend / ***REDACTED*** | Login used to read the source and the change log. |
+| PROPERTIES | trustServerCertificate=True | The SQL Server driver accepts the server's TLS certificate without validating it. |
+| Property type | REPOSITORY | Both connections come from shared repository metadata, so these details are maintained centrally, not per job. |
 
-### Target: Snowflake table `VOAPPS` (component `tDBOutput_1`, type `SnowflakeOutput`)
+### Source: `dbo.voapps` (components `tDBInput_1` FULL read and `tDBInput_5` INCR read, type `tMSSqlInput`)
 
 | Setting | Value | What it means |
 |---|---|---|
-| configuration.dataSet.dataStore.account | xca26579.us-east-1 | The Snowflake account identifier (region-qualified) the job connects to. |
-| configuration.dataSet.dataStore.warehouse | COMPUTE_WH | The Snowflake virtual warehouse (compute cluster) used to run the load. |
-| configuration.dataSet.dataStore.database | EDWPRODHH | The Snowflake database the target table lives in. |
-| configuration.dataSet.dataStore.dbSchema | BIDATA | The schema inside that Snowflake database the target table lives in. |
-| configuration.dataSet.dataStore.role | DATALOADER | The Snowflake role the job's service account assumes for this load. |
-| configuration.dataSet.tableName | VOAPPS | The Snowflake table this job writes to. |
-| configuration.snowflakeOutputCommonConfig.tableAction | TRUNCATE | What happens to the target table before loading: create it if missing, empty it first, or leave it as-is. |
-| configuration.snowflakeOutputCommonConfig.dataAction | INSERT | How rows are written: a straight insert, versus an update-or-insert (upsert) keyed on a column. |
-| configuration.snowflakeOutputCommonConfig.upsertKeyColumn | EMID_IDX | The column that would be used to match existing rows if the load were doing an upsert. |
-| configuration.dieOnError | false | Whether the whole job aborts the moment a single row fails to load. |
-| configuration.dataSet.dataStore.shareConnection | false | Whether this component reuses another open Snowflake connection in the job instead of opening its own. |
+| USE_EXISTING_CONNECTION / CONNECTION | true / tDBConnection_2 | Reuses the shared SQL Server connection. |
+| TABLE | voapps | Source table. |
+| QUERY (tDBInput_1) | `SELECT <14 columns> FROM dbo.voapps` | Reads every row. `ROW_HASH` is selected as `CONVERT(VARCHAR(64), ROW_HASH, 2)` (hex text) so Snowflake can load it into its `BINARY(32)` column. |
+| QUERY (tDBInput_5) | Same columns, plus `WHERE VOAPPS_ID IN (SELECT key_value FROM dbo.SF_ChangeLog WHERE target_table = 'voapps' AND change_id > LAST_CHANGE_ID AND change_id <= MAX_CHANGE_ID)` | Reads only rows whose key appears in this run's change-log range. |
+| TRIM_ALL_COLUMN | true | Leading and trailing whitespace is stripped from every text column as it is read. |
+| SET_QUERY_TIMEOUT | false | No query timeout is applied, so the `QUERY_TIMEOUT_IN_SECONDS = 30` value is unused. |
+| ENCODING | ISO-8859-15 | Character set used when reading text. |
+
+Columns read (14): `VOAPPS_ID`, `consumer`, `CONSUMERID`, `phone_number`, `voapps_result`, `voapps_code`, `voapps_timestamp`, `VOAPPS_TIMESTAMP_UTC`, `VOAPPS_TIMESTAMP_CT`, `SOURCE_FILENAME`, `SOURCE_FILE_DATE`, `SYSTEM_SOURCE`, `EXTRACT_DTTM`, `ROW_HASH`.
+
+### Change log: `dbo.SF_ChangeLog` (components `tDBInput_3` and `tDBInput_4`, type `tMSSqlInput`)
+
+| Setting | Value | What it means |
+|---|---|---|
+| QUERY (tDBInput_3) | `COUNT(*)`, `MAX(change_id)`, `MAX(CASE WHEN change_operation = 'F' THEN change_id END)` where `target_table = 'voapps' AND change_id > LAST_CHANGE_ID` | Measures what is new since the bookmark and whether a full reload was requested. |
+| QUERY (tDBInput_4) | `SELECT DISTINCT key_value` where `target_table = 'voapps'`, `key_value IS NOT NULL`, `change_id` above LAST_CHANGE_ID and up to MAX_CHANGE_ID | The keys touched in this run's range. |
+| Range upper bound | MAX_CHANGE_ID | Fixed once, by `tJavaRow_2`. Change-log rows that arrive during the run are left for the next run. |
+
+### Bookmark read: `ETL_BOOKMARK` (component `tDBInput_2`, type `SnowflakeInput`)
+
+| Setting | Value | What it means |
+|---|---|---|
+| sqlQuery | `SELECT TO_VARCHAR(LAST_CHANGE_ID), TO_VARCHAR(LAST_RUN_DTTM, 'YYYY-MM-DD HH24:MI:SS.FF3') FROM EDWPRODHH.BIDATA.ETL_BOOKMARK WHERE TABLE_NAME = 'VOAPPS'` | Reads this table's bookmark as text; `tJavaRow_1` parses it. |
+| CONNECTION | tDBConnection_1 | Reuses the shared Snowflake connection. |
+
+### Target: `EDWPRODHH.BIDATA.VOAPPS` (component `tDBOutput_1`, type `SnowflakeOutput`, FULL path only)
+
+| Setting | Value | What it means |
+|---|---|---|
+| tableName | VOAPPS | The reporting table this job maintains. |
+| tableAction | TRUNCATE | The table is emptied before the FULL reload. |
+| dataAction | INSERT | Rows are written as plain inserts. |
+| upsertKeyColumn | VOAPPS_ID | Only used for UPSERT, so it has no effect with `INSERT`. |
+| convertColumnsAndTableToUppercase | true | Source column names are upper-cased to match Snowflake. |
+| dieOnError | true | Any write error stops the job. |
+| CONNECTION | tDBConnection_1 | Reuses the shared Snowflake connection. |
+
+### Staging: `STG_CHANGED_VOAPPS_KEYS` (`tDBOutput_3`) and `STG_CHANGED_VOAPPS` (`tDBOutput_2`), type `SnowflakeOutput`, INCR path only
+
+| Setting | Value | What it means |
+|---|---|---|
+| tableAction | TRUNCATE | Both staging tables are emptied on each INCR run. |
+| dataAction | INSERT | Keys and changed rows are inserted. |
+| upsertKeyColumn | KEY_VALUE / VOAPPS_ID | No effect with `INSERT`. |
+| dieOnError | true | Any write error stops the job. |
+
+### Control SQL scripts (type `SnowflakeRow`, all on `tDBConnection_1`)
+
+| Component | Label | What it does | dieOnError |
+|---|---|---|---|
+| tDBRow_3 | Log run start | Inserts the `RUNNING` run-log row with load mode, planned steps, change-id range and `TARGET_ROWS_BEFORE`; logs step 1 as done and opens step 2. | true |
+| tDBRow_2 | Update bookmark + run log | FULL only. Closes step 2 and opens step 3. Then, in one transaction, updates `ETL_BOOKMARK` and the run-log counts and closes step 3. On error it rolls back and re-raises. | true |
+| tDBRow_8 | Step: stage changed rows | INCR only. Closes step 2, opens step 3 and records the changed-key count. | true |
+| tDBRow_1 | Merge changes + bookmark | INCR only. Closes step 3 and opens step 4. Then, in one transaction: deletes keys gone from the source; runs a `MERGE` on `VOAPPS_ID` (update when `ROW_HASH IS DISTINCT FROM`, insert when not matched); updates `ETL_BOOKMARK`; writes the counts; closes step 4. On error it rolls back and re-raises. | true |
+| tDBRow_4 | Log run end | Post-job. Sets the open step to `DONE` or `FAILED` and finalises the run-log row (status, error, end time, duration). | false |
 
 ## Dependencies & Configuration
 
-**Other jobs**: none observed. The extracted metadata shows no `tRunJob` component and no cross-job triggers for `VoApps_Load` — it runs standalone, on its own trigger/schedule (not visible in the Talend Studio metadata extracted here; verify with the team or Talend Cloud Management Console if this job is deployed as a scheduled Task).
+**Other jobs**: none called. The metadata has no `tRunJob` component and no cross-job triggers. How the job is scheduled is not in the extracted metadata. The comments in `Snowflake_BIDATA_Schema_Change.sql` say the control objects are deployed once, either by hand or by a Talend job named `BIDATA_Schema_Deploy`. That job is outside this metadata extract.
 
-**Context variables**: `keystorePath` (from the `Common_0.1` context group) points to the SSL certificate keystore file (`.p12`) that `tSetKeystore_1` loads before the job opens its Snowflake connection. It lets the job's Snowflake JDBC connection trust the certificate chain it's presented, which is why every job in this project depends on it even though none of them talk to each other.
+**Upstream prerequisites** (outside this job): the SQL Server table `dbo.SF_ChangeLog` must be populated with `target_table`, `key_value`, `change_id` and `change_operation` for `voapps`, and the source table must carry a `ROW_HASH`. What populates these is not visible: Unable to determine from metadata — verify with team.
+
+**Tables read and written**
+
+| Table | Where | Access | Purpose |
+|---|---|---|---|
+| `dbo.voapps` | SQL Server | read | Source data: all rows on FULL, changed keys only on INCR. |
+| `dbo.SF_ChangeLog` | SQL Server | read | Change log that drives the load mode and the changed-key list. |
+| `BIDATA.VOAPPS` | Snowflake | truncate + insert (FULL), delete + merge (INCR) | Reporting target. |
+| `BIDATA.ETL_BOOKMARK` | Snowflake | read, update | One row per table (`TABLE_NAME = 'VOAPPS'`) holding `LAST_CHANGE_ID` and `LAST_RUN_DTTM`. The job only updates this row and never inserts it; the schema-change script seeds it. |
+| `BIDATA.STG_CHANGED_VOAPPS_KEYS` | Snowflake | truncate, insert, read | Changed keys for the current INCR run (`KEY_VALUE NUMBER(38,0)` per the schema-change script). |
+| `BIDATA.STG_CHANGED_VOAPPS` | Snowflake | truncate, insert, read | Current source rows for the changed keys (transient table created `LIKE VOAPPS`). |
+| `BIDATA.ETL_JOB_RUN_LOG` | Snowflake | insert, update | One row per run: mode, status, change-id range, row counts, timings, error message and live progress. |
+| `BIDATA.ETL_JOB_RUN_STEP` | Snowflake | insert, update | One row per step of a run: status, duration, rows processed and detail. |
+
+**Context variables**
+
+| Variable | Default | Used for |
+|---|---|---|
+| `keystorePath` | C:/Users/svc_talend_prd/.ssl/keystore.p12 | From the shared `Common` context group. Trust-store file loaded by `tSetKeystore_1`. |
+| `LAST_CHANGE_ID` | 0 | Built-in. Bookmark read from `ETL_BOOKMARK` and the lower bound of the change-log range; 0 forces FULL. |
+| `LAST_RUN_DTTM` | 1900-01-01 00:00:00 | Built-in. Bookmark timestamp; read and printed, but no query uses it. |
+| `MAX_CHANGE_ID` | 0 | Built-in. Upper bound of this run's change-log range; written back to the bookmark on success. |
+| `LOAD_MODE` | FULL | Built-in. Set to FULL, INCR or NONE by `tJavaRow_2`; drives the Run If branches and the run-log text. |
+
+The job also uses the `globalMap` keys `CHANGE_LOG_ROWS`, `RUN_COMPLETED`, `RUN_STATUS` and `RUN_ERROR_SQL`, the components' `*_NB_LINE` row counts, and Talend's built-in `pid` and `jobName` to key the run-log rows.
 
 ## Glossary
 
 | Component type | What it does |
 |---|---|
-| tMSSqlInput | Reads rows out of a Microsoft SQL Server table using a SQL query. |
-| SnowflakeOutput | Writes rows into a table in Snowflake, the cloud data warehouse. |
-| SnowflakeConnection | Opens a connection to the Snowflake cloud data warehouse that later steps can use. |
-| tSetKeystore | Configures the SSL/TLS certificate store the job uses to make encrypted connections trustworthy. |
-| tPrejob | A marker that runs before anything else in the job — used to sequence startup steps. |
+| tPrejob / tPostjob | Markers for steps that run before the main job, and after it even when the main job fails. |
+| tSetKeystore | Configures the SSL/TLS key store and trust store used by the job's encrypted connections. |
+| SnowflakeConnection | Opens one Snowflake connection that other Snowflake components reuse. |
+| tMSSqlConnection | Opens one SQL Server connection that other SQL Server components reuse. |
+| SnowflakeInput | Runs a query in Snowflake and passes the result rows on. |
+| tMSSqlInput | Runs a query in SQL Server and passes the result rows on. |
+| tJavaRow | Runs custom Java code once for each row that passes through it. |
+| tJava | Runs a block of custom Java code once. |
+| SnowflakeOutput | Writes rows into a Snowflake table, optionally truncating it first. |
+| SnowflakeRow | Runs a SQL statement or script in Snowflake. Here these are Snowflake Scripting blocks that handle the bookmark, the merge and the run log. |
+| Run If / OnSubjobOk / OnComponentOk | Triggers that start the next step only when a Java condition is true, after a whole subjob succeeds, or after one component succeeds. |
 
 ## Issues Observed
 
-- **Hardcoded connection details.** The source host (`10.1.40.7`), port (`1433`), and SQL Server login (`svc_talend`) are typed directly into this job's component settings rather than coming from a context variable — the same is true in all 12 jobs in this project. If the source server ever moves, every job has to be edited individually.
-- **Misleading connection name.** The source SQL Server connection's `DBNAME` setting is literally `"snowflake"`, even though this component (`tMSSqlInput`) reads from SQL Server, not Snowflake. This is confusing for anyone reading the job cold and worth renaming.
-- **Unused upsert setting.** An `upsertKeyColumn` (`EMID_IDX`) is configured, but `dataAction` is set to `INSERT`, not `UPSERT` — so this key is currently inert. It's either a leftover from an earlier design or a sign the load mode should be revisited.
-- **Separate Snowflake connection per component.** `shareConnection` is `false`, and the job also defines a standalone `tDBConnection_1` (Snowflake) component that isn't wired into the actual read/write flow shown in the extracted connections — the data-writing step opens its own connection instead. `tDBConnection_1` appears to only gate the SSL keystore setup step; verify with the team whether it's still needed.
+- **Key-store path does not match the context value.** `tSetKeystore_1` uses a hard-coded key store at `C:/Users/svc_talend_prd/ssl/keystore.p12`. The trust store comes from `context.keystorePath`, whose default is `C:/Users/svc_talend_prd/.ssl/keystore.p12`. Note `.ssl` versus `ssl`: either one path is wrong or two files exist. Verify on the Talend server.
+- **FULL reload is not atomic.** `tDBOutput_1` truncates `VOAPPS` and inserts with `autoCommit = true`, outside any transaction. If the load fails partway, the reporting table stays empty or partly loaded until a later run succeeds. The bookmark is only advanced afterwards (`tDBRow_2`), so the next run repeats the FULL load as long as the trigger still applies: the bookmark is 0, or the `'F'` marker is still in range. The INCR path, by contrast, applies everything inside one transaction.
+- **Bookmark can stay at 0, forcing FULL on every run.** If the bookmark is 0 and `SF_ChangeLog` has no rows for this table, `tJavaRow_2` leaves `MAX_CHANGE_ID` at the old bookmark (0). FULL then writes 0 back, so every later run is a FULL reload until the first change-log row appears.
+- **Failures before the run-log row exists are not recorded.** `tDBRow_3` inserts the `ETL_JOB_RUN_LOG` row only after the SSL setup, both connections, the bookmark read and the change-log query have all succeeded. If any of those fail, the post-job `tDBRow_4` (with `dieOnError = false`) updates nothing, and the failure shows only in the Talend log.
+- **Error message choice is arbitrary when there are several.** `tJava_2` keeps the first `*_ERROR_MESSAGE` entry it meets while iterating `globalMap`, and that iteration order is not guaranteed.
+- **`LAST_RUN_DTTM` is unused.** It is read from the bookmark and printed, but no query filters on it. Change detection relies entirely on `change_id`.
+- **No query timeout.** `SET_QUERY_TIMEOUT = false` on all four `tMSSqlInput` components, so a blocked SQL Server query can hang the run indefinitely.
+- **Trimming differs from the sibling jobs.** This job reads with `TRIM_ALL_COLUMN = true`, so text values in Snowflake can differ from the source by surrounding whitespace. The other incremental loaders of the same design (for example `Vmdrops_Load` and `Payment_Schecule_Summary_Load`) use `false`. `ROW_HASH` comes from the source, so trimming does not affect change detection, but confirm the difference is intended.
+- **Depends on new columns.** The schema-change script adds `VOAPPS.SOURCE_FILE_DATE` and `ROW_HASH`. The job selects and merges both, so the script must have been run in each environment first.

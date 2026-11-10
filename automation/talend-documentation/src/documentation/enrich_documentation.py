@@ -57,9 +57,14 @@ def load_json(path: str) -> dict:
 
 INPUT_PREFIXES = (
     "tFileInput", "tMysqlInput", "tFixedFlowInput", "tRowGenerator",
-    "tFileFetch", "tMysqlRow",
+    "tFileFetch", "tMysqlRow", "tMSSqlInput", "tDBInput",
+    # Talend Component Kit types carry no "t" prefix (e.g. SnowflakeInput)
+    "SnowflakeInput",
 )
-OUTPUT_PREFIXES = ("tFileOutput", "tMysqlOutput", "tCreateTable")
+OUTPUT_PREFIXES = (
+    "tFileOutput", "tMysqlOutput", "tCreateTable", "tMSSqlOutput", "tDBOutput",
+    "SnowflakeOutput",
+)
 TRANSFORM_TYPES = {
     "tMap", "tFilterRow", "tAggregateRow", "tUniqRow", "tFuzzyMatch",
     "tSortRow", "tJoin", "tIntervalMatch", "tAddCRC", "tMysqlSCD",
